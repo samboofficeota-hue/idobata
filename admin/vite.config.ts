@@ -15,4 +15,8 @@ export default defineConfig({
     allowedHosts:
       process.env.VITE_ADMIN_FRONTEND_ALLOWED_HOSTS?.split(",") || [],
   },
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+  },
 });

@@ -14,4 +14,8 @@ export default defineConfig({
         host: "0.0.0.0",
         allowedHosts: ((_a = process.env.VITE_ADMIN_FRONTEND_ALLOWED_HOSTS) === null || _a === void 0 ? void 0 : _a.split(",")) || [],
     },
+    build: {
+        outDir: "dist",
+        assetsDir: "assets",
+    },
 });

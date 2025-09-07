@@ -9,6 +9,10 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: process.env.VITE_FRONTEND_ALLOWED_HOSTS?.split(",") || [],
   },
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+  },
   esbuild: {
     keepNames: true,
     minifyIdentifiers: false,
