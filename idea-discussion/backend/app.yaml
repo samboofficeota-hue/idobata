@@ -1,0 +1,8 @@
+runtime: nodejs20
+service: default
+
+env_variables:
+  NODE_ENV: production
+  PORT: 8080
+  MONGODB_URI: "mongodb+srv://samboofficeota_db_user:M2y83BxrmLRddwum@cluster0.1zexq7p.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+  OPENROUTER_API_KEY: "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"

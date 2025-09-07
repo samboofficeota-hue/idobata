@@ -5,6 +5,7 @@ import {
   Menu,
   UserRound,
   X,
+  MessageSquare,
 } from "lucide-react";
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -22,6 +23,11 @@ const NAV_ITEMS = [
     label: "トップ",
     icon: Home,
     to: "/top",
+  },
+  {
+    label: "テーマ一覧",
+    icon: MessageSquare,
+    to: "/themes",
   },
   {
     label: "はじめに",

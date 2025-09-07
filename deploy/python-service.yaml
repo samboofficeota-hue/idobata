@@ -1,0 +1,32 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: idobata-python-service
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containers:
+      - image: gcr.io/PROJECT_ID/idobata-python-service
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: key
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+      serviceAccountName: idobata-python-service-sa

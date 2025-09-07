@@ -148,6 +148,14 @@ async def generate_embeddings(texts: List[str]) -> List[List[float]]:
 async def root():
     return {"message": "Idobata Embedding Service API"}
 
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "timestamp": "2025-09-07T04:00:00Z",
+        "service": "idobata-python-service"
+    }
+
 @app.post("/api/embeddings/generate", response_model=EmbeddingResponse)
 async def create_embeddings(request: EmbeddingRequest):
     print(f"DEBUG: Received embedding request with {len(request.items)} items")

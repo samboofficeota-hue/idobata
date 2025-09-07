@@ -1,0 +1,27 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: idobata-frontend
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containers:
+      - image: gcr.io/PROJECT_ID/idobata-frontend
+        ports:
+        - containerPort: 80
+        env:
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+          requests:
+            cpu: "0.5"
+            memory: "256Mi"
+      serviceAccountName: idobata-frontend-sa

@@ -191,6 +191,15 @@ io.on("connection", (socket) => {
 
 export { io };
 
+// --- Health Check Endpoint ---
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    service: "idobata-backend"
+  });
+});
+
 // --- Start Server ---
 httpServer.listen(PORT, () => {
   console.log(`Backend server listening on port ${PORT}`);

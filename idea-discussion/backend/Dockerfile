@@ -12,24 +12,29 @@ RUN npm install --workspace=idobata-idea-discussion-backend
 WORKDIR /app/idea-discussion/backend
 # Copy the backend source code
 COPY ./idea-discussion/backend ./
-# Build backend if needed (uncomment if you have a build step)
-# RUN npm run build
+# Build backend
+RUN npm run build
 
-# Stage 2: Final Production/Development Image
+# Stage 2: Final Production Image for Cloud Run
 FROM node:20-alpine AS production
 WORKDIR /app
 
 # Copy installed node_modules from the first stage
 COPY --from=backend-builder /app/node_modules ./node_modules
 
-# Copy backend source code
-COPY ./idea-discussion/backend ./idea-discussion/backend
+# Copy built backend source code
+COPY --from=backend-builder /app/idea-discussion/backend ./idea-discussion/backend
 
 # Set environment variables
 ENV NODE_ENV=production
+ENV PORT=8080
 
 WORKDIR /app/idea-discussion/backend
-EXPOSE 3000
+
+# Cloud Run uses PORT environment variable
+EXPOSE 8080
+
+# Start the application
 CMD ["npm", "start"]
 
 # Development stage for hot-reload
