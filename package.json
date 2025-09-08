@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Idobata system with frontend and backend",
   "scripts": {
-    "start": "cd idea-discussion/backend && npm start",
+    "start": "cd idea-discussion/backend && node server.js",
     "dev": "cd idea-discussion/backend && npm run dev",
-    "build": "cd idea-discussion/backend && npm run build"
+    "build": "cd idea-discussion/backend && npm run build",
+    "install:backend": "cd idea-discussion/backend && npm install",
+    "postinstall": "npm run install:backend"
   },
   "workspaces": [
     "frontend",
