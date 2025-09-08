@@ -1,27 +1,18 @@
 {
   "name": "idobata",
   "version": "1.0.0",
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "knip": "^5.53.0"
+  "description": "Idobata system with frontend and backend",
+  "scripts": {
+    "start": "cd idea-discussion/backend && npm start",
+    "dev": "cd idea-discussion/backend && npm run dev",
+    "build": "cd idea-discussion/backend && npm run build"
   },
   "workspaces": [
-    "policy-edit/backend",
-    "policy-edit/frontend",
-    "policy-edit/mcp",
-    "idea-discussion/backend",
     "frontend",
-    "admin"
+    "admin",
+    "idea-discussion/backend",
+    "policy-edit/frontend",
+    "policy-edit/backend"
   ],
-  "scripts": {
-    "check": "npm run lint && npm run typecheck && npm run test",
-    "test": "npm run test -ws",
-    "typecheck": "npm run typecheck -ws",
-    "lint": "biome check .",
-    "format": "biome check --write .",
-    "knip": "knip",
-    "knip:fix": "knip --fix"
-  }
+  "private": true
 }
