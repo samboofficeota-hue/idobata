@@ -6,8 +6,7 @@
     "start": "cd idea-discussion/backend && node server.js",
     "dev": "cd idea-discussion/backend && npm run dev",
     "build": "cd idea-discussion/backend && npm run build",
-    "install:backend": "cd idea-discussion/backend && npm install",
-    "postinstall": "npm run install:backend"
+    "install:backend": "cd idea-discussion/backend && npm install"
   },
   "workspaces": [
     "frontend",
