@@ -41,6 +41,7 @@ gcloud services enable sqladmin.googleapis.com
 ```
 
 このスクリプトで以下のシークレットを作成します：
+
 - `mongodb-uri`: MongoDB接続文字列
 - `openai-api-key`: OpenAI APIキー
 - `openrouter-api-key`: OpenRouter APIキー
@@ -56,12 +57,14 @@ gcloud services enable sqladmin.googleapis.com
 ### 4. データベースの設定
 
 #### MongoDB Atlas
+
 1. [MongoDB Atlas](https://www.mongodb.com/atlas)でアカウント作成
 2. クラスターを作成
 3. データベースユーザーを作成
 4. 接続文字列を取得してシークレットに設定
 
 #### Cloud SQL (PostgreSQL)
+
 ```bash
 # Cloud SQLインスタンスを作成
 gcloud sql instances create idobata-postgres \
@@ -111,18 +114,21 @@ gcloud sql users create postgres --instance=idobata-postgres --password=your-pas
 ## サービス構成
 
 ### フロントエンド (idobata-frontend)
+
 - **技術**: React + Vite + Nginx
 - **ポート**: 80
 - **公開**: 認証不要
 - **リソース**: CPU 0.5-1, Memory 256Mi-512Mi
 
 ### 管理画面 (idobata-admin)
+
 - **技術**: React + Vite + Nginx
 - **ポート**: 80
 - **公開**: 認証不要
 - **リソース**: CPU 0.5-1, Memory 256Mi-512Mi
 
 ### バックエンドAPI (idobata-backend)
+
 - **技術**: Node.js + Express
 - **ポート**: 8080
 - **公開**: 認証不要
@@ -130,6 +136,7 @@ gcloud sql users create postgres --instance=idobata-postgres --password=your-pas
 - **環境変数**: MongoDB URI, JWT Secret, OpenRouter API Key
 
 ### Python Service (idobata-python-service)
+
 - **技術**: Python + FastAPI
 - **ポート**: 8080
 - **公開**: 認証不要
@@ -139,12 +146,15 @@ gcloud sql users create postgres --instance=idobata-postgres --password=your-pas
 ## カスタマイズ
 
 ### プロジェクトIDの変更
+
 `deploy.sh`と`setup-secrets.sh`の`PROJECT_ID`変数を変更してください。
 
 ### リージョンの変更
+
 `deploy.sh`の`REGION`変数を変更してください。
 
 ### リソース制限の変更
+
 各サービスの`deploy/*-service.yaml`ファイルでリソース制限を調整できます。
 
 ## トラブルシューティング
@@ -152,17 +162,20 @@ gcloud sql users create postgres --instance=idobata-postgres --password=your-pas
 ### よくある問題
 
 1. **認証エラー**
+
    ```bash
    gcloud auth login
    gcloud auth application-default login
    ```
 
 2. **API有効化エラー**
+
    ```bash
    gcloud services enable [API_NAME]
    ```
 
 3. **シークレットアクセスエラー**
+
    ```bash
    gcloud secrets add-iam-policy-binding [SECRET_NAME] \
      --member="serviceAccount:[PROJECT_NUMBER]-compute@developer.gserviceaccount.com" \
@@ -170,6 +183,7 @@ gcloud sql users create postgres --instance=idobata-postgres --password=your-pas
    ```
 
 4. **Docker認証エラー**
+
    ```bash
    gcloud auth configure-docker
    ```
@@ -214,6 +228,7 @@ gcloud run deploy [SERVICE_NAME] --image gcr.io/[PROJECT_ID]/[IMAGE_NAME]
 4. ネットワーク接続
 
 詳細なログは以下で確認できます：
+
 ```bash
 gcloud logging read "resource.type=cloud_run_revision" --limit 50
 ```

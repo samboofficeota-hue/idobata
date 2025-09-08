@@ -5,8 +5,12 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
+import dotenv from "dotenv";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
+
+// Load environment variables
+dotenv.config();
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -15,16 +19,18 @@ const __dirname = path.dirname(__filename);
 const mongoUri = process.env.MONGODB_URI;
 
 if (!mongoUri) {
-  console.warn("Warning: MONGODB_URI is not defined in the .env file.");
-  console.warn("Continuing without MongoDB for testing purposes");
+  console.error("Error: MONGODB_URI is not defined in the environment variables.");
+  console.error("Please set MONGODB_URI environment variable.");
+  process.exit(1);
 }
 
 try {
-  await mongoose.connect(mongoUri || "mongodb://localhost:27017/idobata");
+  await mongoose.connect(mongoUri);
   console.log("MongoDB connected successfully.");
 } catch (err) {
   console.error("MongoDB connection error:", err);
-  console.warn("Continuing without MongoDB for testing purposes");
+  console.error("Failed to connect to MongoDB. Exiting...");
+  process.exit(1);
 }
 
 // --- Express App Setup ---
@@ -42,13 +48,13 @@ const io = new Server(httpServer, {
 const PORT = process.env.PORT || 3000; // Use port from env or default to 3000
 
 // --- Middleware ---
-// CORS: Allow requests from the frontend development server
+// CORS: Allow requests from configured origins
 app.use(
   cors({
     origin: process.env.IDEA_CORS_ORIGIN
       ? process.env.IDEA_CORS_ORIGIN.split(",")
       : ["http://localhost:5173", "http://localhost:5175"],
-    // Add other origins (e.g., production frontend URL) if needed
+    credentials: true,
   })
 );
 
@@ -58,10 +64,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- API Routes ---
-// Health Check Endpoint
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date() });
-});
 
 import authRoutes from "./routes/authRoutes.js"; // 追加: 認証ルート
 import likeRoutes from "./routes/likeRoutes.js"; // Import like routes
@@ -105,54 +107,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// --- Serve static files in production ---
-// This section will be useful when deploying to production
-// For development, we'll handle this with a fallback route
-if (process.env.NODE_ENV === "production") {
-  // Serve static files from the React app build directory
-  const frontendBuildPath = path.join(__dirname, "../frontend/dist");
-  app.use(express.static(frontendBuildPath));
-
-  // For any request that doesn't match an API route, serve the React app
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendBuildPath, "index.html"));
-  });
-}
-
-// For development, add a fallback route to handle non-API requests
-app.use((req, res, next) => {
-  // If this is an API request, continue to the API routes
-  if (req.path.startsWith("/api")) {
-    return next();
-  }
-
-  const userIdProfileImageRegex = /^\/([0-9a-f-]+)\/profile-image$/;
-  const match = req.path.match(userIdProfileImageRegex);
-  if (match && req.method === "POST") {
-    console.log(
-      `Redirecting request from ${req.path} to /api/users${req.path}`
-    );
-    req.url = `/api/users${req.path}`;
-    return next();
-  }
-
-  // For all other routes in development, respond with a message
-  res.status(200).send(`
-<html>
-    <head><title>Development Mode</title></head>
-    <body>
-        <h1>Backend Development Server</h1>
-        <p>This is the backend server running in development mode.</p>
-        <p>For client-side routing to work properly in development:</p>
-        <ul>
-            <li>Make sure your frontend Vite dev server is running (npm run dev in the frontend directory)</li>
-            <li>Access your app through the Vite dev server URL (typically http://localhost:5173)</li>
-            <li>The Vite dev server will proxy API requests to this backend server</li>
-        </ul>
-    </body>
-</html>
-`);
-});
+// --- API-only backend ---
+// This backend only serves API endpoints
+// Frontend is hosted separately
 
 // --- Error Handling Middleware (Example - Add more specific handlers later) ---
 app.use((err, req, res, next) => {
