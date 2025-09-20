@@ -141,4 +141,37 @@ const createAdminUser = async (req, res) => {
   }
 };
 
-export { login, getCurrentUser, createAdminUser, initializeAdminUser };
+const deleteAdminUser = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "メールアドレスは必須です",
+      });
+    }
+
+    const user = await AdminUser.findOneAndDelete({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "ユーザーが見つかりません",
+      });
+    }
+
+    res.json({
+      message: "管理者ユーザーが正常に削除されました",
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("[AuthController] Delete admin user error:", error);
+    res.status(500).json({ message: "サーバーエラーが発生しました" });
+  }
+};
+
+export { login, getCurrentUser, createAdminUser, deleteAdminUser, initializeAdminUser };

@@ -3,10 +3,10 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Install necessary libraries
-COPY requirements.txt .
+COPY python-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY python-service/ .
 
 # Set environment variables for Cloud Run
 ENV PORT=8080

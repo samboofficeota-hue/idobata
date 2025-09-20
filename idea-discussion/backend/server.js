@@ -2,10 +2,10 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cors from "cors";
+import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
-import dotenv from "dotenv";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
 
@@ -19,7 +19,9 @@ const __dirname = path.dirname(__filename);
 const mongoUri = process.env.MONGODB_URI;
 
 if (!mongoUri) {
-  console.error("Error: MONGODB_URI is not defined in the environment variables.");
+  console.error(
+    "Error: MONGODB_URI is not defined in the environment variables."
+  );
   console.error("Please set MONGODB_URI environment variable.");
   process.exit(1);
 }
@@ -40,7 +42,13 @@ const io = new Server(httpServer, {
   cors: {
     origin: process.env.IDEA_CORS_ORIGIN
       ? process.env.IDEA_CORS_ORIGIN.split(",").map((url) => url.trim())
-      : ["http://localhost:5173", "http://localhost:5175"],
+      : [
+          "http://localhost:5173",
+          "http://localhost:5175",
+          "https://idobata-frontend-336788531163.asia-northeast1.run.app",
+          "https://idobata-admin-336788531163.asia-northeast1.run.app",
+          "https://idobata-admin-doisltwsmq-an.a.run.app",
+        ],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -53,7 +61,13 @@ app.use(
   cors({
     origin: process.env.IDEA_CORS_ORIGIN
       ? process.env.IDEA_CORS_ORIGIN.split(",")
-      : ["http://localhost:5173", "http://localhost:5175"],
+      : [
+          "http://localhost:5173",
+          "http://localhost:5175",
+          "https://idobata-frontend-336788531163.asia-northeast1.run.app",
+          "https://idobata-admin-336788531163.asia-northeast1.run.app",
+          "https://idobata-admin-doisltwsmq-an.a.run.app",
+        ],
     credentials: true,
   })
 );
@@ -150,10 +164,10 @@ export { io };
 
 // --- Health Check Endpoint ---
 app.get("/api/health", (req, res) => {
-  res.status(200).json({ 
-    status: "healthy", 
+  res.status(200).json({
+    status: "healthy",
     timestamp: new Date().toISOString(),
-    service: "idobata-backend"
+    service: "idobata-backend",
   });
 });
 

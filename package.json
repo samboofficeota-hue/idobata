@@ -13,7 +13,8 @@
     "admin",
     "idea-discussion/backend",
     "policy-edit/frontend",
-    "policy-edit/backend"
+    "policy-edit/backend",
+    "policy-edit/mcp"
   ],
   "private": true
 }

@@ -1,15 +1,15 @@
-FROM node:20-alpine
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY idea-discussion/backend/package.json ./
 
 # Install dependencies
 RUN npm install --omit=dev
 
 # Copy source code
-COPY . .
+COPY idea-discussion/backend/ .
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -30,3 +30,26 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start the application
 CMD ["node", "server.js"]
+
+# Development stage
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Create uploads directory
+RUN mkdir -p uploads/profile-images uploads/temp
+
+# Expose port
+EXPOSE 3000
+
+# Start the application in development mode
+CMD ["npm", "run", "dev"]
