@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import About from "./pages/About";
 import CommentsPage from "./pages/CommentsPage";
 import DataPage from "./pages/DataPage";
+import Forum from "./pages/Forum";
 import HowTo from "./pages/HowTo";
 import MainPage from "./pages/MainPage";
 import MyPage from "./pages/MyPage";
@@ -47,6 +48,14 @@ export const router = createBrowserRouter([
         element: (
           <PageLayout>
             <Top />
+          </PageLayout>
+        ),
+      },
+      {
+        path: "forum",
+        element: (
+          <PageLayout>
+            <Forum />
           </PageLayout>
         ),
       },

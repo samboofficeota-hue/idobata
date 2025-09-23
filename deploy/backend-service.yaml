@@ -1,0 +1,59 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: idobata-backend
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containers:
+      - image: gcr.io/PROJECT_ID/idobata-backend
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: NODE_ENV
+          value: "production"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-uri
+              key: uri
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: key
+        - name: PASSWORD_PEPPER
+          valueFrom:
+            secretKeyRef:
+              name: password-pepper
+              key: pepper
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: secret
+        - name: JWT_EXPIRES_IN
+          value: "24h"
+        - name: IDEA_CORS_ORIGIN
+          value: "https://idobata-frontend-336788531163.asia-northeast1.run.app,https://idobata-admin-336788531163.asia-northeast1.run.app,https://idobata-admin-doisltwsmq-an.a.run.app"
+        - name: PYTHON_SERVICE_URL
+          value: "https://idobata-python-doisltwsmq-an.a.run.app"
+        - name: API_BASE_URL
+          value: "https://idobata-backend-336788531163.asia-northeast1.run.app"
+        - name: ALLOW_DELETE_THEME
+          value: "true"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+      serviceAccountName: idobata-backend-sa

@@ -10,7 +10,7 @@ import {
   LinkProps as RouterLinkProps,
   To,
   useNavigate as useRouterNavigate,
-  useSearchParams,
+  // useSearchParams,
 } from "react-router-dom";
 
 interface MockContextProps {
@@ -22,9 +22,10 @@ const MockContext = createContext<MockContextProps | undefined>(undefined);
 export const MockProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [searchParams] = useSearchParams();
+  // const [searchParams] = useSearchParams();
 
-  const isMockMode = searchParams.get("mock") === "true";
+  // 一時的にモックモードを無効にする
+  const isMockMode = false; // searchParams.get("mock") === "true";
 
   return (
     <MockContext.Provider value={{ isMockMode }}>

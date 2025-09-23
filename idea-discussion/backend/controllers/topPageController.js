@@ -18,7 +18,12 @@ export const getTopPageData = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100);
 
-    const questions = await SharpQuestion.find()
+    // アクティブなテーマのIDを取得
+    const activeThemeIds = themes.map((theme) => theme._id);
+
+    const questions = await SharpQuestion.find({
+      themeId: { $in: activeThemeIds },
+    })
       .sort({ createdAt: -1 })
       .limit(100); // Increased to get more questions
 
@@ -154,6 +159,97 @@ export const getTopPageData = async (req, res) => {
     console.error("Error fetching top page data:", error);
     return res.status(500).json({
       message: "Error fetching top page data",
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/opinions - 意見データのみを取得
+export const getOpinions = async (req, res) => {
+  try {
+    // アクティブなテーマのIDを取得
+    const activeThemes = await Theme.find({ isActive: true });
+    const activeThemeIds = activeThemes.map((theme) => theme._id);
+
+    // アクティブなテーマに関連する質問のIDを取得
+    const activeQuestions = await SharpQuestion.find({
+      themeId: { $in: activeThemeIds },
+    }).select("_id");
+
+    const activeQuestionIds = activeQuestions.map((q) => q._id);
+
+    // アクティブなテーマに関連する問題と解決策を取得
+    const latestProblems = await Problem.find({
+      questionId: { $in: activeQuestionIds },
+    })
+      .sort({ createdAt: -1 })
+      .limit(15)
+      .populate("themeId");
+
+    const latestSolutions = await Solution.find({
+      questionId: { $in: activeQuestionIds },
+    })
+      .sort({ createdAt: -1 })
+      .limit(15)
+      .populate("themeId");
+
+    // 問題と解決策を統合して意見として処理
+    const allOpinions = [
+      ...latestProblems.map((problem) => ({
+        _id: problem._id,
+        type: "problem",
+        statement: problem.statement,
+        themeId: problem.themeId,
+        questionId: problem.questionId,
+        createdAt: problem.createdAt,
+      })),
+      ...latestSolutions.map((solution) => ({
+        _id: solution._id,
+        type: "solution",
+        statement: solution.statement,
+        themeId: solution.themeId,
+        questionId: solution.questionId,
+        createdAt: solution.createdAt,
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // 意見データを拡張
+    const latestOpinions = await Promise.all(
+      allOpinions.map(async (opinion) => {
+        const questionLink = await QuestionLink.findOne({
+          questionId: opinion.questionId,
+        }).populate("questionId");
+
+        const authorName = await getUser(opinion._id);
+
+        const likeCount = await Like.countDocuments({
+          targetId: opinion._id,
+          targetType: opinion.type,
+        });
+
+        return {
+          id: opinion._id,
+          type: opinion.type,
+          text: opinion.statement,
+          authorName,
+          questionTitle:
+            questionLink?.questionId?.questionText ||
+            opinion.themeId?.title ||
+            "質問",
+          questionTagline: questionLink?.questionId?.tagLine || "",
+          questionId: questionLink?.questionId?._id || "",
+          createdAt: opinion.createdAt,
+          likeCount,
+          commentCount: 0,
+        };
+      })
+    );
+
+    return res.status(200).json(latestOpinions);
+  } catch (error) {
+    console.error("Error fetching opinions:", error);
+    return res.status(500).json({
+      message: "Error fetching opinions",
       error: error.message,
     });
   }

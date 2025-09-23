@@ -90,6 +90,16 @@ export class ApiClient {
     return this.withRetry(() => this.httpClient.get<Theme[]>("/themes"));
   }
 
+  // 統一API: 集計データ付きテーマ一覧
+  async getAllThemesWithStats(): Promise<HttpResult<Theme[]>> {
+    return this.withRetry(() => this.httpClient.get<Theme[]>("/themes"));
+  }
+
+  // 統一API: 集計データ付き質問一覧
+  async getAllQuestionsWithStats(): Promise<HttpResult<Question[]>> {
+    return this.withRetry(() => this.httpClient.get<Question[]>("/questions"));
+  }
+
   async getThemeById(id: string): Promise<HttpResult<Theme>> {
     return this.withRetry(() => this.httpClient.get<Theme>(`/themes/${id}`));
   }
@@ -378,6 +388,10 @@ export class ApiClient {
         latestOpinions: Opinion[];
       }>("/top-page-data")
     );
+  }
+
+  async getOpinions(): Promise<HttpResult<Opinion[]>> {
+    return this.withRetry(() => this.httpClient.get<Opinion[]>("/opinions"));
   }
 
   async getLikeStatus(

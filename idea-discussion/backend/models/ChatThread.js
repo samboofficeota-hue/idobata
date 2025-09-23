@@ -21,12 +21,21 @@ const messageSchema = new mongoose.Schema(
 
 const chatThreadSchema = new mongoose.Schema(
   {
-    userId: {
-      type: String,
+    themeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Theme",
       required: true,
-      index: true, // Index userId for faster lookups
     },
     messages: [messageSchema],
+    userId: {
+      type: String,
+      required: false,
+      index: true, // Index userId for faster lookups
+    },
+    sessionId: {
+      type: String,
+      required: true,
+    },
     extractedProblemIds: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -39,12 +48,6 @@ const chatThreadSchema = new mongoose.Schema(
         ref: "Solution", // Reference to the Solution model
       },
     ],
-    themeId: {
-      // 追加：所属するテーマのID
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Theme",
-      required: true,
-    },
     questionId: {
       // 追加：特定の質問に関連するスレッドかどうか
       type: mongoose.Schema.Types.ObjectId,
@@ -59,3 +62,4 @@ const chatThreadSchema = new mongoose.Schema(
 const ChatThread = mongoose.model("ChatThread", chatThreadSchema);
 
 export default ChatThread;
+

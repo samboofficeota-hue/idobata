@@ -15,70 +15,6 @@ const CommentsPage = () => {
   const { questionDetail, isLoading, error } = isMockMode
     ? { questionDetail: null, isLoading: false, error: null }
     : useQuestionDetail(themeId || "", qId || "");
-  const mockQuestionData = {
-    question: {
-      _id: qId,
-      questionText:
-        "どうすれば若者が安心してキャリアを築ける社会を実現できるか？",
-      themeId: themeId,
-      voteCount: 42,
-    },
-    relatedProblems: [
-      {
-        _id: "p1",
-        statement: "新卒一括採用の仕組みが、若者のキャリア選択の幅を狭めている",
-        relevanceScore: 0.95,
-      },
-      {
-        _id: "p2",
-        statement: "大学教育と実社会で求められるスキルにギャップがある",
-        relevanceScore: 0.87,
-      },
-      {
-        _id: "p3",
-        statement: "若者の非正規雇用が増加し、将来設計が立てにくい",
-        relevanceScore: 0.82,
-      },
-      {
-        _id: "p4",
-        statement:
-          "キャリア教育が不十分で、自分に合った仕事を見つけられない若者が多い",
-        relevanceScore: 0.78,
-      },
-      {
-        _id: "p5",
-        statement: "地方の若者は都市部に比べて就職機会が限られている",
-        relevanceScore: 0.75,
-      },
-    ],
-    relatedSolutions: [
-      {
-        _id: "s1",
-        statement: "インターンシップ制度の拡充と単位認定の推進",
-        relevanceScore: 0.92,
-      },
-      {
-        _id: "s2",
-        statement: "職業体験プログラムを中高生から段階的に導入する",
-        relevanceScore: 0.88,
-      },
-      {
-        _id: "s3",
-        statement: "若者向けのキャリアカウンセリングサービスの無料提供",
-        relevanceScore: 0.84,
-      },
-      {
-        _id: "s4",
-        statement: "リモートワークの推進による地方在住若者の就業機会拡大",
-        relevanceScore: 0.79,
-      },
-      {
-        _id: "s5",
-        statement: "若者の起業支援と失敗しても再チャレンジできる制度の整備",
-        relevanceScore: 0.76,
-      },
-    ],
-  };
 
   if (!isMockMode && isLoading) {
     return (
@@ -100,10 +36,8 @@ const CommentsPage = () => {
     );
   }
 
-  if (isMockMode || questionDetail) {
-    const currentQuestionDetail = isMockMode
-      ? mockQuestionData
-      : questionDetail;
+  if (questionDetail) {
+    const currentQuestionDetail = questionDetail;
     const breadcrumbItems = [
       { label: "テーマ一覧", href: "/themes" },
       {

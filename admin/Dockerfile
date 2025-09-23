@@ -4,13 +4,13 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY admin/package*.json ./
+COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm ci
 
 # Copy source code
-COPY admin/ .
+COPY . .
 
 # Set environment variables for build
 ENV VITE_API_BASE_URL=https://idobata-backend-doisltwsmq-an.a.run.app
@@ -25,7 +25,7 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY admin/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Set environment variable for port
 ENV PORT=80

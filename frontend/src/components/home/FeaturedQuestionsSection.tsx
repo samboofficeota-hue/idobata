@@ -112,9 +112,9 @@ const FeaturedQuestionsSection = ({
                   <Card className="border p-4 border-blue-400 rounded-lg hover:shadow-sm transition-all duration-200 bg-white overflow-hidden h-full">
                     <Link
                       to={
-                        question.themeId
+                        question.themeId && question.themeId !== question.id
                           ? `/themes/${question.themeId}/questions/${question.id}`
-                          : `/sharp-questions/${question.id}`
+                          : `/themes/${question.id}`
                       }
                       className="block h-full"
                     >

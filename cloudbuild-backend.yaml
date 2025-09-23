@@ -1,0 +1,11 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'gcr.io/idobata-471403/idobata-backend',
+      '-f', 'idea-discussion/backend/Dockerfile',
+      '--target', 'production',
+      '.'
+    ]
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/idobata-471403/idobata-backend']

@@ -61,6 +61,7 @@ const handleNewMessageByTheme = async (req, res) => {
       );
       chatThread = new ChatThread({
         userId: userId,
+        sessionId: `session_${uuidv4()}`, // Generate a unique session ID
         messages: [],
         extractedProblemIds: [],
         extractedSolutionIds: [],

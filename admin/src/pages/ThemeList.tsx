@@ -15,7 +15,7 @@ const ThemeList: FC = () => {
   const fetchThemes = async () => {
     setLoading(true);
 
-    const result = await apiClient.getAllThemes();
+    const result = await apiClient.getAllThemesForAdmin();
 
     result.match(
       (data) => {

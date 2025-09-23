@@ -3,6 +3,7 @@ import {
   createTheme,
   deleteTheme,
   getAllThemes,
+  getAllThemesForAdmin,
   getThemeById,
   getThemeDetail,
   updateTheme,
@@ -11,6 +12,9 @@ import {
 const router = express.Router();
 
 router.get("/", getAllThemes);
+
+// 管理画面用: 全てのテーマを取得（アクティブ・非アクティブ問わず）
+router.get("/admin", getAllThemesForAdmin);
 
 router.get("/:themeId", getThemeById);
 

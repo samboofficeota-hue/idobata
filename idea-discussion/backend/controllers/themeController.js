@@ -35,12 +35,59 @@ export const getAllThemes = async (req, res) => {
         slug: theme.slug,
         keyQuestionCount,
         commentCount,
+        isActive: theme.isActive,
+        createdAt: theme.createdAt,
+        updatedAt: theme.updatedAt,
       });
     }
 
     return res.status(200).json(enhancedThemes);
   } catch (error) {
     console.error("Error fetching all themes:", error);
+    return res
+      .status(500)
+      .json({ message: "Error fetching themes", error: error.message });
+  }
+};
+
+// 管理画面用: 全てのテーマを取得（アクティブ・非アクティブ問わず）
+export const getAllThemesForAdmin = async (req, res) => {
+  try {
+    // 全てのテーマ情報を取得（isActiveフィルターなし）
+    const themes = await Theme.find({}).sort({ createdAt: -1 });
+
+    // 拡張されたテーマ情報を格納する配列
+    const enhancedThemes = [];
+
+    // 各テーマについて関連データを取得
+    for (const theme of themes) {
+      // キークエスチョン数をカウント
+      const keyQuestionCount = await SharpQuestion.countDocuments({
+        themeId: theme._id,
+      });
+
+      // コメント数をカウント（ChatThreadのドキュメント数をカウント）
+      const commentCount = await ChatThread.countDocuments({
+        themeId: theme._id,
+      });
+
+      // 拡張されたテーマ情報を追加
+      enhancedThemes.push({
+        _id: theme._id,
+        title: theme.title,
+        description: theme.description || "",
+        slug: theme.slug,
+        keyQuestionCount,
+        commentCount,
+        isActive: theme.isActive,
+        createdAt: theme.createdAt,
+        updatedAt: theme.updatedAt,
+      });
+    }
+
+    return res.status(200).json(enhancedThemes);
+  } catch (error) {
+    console.error("Error fetching all themes for admin:", error);
     return res
       .status(500)
       .json({ message: "Error fetching themes", error: error.message });

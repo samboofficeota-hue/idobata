@@ -97,6 +97,10 @@ export class ApiClient {
     return this.request<Theme[]>("/themes");
   }
 
+  async getAllThemesForAdmin(): Promise<ApiResult<Theme[]>> {
+    return this.request<Theme[]>("/themes/admin");
+  }
+
   async getThemeById(id: string): Promise<ApiResult<Theme>> {
     return this.request<Theme>(`/themes/${id}`);
   }

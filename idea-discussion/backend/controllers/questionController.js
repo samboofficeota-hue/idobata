@@ -6,6 +6,7 @@ import QuestionLink from "../models/QuestionLink.js";
 import ReportExample from "../models/ReportExample.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
+import Theme from "../models/Theme.js";
 import { getDebateAnalysis } from "../services/debateAnalysisGenerator.js";
 import { getVisualReport as getQuestionVisualReport } from "../services/questionVisualReportGenerator.js";
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
@@ -13,6 +14,63 @@ import { generateDigestDraft } from "../workers/digestGenerator.js";
 import { generatePolicyDraft } from "../workers/policyGenerator.js";
 import { generateReportExample } from "../workers/reportGenerator.js";
 import { generateVisualReport } from "../workers/visualReportGenerator.js";
+
+// GET /api/questions - 全ての質問を集計データ付きで取得（統一API）
+export const getAllQuestions = async (req, res) => {
+  try {
+    // アクティブなテーマのIDを取得
+    const activeThemes = await Theme.find({ isActive: true });
+    const activeThemeIds = activeThemes.map((theme) => theme._id);
+
+    const questions = await SharpQuestion.find({
+      themeId: { $in: activeThemeIds },
+    })
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const enhancedQuestions = await Promise.all(
+      questions.map(async (question) => {
+        const questionId = question._id;
+
+        const issueCount = await QuestionLink.countDocuments({
+          questionId,
+          linkedItemType: "problem",
+        });
+
+        const solutionCount = await QuestionLink.countDocuments({
+          questionId,
+          linkedItemType: "solution",
+        });
+
+        const likeCount = await Like.countDocuments({
+          targetId: questionId,
+          targetType: "question",
+        });
+
+        // Get unique participant count from chat threads
+        const uniqueParticipantCount = await ChatThread.distinct("userId", {
+          themeId: question.themeId,
+        }).then((userIds) => userIds.filter((userId) => userId).length);
+
+        return {
+          ...question.toObject(),
+          issueCount,
+          solutionCount,
+          likeCount,
+          uniqueParticipantCount,
+        };
+      })
+    );
+
+    return res.status(200).json(enhancedQuestions);
+  } catch (error) {
+    console.error("Error fetching all questions:", error);
+    return res.status(500).json({
+      message: "Error fetching questions",
+      error: error.message,
+    });
+  }
+};
 
 // GET /api/themes/:themeId/questions/:questionId/details - 特定の質問の詳細を取得
 export const getQuestionDetails = async (req, res) => {
@@ -426,3 +484,6 @@ export const getQuestionsByTheme = async (req, res) => {
     });
   }
 };
+
+// Export all functions
+// getAllQuestions is already exported above

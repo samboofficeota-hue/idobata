@@ -102,7 +102,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
 
   const renderDisabledState = () => (
     <div className="p-4 bg-gray-100 text-gray-500 text-center border-t">
-      <p>{disabledMessage}</p>
+      <p className="text-base">{disabledMessage}</p>
     </div>
   );
 
@@ -115,7 +115,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           <div className="flex items-center justify-center">
             <Bot className="w-6 h-6 text-blue-500" />
           </div>
-          <h2 className="text-base font-semibold text-gray-800">
+          <h2 className="text-lg font-semibold text-gray-800">
             AIチャット対話
           </h2>
         </div>
@@ -137,7 +137,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder="ここに入力"
-                  className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-base resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
                   style={{ height: "48px", overflow: "hidden" }}
@@ -148,7 +148,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-xs h-7 font-medium"
+                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
                       onClick={() => onSendMessage?.("お題を変える")}
                     >
                       お題を変える
@@ -156,7 +156,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-xs h-7 font-medium"
+                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
                       onClick={() => onSendMessage?.("対話を終わる")}
                     >
                       対話を終わる
@@ -198,7 +198,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           <div className="flex items-center justify-center">
             <Bot className="w-6 h-6 text-blue-500" />
           </div>
-          <h2 className="text-base font-semibold text-gray-800">
+          <h2 className="text-lg font-semibold text-gray-800">
             AIチャット対話
           </h2>
         </div>
@@ -220,7 +220,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder="ここに入力"
-                  className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-base resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
                   style={{ height: "48px", overflow: "hidden" }}
@@ -231,7 +231,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-xs h-7 font-medium"
+                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
                       onClick={() => onSendMessage?.("お題を変える")}
                     >
                       お題を変える
@@ -239,7 +239,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-xs h-7 font-medium"
+                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
                       onClick={() => onSendMessage?.("対話を終わる")}
                     >
                       対話を終わる

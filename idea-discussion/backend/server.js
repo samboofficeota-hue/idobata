@@ -82,6 +82,7 @@ app.use(express.urlencoded({ extended: true }));
 import authRoutes from "./routes/authRoutes.js"; // 追加: 認証ルート
 import likeRoutes from "./routes/likeRoutes.js"; // Import like routes
 import questionEmbeddingRoutes from "./routes/questionEmbeddingRoutes.js";
+import questionRoutes from "./routes/questionRoutes.js"; // Import unified question routes
 import siteConfigRoutes from "./routes/siteConfigRoutes.js";
 import themeChatRoutes from "./routes/themeChatRoutes.js";
 import themeDigestRoutes from "./routes/themeDigestRoutes.js";
@@ -94,6 +95,7 @@ import themeProblemRoutes from "./routes/themeProblemRoutes.js";
 import themeQuestionRoutes from "./routes/themeQuestionRoutes.js";
 import themeSolutionRoutes from "./routes/themeSolutionRoutes.js";
 import topPageRoutes from "./routes/topPageRoutes.js"; // Import top page routes
+import opinionsRoutes from "./routes/opinionsRoutes.js"; // Import opinions routes
 import userRoutes from "./routes/userRoutes.js"; // Import user routes
 
 // Theme management routes
@@ -112,11 +114,14 @@ app.use("/api/themes/:themeId/policy-drafts", themePolicyRoutes);
 app.use("/api/themes/:themeId/digest-drafts", themeDigestRoutes);
 app.use("/api/themes/:themeId/import", themeImportRoutes);
 app.use("/api/themes/:themeId/chat", themeChatRoutes);
+// themeEmbeddingRoutes は最後に配置（より具体的なルートの後に）
 app.use("/api/themes/:themeId", themeEmbeddingRoutes);
-app.use("/api/questions/:questionId", questionEmbeddingRoutes);
 
 app.use("/api/site-config", siteConfigRoutes);
+app.use("/api/opinions", opinionsRoutes); // Add opinions routes
 app.use("/api/top-page-data", topPageRoutes); // Add top page routes
+app.use("/api/questions", questionRoutes); // Add unified questions routes
+app.use("/api/questions/:questionId", questionEmbeddingRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

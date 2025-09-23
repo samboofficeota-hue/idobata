@@ -3,13 +3,13 @@ FROM node:20-alpine AS production
 WORKDIR /app
 
 # Copy package files
-COPY idea-discussion/backend/package.json ./
+COPY package.json ./
 
 # Install dependencies
 RUN npm install --omit=dev
 
 # Copy source code
-COPY idea-discussion/backend/ .
+COPY . .
 
 # Set environment variables
 ENV NODE_ENV=production

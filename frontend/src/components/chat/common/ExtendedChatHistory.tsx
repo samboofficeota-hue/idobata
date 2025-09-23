@@ -55,7 +55,7 @@ function ExtendedChatHistory({ messages }: ExtendedChatHistoryProps) {
                   msg instanceof SystemNotification,
               })}
             >
-              <div className="text-sm whitespace-pre-wrap leading-tight">
+              <div className="text-base whitespace-pre-wrap leading-relaxed">
                 {msg.isStreaming ? (
                   <StreamingText content={msg.content} />
                 ) : (

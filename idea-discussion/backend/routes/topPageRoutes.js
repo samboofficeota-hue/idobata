@@ -1,8 +1,12 @@
 import express from "express";
-import { getTopPageData } from "../controllers/topPageController.js";
+import {
+  getOpinions,
+  getTopPageData,
+} from "../controllers/topPageController.js";
 
 const router = express.Router();
 
 router.get("/", getTopPageData);
+router.get("/opinions", getOpinions);
 
 export default router;

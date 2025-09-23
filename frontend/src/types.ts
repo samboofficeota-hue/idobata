@@ -107,6 +107,8 @@ export interface Question {
   solutionCount?: number; // 追加: 関連する解決策の数
   likeCount?: number;
   themeId?: string;
+  // 統一API用の集計データフィールド
+  uniqueParticipantCount?: number; // 参加人数
 }
 
 export interface PolicyDraft {

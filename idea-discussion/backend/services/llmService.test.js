@@ -26,7 +26,7 @@ describe("llmService", () => {
   beforeEach(() => {
     // Reset mocks and environment variables before each test
     vi.resetAllMocks();
-    process.env = { ...originalEnv, OPENROUTER_API_KEY: "test-key" }; // Ensure API key is set for tests
+    process.env = { ...originalEnv, OPENAI_API_KEY: "test-key" }; // Ensure API key is set for tests
 
     // Get a reference to the mocked create function for easier use
     // Note: This assumes OpenAI is instantiated only once in llmService.js
@@ -183,8 +183,8 @@ describe("llmService", () => {
       consoleSpy.mockRestore();
     });
 
-    it("should log an error and return if OPENROUTER_API_KEY is missing", async () => {
-      process.env.OPENROUTER_API_KEY = undefined; // Remove API key for this test
+    it("should log an error and return if OPENAI_API_KEY is missing", async () => {
+      process.env.OPENAI_API_KEY = undefined; // Remove API key for this test
 
       // Spy on console.error
       const consoleErrorSpy = vi.spyOn(console, "error");
@@ -194,7 +194,7 @@ describe("llmService", () => {
       expect(result).toBeUndefined(); // Function should return early
       expect(mockCreate).not.toHaveBeenCalled(); // API should not be called
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "OPENROUTER_API_KEY not found in environment variables. Make sure .env is loaded correctly from the project root."
+        "OPENAI_API_KEY not found in environment variables. Make sure .env is loaded correctly from the project root."
       );
 
       // Clean up spy
