@@ -49,11 +49,13 @@ Generate 6 question objects in total within the "questions" array.
 
     // 3. Call LLM
     console.log("[QuestionGenerator] Calling LLM to generate questions...");
-    const llmResponse = await callLLM(
-      messages,
-      true,
-      "google/gemini-2.5-pro-preview-03-25"
-    ); // Request JSON output with specific model
+    let llmResponse;
+    try {
+      llmResponse = await callLLM(messages, true, "gpt-4o-mini"); // Request JSON output with specific model
+    } catch (error) {
+      console.error("[QuestionGenerator] Error calling LLM:", error.message);
+      throw new Error(`LLM call failed: ${error.message}`);
+    }
 
     if (
       !llmResponse ||
@@ -64,7 +66,7 @@ Generate 6 question objects in total within the "questions" array.
         "[QuestionGenerator] Failed to get valid questions array from LLM response:",
         llmResponse
       );
-      return;
+      throw new Error("LLM did not return valid questions array");
     }
 
     const generatedQuestionObjects = llmResponse.questions;

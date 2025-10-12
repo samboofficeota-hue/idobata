@@ -6,7 +6,10 @@ import OpenAI from "openai";
 dotenv.config({ override: true }); // Load environment variables from .env file
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-api-key",
+  apiKey:
+    process.env.OPENAI_API_KEY ||
+    process.env.OPENROUTER_API_KEY ||
+    "mock-api-key",
 });
 /**
  * Call an LLM model via OpenAI API
@@ -30,6 +33,16 @@ async function callLLM(messages, jsonOutput = false, model = "gpt-4o-mini") {
   }
 
   console.log("Calling LLM with options:", JSON.stringify(options, null, 2)); // Log request details
+
+  // Check API key before making request
+  if (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
+    console.error(
+      "No valid API key found. Please set OPENAI_API_KEY or OPENROUTER_API_KEY in your .env file"
+    );
+    throw new Error(
+      "No valid API key found. Please set OPENAI_API_KEY or OPENROUTER_API_KEY in your .env file"
+    );
+  }
 
   try {
     const completion = await openai.chat.completions.create(options);

@@ -121,11 +121,7 @@ Please provide the output as a JSON object with "title" and "content" keys. When
 
     // 4. Call LLM
     console.log("[PolicyGenerator] Calling LLM to generate policy draft...");
-    const llmResponse = await callLLM(
-      messages,
-      true,
-      "google/gemini-2.5-pro-preview-03-25"
-    ); // Request JSON output with specific model
+    const llmResponse = await callLLM(messages, true, "gpt-4o-mini"); // Request JSON output with specific model
 
     if (
       !llmResponse ||

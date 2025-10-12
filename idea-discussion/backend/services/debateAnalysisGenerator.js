@@ -138,7 +138,7 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: debatePrompt }],
       true,
-      "google/gemini-2.5-pro-preview-03-25"
+      "gpt-4o-mini"
     );
 
     if (!completion) {

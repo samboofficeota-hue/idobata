@@ -106,11 +106,39 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
       "シャープな問いの生成を開始しました。しばらくすると問いリストに表示されます。"
     );
 
-    setTimeout(() => {
-      fetchQuestions(theme._id);
-    }, 5000);
+    // ポーリングで問いの生成完了を待つ
+    const pollForQuestions = async () => {
+      let attempts = 0;
+      const maxAttempts = 12; // 最大2分間（10秒間隔で12回）
 
-    setIsGeneratingQuestions(false);
+      const poll = async () => {
+        attempts++;
+        console.log(`問い生成の確認中... (${attempts}/${maxAttempts})`);
+
+        const result = await apiClient.getQuestionsByTheme(theme._id);
+        if (result.isOk() && result.value.length > 0) {
+          console.log(`${result.value.length}個の問いが生成されました`);
+          setQuestions(result.value);
+          setSuccessMessage(null);
+          setIsGeneratingQuestions(false);
+          return;
+        }
+
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 10000); // 10秒後に再試行
+        } else {
+          console.log("問い生成のタイムアウト");
+          setSuccessMessage(
+            "問いの生成に時間がかかっています。しばらく後にページを更新してください。"
+          );
+          setIsGeneratingQuestions(false);
+        }
+      };
+
+      setTimeout(poll, 5000); // 5秒後に開始
+    };
+
+    pollForQuestions();
   };
 
   const handleGenerateVisualReport = async () => {

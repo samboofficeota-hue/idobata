@@ -97,6 +97,7 @@ const triggerQuestionGenerationByTheme = async (req, res) => {
     res.status(500).json({
       message: "Failed to start sharp question generation process for theme",
       error: error.message,
+      details: error.stack,
     });
   }
 };

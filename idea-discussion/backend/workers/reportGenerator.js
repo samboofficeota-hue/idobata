@@ -104,11 +104,7 @@ Please provide the output as a JSON object with "introduction" and "issues" keys
     ];
 
     console.log("[ReportGenerator] Calling LLM to generate report example...");
-    const llmResponse = await callLLM(
-      messages,
-      true,
-      "google/gemini-2.5-pro-preview-03-25"
-    );
+    const llmResponse = await callLLM(messages, true, "gpt-4o-mini");
 
     if (
       !llmResponse ||
