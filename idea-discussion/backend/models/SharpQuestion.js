@@ -33,6 +33,10 @@ const sharpQuestionSchema = new mongoose.Schema(
       of: Object,
       default: {},
     },
+    isVisible: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 ); // createdAt, updatedAt を自動追加 (todo.md指示)

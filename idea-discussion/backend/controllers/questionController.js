@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import ChatThread from "../models/ChatThread.js";
+import DebateAnalysis from "../models/DebateAnalysis.js";
 import Like from "../models/Like.js";
 import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
@@ -7,7 +8,7 @@ import ReportExample from "../models/ReportExample.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
-import { getDebateAnalysis } from "../services/debateAnalysisGenerator.js";
+import { getDebateAnalysis as generateDebateAnalysis } from "../services/debateAnalysisGenerator.js";
 import { getVisualReport as getQuestionVisualReport } from "../services/questionVisualReportGenerator.js";
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
 import { generateDigestDraft } from "../workers/digestGenerator.js";
@@ -148,7 +149,7 @@ export const getQuestionDetails = async (req, res) => {
 
     const visualReport = await getQuestionVisualReport(questionId);
 
-    const debateData = await getDebateAnalysis(questionId);
+    const debateData = await generateDebateAnalysis(questionId);
 
     // 対話参加人数と対話数を計算
     // 1. この質問に関連するProblemとSolutionのsourceOriginIdを取得
@@ -480,6 +481,104 @@ export const getQuestionsByTheme = async (req, res) => {
     console.error(`Error fetching questions for theme ${themeId}:`, error);
     res.status(500).json({
       message: "Error fetching theme questions",
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/themes/:themeId/questions/:questionId/debate-analysis - 論点分析レポート取得
+export const getDebateAnalysis = async (req, res) => {
+  const { questionId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(questionId)) {
+    return res.status(400).json({ message: "Invalid question ID format" });
+  }
+
+  try {
+    const debateAnalysis = await DebateAnalysis.findOne({ questionId });
+
+    if (!debateAnalysis) {
+      return res.status(404).json({ message: "Debate analysis not found" });
+    }
+
+    res.status(200).json(debateAnalysis);
+  } catch (error) {
+    console.error(
+      `Error getting debate analysis for question ${questionId}:`,
+      error
+    );
+    res.status(500).json({
+      message: "Error getting debate analysis",
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/themes/:themeId/questions/:questionId/report - 市民意見レポート取得
+export const getReportExample = async (req, res) => {
+  const { questionId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(questionId)) {
+    return res.status(400).json({ message: "Invalid question ID format" });
+  }
+
+  try {
+    const reportExample = await ReportExample.findOne({ questionId });
+
+    if (!reportExample) {
+      return res.status(404).json({ message: "Report example not found" });
+    }
+
+    res.status(200).json(reportExample);
+  } catch (error) {
+    console.error(
+      `Error getting report example for question ${questionId}:`,
+      error
+    );
+    res.status(500).json({
+      message: "Error getting report example",
+      error: error.message,
+    });
+  }
+};
+
+// 表示/非表示の更新
+export const updateQuestionVisibility = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const { isVisible } = req.body;
+
+    if (typeof isVisible !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        error: "isVisible must be a boolean value",
+      });
+    }
+
+    const question = await SharpQuestion.findByIdAndUpdate(
+      questionId,
+      { isVisible },
+      { new: true }
+    );
+
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        error: "Question not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        questionId: question._id,
+        isVisible: question.isVisible,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating question visibility:", error);
+    res.status(500).json({
+      success: false,
       error: error.message,
     });
   }

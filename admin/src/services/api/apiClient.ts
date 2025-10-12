@@ -209,6 +209,20 @@ export class ApiClient {
     return this.request<Question[]>(`/themes/${themeId}/questions`);
   }
 
+  async updateQuestionVisibility(
+    themeId: string,
+    questionId: string,
+    isVisible: boolean
+  ): Promise<ApiResult<void>> {
+    return this.request<void>(
+      `/themes/${themeId}/questions/${questionId}/visibility`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ isVisible }),
+      }
+    );
+  }
+
   async generateQuestions(themeId: string): Promise<ApiResult<void>> {
     return this.request<void>(`/themes/${themeId}/generate-questions`, {
       method: "POST",
@@ -247,6 +261,43 @@ export class ApiClient {
       `/themes/${themeId}/questions/${questionId}/generate-debate-analysis`,
       {
         method: "POST",
+      }
+    );
+  }
+
+  // レポート取得メソッド
+  async getVisualReport(
+    themeId: string,
+    questionId: string
+  ): Promise<ApiResult<any>> {
+    return this.request<any>(
+      `/themes/${themeId}/questions/${questionId}/visual-report`,
+      {
+        method: "GET",
+      }
+    );
+  }
+
+  async getDebateAnalysis(
+    themeId: string,
+    questionId: string
+  ): Promise<ApiResult<any>> {
+    return this.request<any>(
+      `/themes/${themeId}/questions/${questionId}/debate-analysis`,
+      {
+        method: "GET",
+      }
+    );
+  }
+
+  async getReportExample(
+    themeId: string,
+    questionId: string
+  ): Promise<ApiResult<any>> {
+    return this.request<any>(
+      `/themes/${themeId}/questions/${questionId}/report`,
+      {
+        method: "GET",
       }
     );
   }

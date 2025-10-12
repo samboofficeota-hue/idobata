@@ -1,13 +1,16 @@
 import express from "express";
 import {
+  getDebateAnalysis,
   getQuestionDetails,
   getQuestionsByTheme,
+  getReportExample,
   getVisualReport,
   triggerDebateAnalysisGeneration,
   triggerDigestGeneration,
   triggerPolicyGeneration,
   triggerReportGeneration,
   triggerVisualReportGeneration,
+  updateQuestionVisibility,
 } from "../controllers/questionController.js";
 
 const router = express.Router({ mergeParams: true });
@@ -31,5 +34,9 @@ router.post(
 );
 
 router.get("/:questionId/visual-report", getVisualReport);
+router.get("/:questionId/debate-analysis", getDebateAnalysis);
+router.get("/:questionId/report", getReportExample);
+
+router.put("/:questionId/visibility", updateQuestionVisibility);
 
 export default router;

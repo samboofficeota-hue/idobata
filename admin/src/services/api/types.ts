@@ -129,6 +129,7 @@ export interface Question {
   questionText: string;
   tagLine?: string;
   tags?: string[];
+  isVisible?: boolean;
   createdAt: string;
   updatedAt: string;
 }

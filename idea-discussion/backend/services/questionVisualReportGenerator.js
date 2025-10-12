@@ -148,7 +148,7 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: visualPrompt }],
       false,
-      "anthropic/claude-3.7-sonnet"
+      "gpt-4o-mini"
     );
 
     if (!completion) {

@@ -12,6 +12,7 @@ import type {
 } from "../../services/api/types";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { ReportModal } from "./ReportModal";
 
 interface ThemeFormProps {
   theme?: Theme;
@@ -47,8 +48,43 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
   >({});
   const [isGeneratingVisualReport, setIsGeneratingVisualReport] =
     useState(false);
+  const [isGeneratingBulkVisualReports, setIsGeneratingBulkVisualReports] =
+    useState(false);
+  const [isGeneratingBulkDebateAnalysis, setIsGeneratingBulkDebateAnalysis] =
+    useState(false);
+  const [isGeneratingBulkReports, setIsGeneratingBulkReports] = useState(false);
+
+  // 一括生成の進捗管理
+  const [bulkProgress, setBulkProgress] = useState<{
+    visual: { completed: number; total: number };
+    debate: { completed: number; total: number };
+    reports: { completed: number; total: number };
+  }>({
+    visual: { completed: 0, total: 0 },
+    debate: { completed: 0, total: 0 },
+    reports: { completed: 0, total: 0 },
+  });
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
+
+  // 表示/非表示の状態管理
+  const [questionVisibility, setQuestionVisibility] = useState<
+    Record<string, boolean>
+  >({});
+
+  // レポートモーダルの状態管理
+  const [reportModal, setReportModal] = useState<{
+    isOpen: boolean;
+    type: "visual" | "debate" | "report";
+    data: unknown;
+    questionText: string;
+  }>({
+    isOpen: false,
+    type: "visual",
+    data: null,
+    questionText: "",
+  });
 
   useEffect(() => {
     if (isEdit && theme) {
@@ -83,6 +119,14 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     }
 
     setQuestions(result.value);
+
+    // 表示/非表示の状態を初期化
+    const visibilityState: Record<string, boolean> = {};
+    for (const question of result.value) {
+      visibilityState[question._id] = question.isVisible ?? true;
+    }
+    setQuestionVisibility(visibilityState);
+
     setIsLoadingQuestions(false);
   };
 
@@ -244,8 +288,256 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     });
   };
 
-  const handleToggleVisibility = () => {
-    alert("未実装です。");
+  // 表示/非表示の切り替えハンドラー
+  const handleToggleVisibility = async (questionId: string) => {
+    if (!theme?._id) return;
+
+    const currentVisibility = questionVisibility[questionId] ?? true;
+    const newVisibility = !currentVisibility;
+
+    try {
+      // バックエンドに表示/非表示の状態を送信
+      await apiClient.updateQuestionVisibility(
+        theme._id,
+        questionId,
+        newVisibility
+      );
+
+      // ローカル状態を更新
+      setQuestionVisibility((prev) => ({
+        ...prev,
+        [questionId]: newVisibility,
+      }));
+
+      setSuccessMessage(
+        `問いを${newVisibility ? "表示" : "非表示"}に設定しました。`
+      );
+    } catch (error) {
+      console.error("Failed to update question visibility:", error);
+      setQuestionsError("表示/非表示の更新に失敗しました。");
+    }
+  };
+
+  // 進捗表示用のヘルパー関数
+  const getProgressText = (type: "visual" | "debate" | "reports") => {
+    const progress = bulkProgress[type];
+    if (progress.total === 0) return "";
+    return `${progress.completed}/${progress.total}`;
+  };
+
+  const getProgressPercentage = (type: "visual" | "debate" | "reports") => {
+    const progress = bulkProgress[type];
+    if (progress.total === 0) return 0;
+    return Math.round((progress.completed / progress.total) * 100);
+  };
+
+  // 一括生成ハンドラー（進捗表示付き）
+  const handleBulkGenerateVisualReports = async () => {
+    if (!theme?._id || questions.length === 0) return;
+
+    setIsGeneratingBulkVisualReports(true);
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    // 進捗初期化
+    setBulkProgress((prev) => ({
+      ...prev,
+      visual: { completed: 0, total: questions.length },
+    }));
+
+    try {
+      // 各レポートを順次生成して進捗を更新
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        try {
+          await apiClient.generateVisualReport(theme._id, question._id);
+
+          // 進捗更新
+          setBulkProgress((prev) => ({
+            ...prev,
+            visual: { completed: i + 1, total: questions.length },
+          }));
+
+          // 少し待機（UIの更新を確認するため）
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(
+            `Failed to generate visual report for question ${question._id}:`,
+            error
+          );
+        }
+      }
+
+      setSuccessMessage(
+        `イラストまとめの一括生成が完了しました。${questions.length}個のレポートを生成しました。`
+      );
+    } catch (error) {
+      console.error("Failed to generate visual reports:", error);
+      setQuestionsError("イラストまとめの一括生成に失敗しました。");
+    }
+
+    setIsGeneratingBulkVisualReports(false);
+  };
+
+  const handleBulkGenerateDebateAnalysis = async () => {
+    if (!theme?._id || questions.length === 0) return;
+
+    setIsGeneratingBulkDebateAnalysis(true);
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    // 進捗初期化
+    setBulkProgress((prev) => ({
+      ...prev,
+      debate: { completed: 0, total: questions.length },
+    }));
+
+    try {
+      // 各レポートを順次生成して進捗を更新
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        try {
+          await apiClient.generateDebateAnalysis(theme._id, question._id);
+
+          // 進捗更新
+          setBulkProgress((prev) => ({
+            ...prev,
+            debate: { completed: i + 1, total: questions.length },
+          }));
+
+          // 少し待機（UIの更新を確認するため）
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(
+            `Failed to generate debate analysis for question ${question._id}:`,
+            error
+          );
+        }
+      }
+
+      setSuccessMessage(
+        `論点まとめの一括生成が完了しました。${questions.length}個のレポートを生成しました。`
+      );
+    } catch (error) {
+      console.error("Failed to generate debate analysis:", error);
+      setQuestionsError("論点まとめの一括生成に失敗しました。");
+    }
+
+    setIsGeneratingBulkDebateAnalysis(false);
+  };
+
+  const handleBulkGenerateReports = async () => {
+    if (!theme?._id || questions.length === 0) return;
+
+    setIsGeneratingBulkReports(true);
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    // 進捗初期化
+    setBulkProgress((prev) => ({
+      ...prev,
+      reports: { completed: 0, total: questions.length },
+    }));
+
+    try {
+      // 各レポートを順次生成して進捗を更新
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        try {
+          await apiClient.generateReportExample(theme._id, question._id);
+
+          // 進捗更新
+          setBulkProgress((prev) => ({
+            ...prev,
+            reports: { completed: i + 1, total: questions.length },
+          }));
+
+          // 少し待機（UIの更新を確認するため）
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(
+            `Failed to generate report for question ${question._id}:`,
+            error
+          );
+        }
+      }
+
+      setSuccessMessage(
+        `市民意見レポートの一括生成が完了しました。${questions.length}個のレポートを生成しました。`
+      );
+    } catch (error) {
+      console.error("Failed to generate reports:", error);
+      setQuestionsError("市民意見レポートの一括生成に失敗しました。");
+    }
+
+    setIsGeneratingBulkReports(false);
+  };
+
+  // レポート表示ハンドラー
+  const handleViewVisualReport = async (questionId: string) => {
+    if (!theme?._id) return;
+
+    try {
+      const result = await apiClient.getVisualReport(theme._id, questionId);
+      if (result.isOk()) {
+        const question = questions.find((q) => q._id === questionId);
+        setReportModal({
+          isOpen: true,
+          type: "visual",
+          data: result.value,
+          questionText: question?.questionText || "",
+        });
+      } else {
+        setQuestionsError("レポートが見つかりません。");
+      }
+    } catch (error) {
+      console.error("Failed to get visual report:", error);
+      setQuestionsError("レポートの取得に失敗しました。");
+    }
+  };
+
+  const handleViewDebateAnalysis = async (questionId: string) => {
+    if (!theme?._id) return;
+
+    try {
+      const result = await apiClient.getDebateAnalysis(theme._id, questionId);
+      if (result.isOk()) {
+        const question = questions.find((q) => q._id === questionId);
+        setReportModal({
+          isOpen: true,
+          type: "debate",
+          data: result.value,
+          questionText: question?.questionText || "",
+        });
+      } else {
+        setQuestionsError("レポートが見つかりません。");
+      }
+    } catch (error) {
+      console.error("Failed to get debate analysis:", error);
+      setQuestionsError("レポートの取得に失敗しました。");
+    }
+  };
+
+  const handleViewReport = async (questionId: string) => {
+    if (!theme?._id) return;
+
+    try {
+      const result = await apiClient.getReportExample(theme._id, questionId);
+      if (result.isOk()) {
+        const question = questions.find((q) => q._id === questionId);
+        setReportModal({
+          isOpen: true,
+          type: "report",
+          data: result.value,
+          questionText: question?.questionText || "",
+        });
+      } else {
+        setQuestionsError("レポートが見つかりません。");
+      }
+    } catch (error) {
+      console.error("Failed to get report:", error);
+      setQuestionsError("レポートの取得に失敗しました。");
+    }
   };
 
   const handleChange = (
@@ -582,51 +874,149 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                     <tr>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/3"
                       >
                         見出し
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/3"
                       >
                         問い
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/6"
                       >
                         関連するproblem
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/12"
                       >
                         作成日時
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/12"
                       >
-                        表示
+                        表示/非表示
                       </th>
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                       >
-                        イラストまとめ
+                        <div className="flex flex-col space-y-2">
+                          <span>イラストまとめ</span>
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={() => handleBulkGenerateVisualReports()}
+                              disabled={isGeneratingBulkVisualReports}
+                              className="px-2 py-1 bg-purple-600 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-700"
+                              type="button"
+                            >
+                              {isGeneratingBulkVisualReports
+                                ? "生成中..."
+                                : "一括作成"}
+                            </button>
+                            {isGeneratingBulkVisualReports && (
+                              <div className="text-xs text-muted-foreground">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span>進捗: {getProgressText("visual")}</span>
+                                  <span>
+                                    {getProgressPercentage("visual")}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                  <div
+                                    className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
+                                    style={{
+                                      width: `${getProgressPercentage("visual")}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </th>
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                       >
-                        論点まとめ
+                        <div className="flex flex-col space-y-2">
+                          <span>論点まとめ</span>
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={() => handleBulkGenerateDebateAnalysis()}
+                              disabled={isGeneratingBulkDebateAnalysis}
+                              className="px-2 py-1 bg-purple-600 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-700"
+                              type="button"
+                            >
+                              {isGeneratingBulkDebateAnalysis
+                                ? "生成中..."
+                                : "一括作成"}
+                            </button>
+                            {isGeneratingBulkDebateAnalysis && (
+                              <div className="text-xs text-muted-foreground">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span>進捗: {getProgressText("debate")}</span>
+                                  <span>
+                                    {getProgressPercentage("debate")}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                  <div
+                                    className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
+                                    style={{
+                                      width: `${getProgressPercentage("debate")}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </th>
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                       >
-                        市民意見レポート
+                        <div className="flex flex-col space-y-2">
+                          <span>市民意見レポート</span>
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={() => handleBulkGenerateReports()}
+                              disabled={isGeneratingBulkReports}
+                              className="px-2 py-1 bg-purple-600 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-700"
+                              type="button"
+                            >
+                              {isGeneratingBulkReports
+                                ? "生成中..."
+                                : "一括作成"}
+                            </button>
+                            {isGeneratingBulkReports && (
+                              <div className="text-xs text-muted-foreground">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span>
+                                    進捗: {getProgressText("reports")}
+                                  </span>
+                                  <span>
+                                    {getProgressPercentage("reports")}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                  <div
+                                    className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
+                                    style={{
+                                      width: `${getProgressPercentage("reports")}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -676,141 +1066,104 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleToggleVisibility();
+                              handleToggleVisibility(question._id);
                             }}
-                            className="px-3 py-1 bg-success/20 text-success-foreground rounded-full text-xs font-medium"
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              (questionVisibility[question._id] ?? true)
+                                ? "bg-success/20 text-success-foreground"
+                                : "bg-destructive/20 text-destructive-foreground"
+                            }`}
                             type="button"
                           >
-                            表示
+                            {(questionVisibility[question._id] ?? true)
+                              ? "表示中"
+                              : "非表示"}
                           </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedQuestionId(question._id);
-                              handleGenerateVisualReport();
-                            }}
-                            disabled={isGeneratingVisualReport}
-                            className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
-                            type="button"
-                          >
-                            {isGeneratingVisualReport &&
-                            selectedQuestionId === question._id ? (
-                              <span className="flex items-center">
-                                <svg
-                                  className="animate-spin -ml-1 mr-1 h-3 w-3"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  aria-label="読み込み中"
-                                  role="img"
-                                >
-                                  <title>読み込み中</title>
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  />
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  />
-                                </svg>
-                                生成中
-                              </span>
-                            ) : (
-                              "更新する"
-                            )}
-                          </button>
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewVisualReport(question._id);
+                              }}
+                              className="px-2 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700"
+                              type="button"
+                            >
+                              レポートを見る
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedQuestionId(question._id);
+                                handleGenerateVisualReport();
+                              }}
+                              disabled={isGeneratingVisualReport}
+                              className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
+                              type="button"
+                            >
+                              {isGeneratingVisualReport &&
+                              selectedQuestionId === question._id
+                                ? "生成中..."
+                                : "更新する"}
+                            </button>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleGenerateDebateAnalysis(question._id, e);
-                            }}
-                            disabled={isGeneratingDebateAnalysis[question._id]}
-                            className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
-                            type="button"
-                          >
-                            {isGeneratingDebateAnalysis[question._id] ? (
-                              <span className="flex items-center">
-                                <svg
-                                  className="animate-spin -ml-1 mr-1 h-3 w-3"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  aria-label="読み込み中"
-                                  role="img"
-                                >
-                                  <title>読み込み中</title>
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  />
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  />
-                                </svg>
-                                生成中
-                              </span>
-                            ) : (
-                              "更新する"
-                            )}
-                          </button>
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewDebateAnalysis(question._id);
+                              }}
+                              className="px-2 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700"
+                              type="button"
+                            >
+                              レポートを見る
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGenerateDebateAnalysis(question._id, e);
+                              }}
+                              disabled={
+                                isGeneratingDebateAnalysis[question._id]
+                              }
+                              className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
+                              type="button"
+                            >
+                              {isGeneratingDebateAnalysis[question._id]
+                                ? "生成中..."
+                                : "更新する"}
+                            </button>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleGenerateReport(question._id, e);
-                            }}
-                            disabled={isGeneratingReports[question._id]}
-                            className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
-                            type="button"
-                          >
-                            {isGeneratingReports[question._id] ? (
-                              <span className="flex items-center">
-                                <svg
-                                  className="animate-spin -ml-1 mr-1 h-3 w-3"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  aria-label="読み込み中"
-                                  role="img"
-                                >
-                                  <title>読み込み中</title>
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  />
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  />
-                                </svg>
-                                生成中
-                              </span>
-                            ) : (
-                              "更新する"
-                            )}
-                          </button>
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewReport(question._id);
+                              }}
+                              className="px-2 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700"
+                              type="button"
+                            >
+                              レポートを見る
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGenerateReport(question._id, e);
+                              }}
+                              disabled={isGeneratingReports[question._id]}
+                              className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
+                              type="button"
+                            >
+                              {isGeneratingReports[question._id]
+                                ? "生成中..."
+                                : "更新する"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -828,6 +1181,15 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
           </div>
         </div>
       )}
+
+      {/* レポートモーダル */}
+      <ReportModal
+        isOpen={reportModal.isOpen}
+        onClose={() => setReportModal((prev) => ({ ...prev, isOpen: false }))}
+        reportType={reportModal.type}
+        reportData={reportModal.data as any}
+        questionText={reportModal.questionText}
+      />
     </form>
   );
 };
