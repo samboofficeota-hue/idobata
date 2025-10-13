@@ -51,6 +51,8 @@ const io = new Server(httpServer, {
           "https://idobata-frontend-336788531163.asia-northeast1.run.app",
           "https://idobata-admin-336788531163.asia-northeast1.run.app",
           "https://idobata-admin-doisltwsmq-an.a.run.app",
+          "https://idobata.sambo-office.com",
+          "https://idobata-admin.sambo-office.com",
         ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -70,6 +72,8 @@ app.use(
           "https://idobata-frontend-336788531163.asia-northeast1.run.app",
           "https://idobata-admin-336788531163.asia-northeast1.run.app",
           "https://idobata-admin-doisltwsmq-an.a.run.app",
+          "https://idobata.sambo-office.com",
+          "https://idobata-admin.sambo-office.com",
         ],
     credentials: true,
   })
