@@ -3,23 +3,16 @@ import { User } from "lucide-react";
 interface OtherOpinionCardProps {
   text: string;
   userName: string;
-  type: "課題" | "対策";
   userIconColor: "red" | "blue" | "yellow" | "green";
+  debatePoint?: string; // 論点タイトルを追加
 }
 
 const OtherOpinionCard = ({
   text,
   userName,
-  type,
   userIconColor,
+  debatePoint,
 }: OtherOpinionCardProps) => {
-  const getTagStyles = () => {
-    if (type === "課題") {
-      return "bg-red-100 border border-red-200 text-red-500";
-    }
-    return "bg-green-100 border border-green-300 text-green-500";
-  };
-
   const getUserIconStyles = () => {
     switch (userIconColor) {
       case "red":
@@ -38,11 +31,9 @@ const OtherOpinionCard = ({
   return (
     <div className="bg-white border border-black/16 rounded-2xl p-5 flex flex-col gap-2.5 relative w-full md:w-[calc(50%-8px)]">
       <div className="absolute -top-3 left-0">
-        <div
-          className={`${getTagStyles()} rounded-full px-3 py-0 flex items-center justify-center gap-1`}
-        >
+        <div className="bg-blue-100 border border-blue-200 text-blue-700 rounded-full px-3 py-0 flex items-center justify-center gap-1">
           <span className="text-xs font-normal leading-8 tracking-wide">
-            {type}
+            {debatePoint || "論点"}
           </span>
         </div>
       </div>

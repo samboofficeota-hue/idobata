@@ -277,17 +277,19 @@ export const getThemeDetail = async (req, res) => {
       keyQuestions.map(async (question) => {
         const questionId = question._id;
 
-        // このキークエスチョンに関連する課題数を取得
+        // このキークエスチョンに関連する投稿数（課題+解決策）を取得
         const issueCount = await QuestionLink.countDocuments({
           questionId,
           linkedItemType: "problem",
         });
 
-        // このキークエスチョンに関連する解決策数を取得
         const solutionCount = await QuestionLink.countDocuments({
           questionId,
           linkedItemType: "solution",
         });
+
+        // 投稿数 = 課題数 + 解決策数
+        const postCount = issueCount + solutionCount;
 
         const voteCount = await Like.countDocuments({
           targetId: question._id,
@@ -298,6 +300,7 @@ export const getThemeDetail = async (req, res) => {
           ...question.toObject(),
           issueCount,
           solutionCount,
+          postCount, // 投稿数を追加
           voteCount,
         };
       })

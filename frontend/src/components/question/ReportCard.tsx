@@ -10,6 +10,7 @@ interface ReportCardProps {
   isEmpty?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
+  downloadData?: any;
 }
 
 const ReportCard = ({
@@ -20,6 +21,7 @@ const ReportCard = ({
   isEmpty = false,
   emptyTitle = "まだ生成されていません",
   emptyDescription = "多くの対話が集まると、論点をまとめたレポートが表示されるようになります。",
+  downloadData,
 }: ReportCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -31,7 +33,9 @@ const ReportCard = ({
     <div className={`bg-gray-100 rounded-xl p-4 md:p-6 mb-6 ${className}`}>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800">{title}</h3>
-        <DownloadButton>{downloadButtonText}</DownloadButton>
+        <DownloadButton downloadType="pdf" data={downloadData}>
+          {downloadButtonText}
+        </DownloadButton>
       </div>
 
       <div className="bg-white rounded-2xl p-4 md:p-8 relative">

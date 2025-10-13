@@ -26,14 +26,17 @@ if (!mongoUri) {
   process.exit(1);
 }
 
-try {
-  await mongoose.connect(mongoUri);
-  console.log("MongoDB connected successfully.");
-} catch (err) {
-  console.error("MongoDB connection error:", err);
-  console.error("Failed to connect to MongoDB. Exiting...");
-  process.exit(1);
-}
+// Connect to MongoDB
+mongoose
+  .connect(mongoUri)
+  .then(() => {
+    console.log("MongoDB connected successfully.");
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    console.error("Failed to connect to MongoDB. Exiting...");
+    process.exit(1);
+  });
 
 // --- Express App Setup ---
 const app = express();
@@ -81,6 +84,7 @@ app.use(express.urlencoded({ extended: true }));
 
 import authRoutes from "./routes/authRoutes.js"; // 追加: 認証ルート
 import likeRoutes from "./routes/likeRoutes.js"; // Import like routes
+import opinionsRoutes from "./routes/opinionsRoutes.js"; // Import opinions routes
 import questionEmbeddingRoutes from "./routes/questionEmbeddingRoutes.js";
 import questionRoutes from "./routes/questionRoutes.js"; // Import unified question routes
 import siteConfigRoutes from "./routes/siteConfigRoutes.js";
@@ -95,7 +99,6 @@ import themeProblemRoutes from "./routes/themeProblemRoutes.js";
 import themeQuestionRoutes from "./routes/themeQuestionRoutes.js";
 import themeSolutionRoutes from "./routes/themeSolutionRoutes.js";
 import topPageRoutes from "./routes/topPageRoutes.js"; // Import top page routes
-import opinionsRoutes from "./routes/opinionsRoutes.js"; // Import opinions routes
 import userRoutes from "./routes/userRoutes.js"; // Import user routes
 
 // Theme management routes
@@ -166,6 +169,21 @@ io.on("connection", (socket) => {
 });
 
 export { io };
+
+// --- Root Endpoint ---
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Idobata Backend API",
+    version: "1.0.0",
+    status: "running",
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      themes: "/api/themes",
+      questions: "/api/questions",
+      health: "/api/health",
+    },
+  });
+});
 
 // --- Health Check Endpoint ---
 app.get("/api/health", (req, res) => {

@@ -174,4 +174,10 @@ const deleteAdminUser = async (req, res) => {
   }
 };
 
-export { login, getCurrentUser, createAdminUser, deleteAdminUser, initializeAdminUser };
+export {
+  login,
+  getCurrentUser,
+  createAdminUser,
+  deleteAdminUser,
+  initializeAdminUser,
+};

@@ -1,4 +1,4 @@
-import { ArrowRight, HelpCircle, MessageSquare } from "lucide-react";
+import { ArrowRight, HelpCircle, Users } from "lucide-react";
 import { Link } from "../../contexts/MockContext";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter, CardTitle } from "../ui/card";
@@ -38,8 +38,8 @@ const ThemeCard = ({
             )}
             {commentCount !== undefined && commentCount > 0 && (
               <span className="flex items-center">
-                <MessageSquare className="h-4 w-4 mr-1 text-primary" />
-                コメント数: {commentCount}件
+                <Users className="h-4 w-4 mr-1 text-primary" />
+                いどばた参加者: {commentCount}人
               </span>
             )}
           </div>

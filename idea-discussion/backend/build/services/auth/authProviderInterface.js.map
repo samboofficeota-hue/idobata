@@ -1,0 +1,1 @@
+{"version":3,"file":"authProviderInterface.js","sourceRoot":"","sources":["../../../services/auth/authProviderInterface.js"],"names":[],"mappings":"AAAA,MAAM,CAAC,OAAO,OAAO,qBAAqB;IACxC,KAAK,CAAC,YAAY,CAAC,WAAW;QAC5B,MAAM,IAAI,KAAK,CAAC,2CAA2C,CAAC,CAAC;IAC/D,CAAC;CACF"}

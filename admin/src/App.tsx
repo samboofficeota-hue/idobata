@@ -1,6 +1,7 @@
 import React from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import MainContent from "./components/layout/MainContent";
 import Sidebar from "./components/layout/Sidebar";
@@ -57,6 +58,7 @@ const App: React.FC = () => {
                       </Routes>
                     </MainContent>
                   </div>
+                  <Footer />
                 </div>
               </ProtectedRoute>
             }

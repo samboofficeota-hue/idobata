@@ -219,6 +219,10 @@ const QuestionDetail = () => {
 
     const breadcrumbItems = [
       {
+        label: themeData.title,
+        href: `/themes/${themeId}`,
+      },
+      {
         label: questionData.tagLine || questionData.question,
         href: `/themes/${themeId}/questions/${qId}`,
       },
@@ -249,24 +253,24 @@ const QuestionDetail = () => {
                     <Lightbulb className="w-8 h-8 text-orange-400 stroke-2" />
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                    ほかの人の意見
+                    みんなの意見
                   </h2>
                 </div>
                 <div className="flex justify-end md:justify-start items-center gap-4 flex-wrap">
                   <div className="flex items-center justify-center gap-1 px-0 py-0">
-                    <span className="text-xs text-red-500 font-normal leading-8 tracking-wide">
-                      課題
+                    <span className="text-xs text-blue-500 font-normal leading-8 tracking-wide">
+                      対話参加人数
                     </span>
                     <span className="text-xl font-bold text-gray-800 leading-8 tracking-wide">
-                      {opinions.issues.length}
+                      {questionDetail?.participantCount || 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-center gap-1 px-0 py-0">
                     <span className="text-xs text-green-500 font-normal leading-8 tracking-wide">
-                      対策
+                      対話数
                     </span>
                     <span className="text-xl font-bold text-gray-800 leading-8 tracking-wide">
-                      {opinions.solutions.length}
+                      {opinions.issues.length + opinions.solutions.length}
                     </span>
                   </div>
                 </div>
@@ -279,22 +283,25 @@ const QuestionDetail = () => {
                 ...opinions.issues.map((issue, index) => ({
                   id: issue.id,
                   text: issue.text,
-                  type: "課題" as const,
                   relevance: issue.relevance,
                   userName: `ユーザー${index + 1}`,
                   userIconColor: ["red", "blue", "yellow", "green"][
                     index % 4
                   ] as "red" | "blue" | "yellow" | "green",
+                  debatePoint: index % 2 === 0 ? "短期利益" : "長期成長",
                 })),
                 ...opinions.solutions.map((solution, index) => ({
                   id: solution.id,
                   text: solution.text,
-                  type: "対策" as const,
                   relevance: solution.relevance,
                   userName: `ユーザー${index + opinions.issues.length + 1}`,
                   userIconColor: ["red", "blue", "yellow", "green"][
                     (index + opinions.issues.length) % 4
                   ] as "red" | "blue" | "yellow" | "green",
+                  debatePoint:
+                    (index + opinions.issues.length) % 2 === 0
+                      ? "短期利益"
+                      : "長期成長",
                 })),
               ];
 
@@ -314,8 +321,8 @@ const QuestionDetail = () => {
                           key={opinion.id}
                           text={opinion.text}
                           userName={opinion.userName}
-                          type={opinion.type}
                           userIconColor={opinion.userIconColor}
+                          debatePoint={opinion.debatePoint}
                         />
                       ))}
                     </div>
@@ -365,7 +372,9 @@ const QuestionDetail = () => {
                     生成されたレポート
                   </h2>
                 </div>
-                <DownloadButton>すべてダウンロード</DownloadButton>
+                <DownloadButton downloadType="pdf" data={questionDetail}>
+                  すべてダウンロード
+                </DownloadButton>
               </div>
             </div>
 
@@ -375,6 +384,7 @@ const QuestionDetail = () => {
               downloadButtonText="PDFダウンロード"
               isEmpty={!questionDetail?.debateData}
               emptyDescription="多くの対話が集まると、論点をまとめたレポートが表示されるようになります。"
+              downloadData={questionDetail?.debateData}
             >
               <DebatePointsContent debateData={questionDetail?.debateData} />
             </ReportCard>
@@ -388,6 +398,7 @@ const QuestionDetail = () => {
                 questionDetail?.reportExample?.issues?.length === 0
               }
               emptyDescription="多くの対話が集まると、意見をまとめたレポートが表示されるようになります。"
+              downloadData={questionDetail?.reportExample}
             >
               <OpinionSummaryContent
                 reportExample={
@@ -406,6 +417,7 @@ const QuestionDetail = () => {
               downloadButtonText="画像ダウンロード"
               isEmpty={!questionDetail?.visualReport}
               emptyDescription="多くの対話が集まると、意見をまとめたイラストが表示されるようになります。"
+              downloadData={{ imageUrl: questionDetail?.visualReport }}
             >
               <IllustrationSummaryContent
                 visualReport={questionDetail?.visualReport}

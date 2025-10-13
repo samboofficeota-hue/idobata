@@ -1,4 +1,5 @@
-import { CheckCircle, MessageSquareWarning, ThumbsUp } from "lucide-react";
+import { Heart, MessageSquare } from "lucide-react";
+import { useState } from "react";
 import { Card, CardContent, CardTitle } from "../../components/ui/card";
 import { Link } from "../../contexts/MockContext";
 
@@ -19,10 +20,11 @@ const KeyQuestionCard = ({
   tags,
   voteCount,
   issueCount,
-  solutionCount,
   themeId,
   qid,
 }: KeyQuestionCardProps) => {
+  const [localVoteCount, setLocalVoteCount] = useState(voteCount);
+  const [isVoted, setIsVoted] = useState(false);
   return (
     <Link to={`/themes/${themeId}/questions/${qid}`} className="block">
       <Card className="hover:shadow-md transition-all duration-200 hover:border-primary-700">
@@ -53,17 +55,75 @@ const KeyQuestionCard = ({
                 ))}
               </div>
             )}
+            <button
+              className={`flex items-center transition-colors ${
+                isVoted
+                  ? "text-red-500 hover:text-red-600"
+                  : "hover:text-primary-600"
+              }`}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                try {
+                  if (isVoted) {
+                    // 既に投票済みの場合は共感を削除
+                    const response = await fetch(
+                      `${import.meta.env.VITE_API_BASE_URL}/api/questions/${qid}/like`,
+                      {
+                        method: "DELETE",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          targetType: "question",
+                          targetId: qid,
+                        }),
+                      }
+                    );
+
+                    if (response.ok) {
+                      setLocalVoteCount((prev) => Math.max(0, prev - 1));
+                      setIsVoted(false);
+                    } else {
+                      console.error("共感の削除に失敗しました");
+                    }
+                  } else {
+                    // 未投票の場合は共感を追加
+                    const response = await fetch(
+                      `${import.meta.env.VITE_API_BASE_URL}/api/questions/${qid}/like`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          targetType: "question",
+                          targetId: qid,
+                        }),
+                      }
+                    );
+
+                    if (response.ok) {
+                      setLocalVoteCount((prev) => prev + 1);
+                      setIsVoted(true);
+                    } else {
+                      console.error("共感の追加に失敗しました");
+                    }
+                  }
+                } catch (error) {
+                  console.error("共感の操作中にエラーが発生しました:", error);
+                }
+              }}
+            >
+              <Heart
+                className={`h-4 w-4 mr-1 ${isVoted ? "fill-current" : ""}`}
+              />
+              共感する: {localVoteCount}
+            </button>
             <span className="flex items-center">
-              <ThumbsUp className="h-4 w-4 mr-1 text-primary" />
-              気になる: {voteCount}
-            </span>
-            <span className="flex items-center">
-              <MessageSquareWarning className="h-4 w-4 mr-1 text-primary" />
-              課題点: {issueCount}
-            </span>
-            <span className="flex items-center">
-              <CheckCircle className="h-4 w-4 mr-1 text-primary" />
-              解決策: {solutionCount}
+              <MessageSquare className="h-4 w-4 mr-1 text-primary" />
+              投稿数: {issueCount}
             </span>
           </div>
         </CardContent>

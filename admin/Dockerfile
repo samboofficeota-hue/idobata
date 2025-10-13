@@ -13,7 +13,7 @@ RUN npm ci
 COPY . .
 
 # Set environment variables for build
-ENV VITE_API_BASE_URL=https://idobata-backend-doisltwsmq-an.a.run.app
+ENV VITE_API_BASE_URL=https://idobata-backend-336788531163.asia-northeast1.run.app
 
 # Build the application
 RUN npm run build

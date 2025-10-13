@@ -112,7 +112,7 @@ const ThemeDetail = () => {
           tagLine: q.tagLine ?? "",
           tags: q.tags ?? [],
           voteCount: q.voteCount ?? 0,
-          issueCount: q.issueCount ?? 0,
+          issueCount: q.issueCount ?? 0, // issueCountを使用
           solutionCount: q.solutionCount ?? 0,
         })) ?? [],
       issues:
