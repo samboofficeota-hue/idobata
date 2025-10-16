@@ -22,7 +22,7 @@ function ChatInput({ onSendMessage }: ChatInputProps) {
         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
           setMessage(e.target.value)
         }
-        placeholder="メッセージを入力..."
+        placeholder="メッセージを入力...（Enterで改行、⌘+Enterで送信）"
         className="w-full bg-white border-t border-b border-l border-neutral-300 focus:border-t-neutral-400 focus:border-b-neutral-400 focus:border-l-neutral-400 focus:ring-1 focus:ring-neutral-400 rounded-xl text-neutral-800 placeholder:text-neutral-400 py-2 md:py-3 px-3 md:px-4 pr-12 md:pr-16 min-h-[50px] md:min-h-[60px] text-sm md:text-base resize-none"
         onKeyDown={(
           e: React.KeyboardEvent<HTMLTextAreaElement> & {
@@ -30,10 +30,10 @@ function ChatInput({ onSendMessage }: ChatInputProps) {
             nativeEvent: { isComposing?: boolean };
           }
         ) => {
-          // Only handle Enter key press when not in IME composition
+          // Command+Enter (Mac) or Ctrl+Enter (Windows/Linux) for sending
           if (
             e.key === "Enter" &&
-            !e.shiftKey &&
+            (e.metaKey || e.ctrlKey) &&
             !e.isComposing &&
             !e.nativeEvent.isComposing &&
             message.trim()
@@ -41,6 +41,7 @@ function ChatInput({ onSendMessage }: ChatInputProps) {
             e.preventDefault();
             handleSubmit(e);
           }
+          // Enter alone should just create a new line (default behavior)
         }}
       />
       <button

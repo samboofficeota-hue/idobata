@@ -88,9 +88,10 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
       nativeEvent: { isComposing?: boolean };
     }
   ) => {
+    // Command+Enter (Mac) or Ctrl+Enter (Windows/Linux) for sending
     if (
       e.key === "Enter" &&
-      !e.shiftKey &&
+      (e.metaKey || e.ctrlKey) &&
       !isSending &&
       !e.isComposing &&
       !e.nativeEvent.isComposing
@@ -98,6 +99,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
       e.preventDefault();
       handleSendMessage();
     }
+    // Enter alone should just create a new line (default behavior)
   };
 
   const renderDisabledState = () => (
@@ -136,7 +138,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="ここに入力"
+                  placeholder="ここに入力（Enterで改行、⌘+Enterで送信）"
                   className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
@@ -219,7 +221,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="ここに入力"
+                  placeholder="ここに入力（Enterで改行、⌘+Enterで送信）"
                   className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
