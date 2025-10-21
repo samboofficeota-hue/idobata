@@ -55,7 +55,7 @@ const ReportCard = ({
           // Normal content
           <>
             <div
-              className={`${isExpanded ? "" : "h-[200px] md:h-[280px]"} overflow-hidden`}
+              className={`report-content-for-download ${isExpanded ? "" : "h-[200px] md:h-[280px]"} overflow-hidden`}
             >
               {children}
             </div>

@@ -66,8 +66,11 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                 <h5 className="text-xl font-bold text-gray-800 mb-2">合意点</h5>
                 <div className="pl-6 space-y-2">
                   {debateData.agreementPoints.map((point) => (
-                    <div key={point} className="text-gray-800 leading-8">
-                      • <MarkdownRenderer markdown={point} />
+                    <div key={point} className="text-gray-800 leading-8 flex gap-2">
+                      <span>•</span>
+                      <div className="flex-1">
+                        <MarkdownRenderer markdown={point} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -81,8 +84,11 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                 <h5 className="text-xl font-bold text-gray-800 mb-2">対立点</h5>
                 <div className="pl-6 space-y-2">
                   {debateData.disagreementPoints.map((point) => (
-                    <div key={point} className="text-gray-800 leading-8">
-                      • <MarkdownRenderer markdown={point} />
+                    <div key={point} className="text-gray-800 leading-8 flex gap-2">
+                      <span>•</span>
+                      <div className="flex-1">
+                        <MarkdownRenderer markdown={point} />
+                      </div>
                     </div>
                   ))}
                 </div>

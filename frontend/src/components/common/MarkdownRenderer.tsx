@@ -18,7 +18,7 @@ export function MarkdownRenderer({
   }
 
   return (
-    <div className={cn("prose prose-neutral max-w-none", className)}>
+    <div className={cn("prose prose-neutral max-w-none prose-p:my-0 prose-p:leading-8", className)}>
       <ReactMarkdown
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         remarkPlugins={[remarkGfm]}
@@ -39,13 +39,13 @@ export function MarkdownRenderer({
             <h3 className="text-lg font-semibold mb-2" {...props} />
           ),
           p: ({ node, ...props }) => (
-            <p className="mb-4 text-neutral-700" {...props} />
+            <p className="text-neutral-700 inline" {...props} />
           ),
           ul: ({ node, ...props }) => (
-            <ul className="list-disc pl-5 mb-4" {...props} />
+            <ul className="list-disc pl-5 mb-2" {...props} />
           ),
           ol: ({ node, ...props }) => (
-            <ol className="list-decimal pl-5 mb-4" {...props} />
+            <ol className="list-decimal pl-5 mb-2" {...props} />
           ),
           a: ({ node, ...props }) => (
             <a
@@ -55,7 +55,7 @@ export function MarkdownRenderer({
           ),
           blockquote: ({ node, ...props }) => (
             <blockquote
-              className="border-l-4 border-neutral-300 pl-4 italic"
+              className="border-l-4 border-neutral-300 pl-4 italic my-2"
               {...props}
             />
           ),
@@ -67,14 +67,14 @@ export function MarkdownRenderer({
           ),
           pre: ({ node, ...props }) => (
             <pre
-              className="bg-neutral-100 p-4 rounded overflow-x-auto"
+              className="bg-neutral-100 p-4 rounded overflow-x-auto my-2"
               {...props}
             />
           ),
           img: ({ node, src, title, ...props }) => {
             return (
               <img
-                className="max-w-full h-auto rounded"
+                className="max-w-full h-auto rounded my-2"
                 src={src}
                 alt={props.alt || title || "画像"}
                 title={title}
@@ -82,7 +82,7 @@ export function MarkdownRenderer({
             );
           },
           table: ({ node, ...props }) => (
-            <table className="w-full border-collapse mb-4" {...props} />
+            <table className="w-full border-collapse mb-2" {...props} />
           ),
           th: ({ node, ...props }) => (
             <th

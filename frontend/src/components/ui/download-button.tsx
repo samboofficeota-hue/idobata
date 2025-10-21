@@ -6,7 +6,7 @@ interface DownloadButtonProps {
   onClick?: () => void;
   className?: string;
   downloadType?: "pdf" | "image";
-  data?: unknown; // ダウンロードするデータ
+  data?: unknown; // ダウンロードするデータ（将来の拡張用）
 }
 
 export const DownloadButton: React.FC<DownloadButtonProps> = ({
@@ -14,7 +14,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
   onClick,
   className = "",
   downloadType = "pdf",
-  data,
+  data: _data, // 将来の拡張用にインターフェースに保持
 }) => {
   const handleDownload = () => {
     if (onClick) {
@@ -23,11 +23,21 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
     }
 
     if (downloadType === "pdf") {
-      // PDFダウンロードの実装（Canvas to PDF）
+      // HTML要素をキャプチャしてPDFとしてダウンロード
+      // 実際のコンテンツをキャプチャする
+      const contentElement = document.querySelector('.report-content-for-download');
+      
+      if (!contentElement) {
+        alert('ダウンロード可能なコンテンツが見つかりません');
+        return;
+      }
+
+      // html2canvasやjspdfを使用する代わりに、シンプルな方法で実装
+      // 将来的にはhtml2canvasライブラリの使用を検討
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       canvas.width = 800;
-      canvas.height = 1000;
+      canvas.height = 1200;
 
       if (ctx) {
         // 背景を白に設定
@@ -41,25 +51,50 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
         ctx.fillText("レポート", canvas.width / 2, 50);
 
         // 日付
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
         ctx.font = "14px Arial";
         ctx.fillStyle = "#64748b";
         ctx.textAlign = "right";
-        ctx.fillText("2025年10月13日", canvas.width - 20, 80);
+        ctx.fillText(dateStr, canvas.width - 30, 80);
 
-        // コンテンツ
+        // コンテンツをテキストとして描画
         ctx.fillStyle = "#1e293b";
-        ctx.font = "16px Arial";
+        ctx.font = "14px Arial";
         ctx.textAlign = "left";
-        const content = data
-          ? JSON.stringify(data, null, 2)
-          : "データがありません";
-        const lines = content.split("\n");
+        
+        const textContent = contentElement.textContent || "データがありません";
+        const lines = textContent.split('\n').filter(line => line.trim());
         let y = 120;
-        lines.forEach((line) => {
-          if (y > canvas.height - 50) return; // ページを超えないように
-          ctx.fillText(line.substring(0, 80), 20, y); // 80文字で改行
-          y += 20;
-        });
+        const lineHeight = 22;
+        const maxWidth = canvas.width - 60;
+
+        for (const line of lines) {
+          if (y > canvas.height - 80) break;
+          
+          // 長い行を折り返す
+          const words = line.trim().split('');
+          let currentLine = '';
+          
+          for (let i = 0; i < words.length; i++) {
+            const testLine = currentLine + words[i];
+            const metrics = ctx.measureText(testLine);
+            
+            if (metrics.width > maxWidth && currentLine.length > 0) {
+              ctx.fillText(currentLine, 30, y);
+              currentLine = words[i];
+              y += lineHeight;
+              if (y > canvas.height - 80) break;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          
+          if (currentLine) {
+            ctx.fillText(currentLine, 30, y);
+            y += lineHeight;
+          }
+        }
 
         // フッター
         ctx.font = "12px Arial";
@@ -142,7 +177,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
         ];
 
         let y = 220;
-        issues.forEach((issue) => {
+        for (const issue of issues) {
           // 項目ボックス
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(40, y - 10, canvas.width - 80, 40);
@@ -154,7 +189,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
           ctx.font = "14px Arial";
           ctx.fillText(issue, 50, y + 10);
           y += 60;
-        });
+        }
 
         // フッター
         ctx.fillStyle = "#64748b";
