@@ -6,7 +6,11 @@
     "start": "cd idea-discussion/backend && node server.js",
     "dev": "cd idea-discussion/backend && npm run dev",
     "build": "cd idea-discussion/backend && npm run build",
-    "install:backend": "cd idea-discussion/backend && npm install"
+    "install:backend": "cd idea-discussion/backend && npm install",
+    "check": "npm run check:frontend && npm run check:admin && npm run check:backend",
+    "check:frontend": "cd frontend && npm run typecheck && npm run lint",
+    "check:admin": "cd admin && npm run typecheck && npm run lint",
+    "check:backend": "cd idea-discussion/backend && npm run typecheck && npm run lint"
   },
   "workspaces": [
     "frontend",
