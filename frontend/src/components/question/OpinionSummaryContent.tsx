@@ -29,7 +29,7 @@ const OpinionSummaryContent = ({
     <div className="space-y-6">
       {/* 導入文 */}
       <div className="text-gray-800 leading-8">
-        <MarkdownRenderer content={reportExample.introduction} />
+        <MarkdownRenderer markdown={reportExample.introduction} />
       </div>
 
       {/* 課題一覧 */}
@@ -41,7 +41,7 @@ const OpinionSummaryContent = ({
                 {issue.title}
               </h5>
               <div className="text-gray-800 leading-8">
-                <MarkdownRenderer content={issue.description} />
+                <MarkdownRenderer markdown={issue.description} />
               </div>
             </div>
           ))}

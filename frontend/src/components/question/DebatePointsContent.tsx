@@ -51,7 +51,7 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                       {option.label}
                     </h6>
                     <div className="text-gray-800 leading-8">
-                      <MarkdownRenderer content={option.description} />
+                      <MarkdownRenderer markdown={option.description} />
                     </div>
                   </div>
                 ))}
@@ -67,7 +67,7 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                 <div className="pl-6 space-y-2">
                   {debateData.agreementPoints.map((point) => (
                     <div key={point} className="text-gray-800 leading-8">
-                      • <MarkdownRenderer content={point} />
+                      • <MarkdownRenderer markdown={point} />
                     </div>
                   ))}
                 </div>
@@ -82,7 +82,7 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                 <div className="pl-6 space-y-2">
                   {debateData.disagreementPoints.map((point) => (
                     <div key={point} className="text-gray-800 leading-8">
-                      • <MarkdownRenderer content={point} />
+                      • <MarkdownRenderer markdown={point} />
                     </div>
                   ))}
                 </div>
