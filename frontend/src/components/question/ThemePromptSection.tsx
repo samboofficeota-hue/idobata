@@ -4,6 +4,9 @@ interface ThemePromptSectionProps {
   themeTags?: string[];
   participantCount?: number;
   dialogueCount?: number;
+  questionTitle?: string;
+  questionDescription?: string;
+  questionTags?: string[];
 }
 
 const ThemePromptSection = ({
@@ -11,6 +14,9 @@ const ThemePromptSection = ({
   themeDescription,
   participantCount = 0,
   dialogueCount = 0,
+  questionTitle,
+  questionDescription,
+  questionTags = [],
 }: ThemePromptSectionProps) => {
   return (
     <div className="space-y-6">
@@ -29,24 +35,28 @@ const ThemePromptSection = ({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full" />
               <span className="text-sm font-medium text-blue-700">
                 重要論点
               </span>
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              持続可能な成長を目指す
+              {questionTitle || "重要論点"}
             </h1>
             <p className="text-gray-600 mb-4">
-              アクティビスト投資家が中短期の利益を優先する現状があるが、企業が持続可能な成長を追求できるようにしたい。
+              {questionDescription || "質問の説明がありません"}
             </p>
             <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                成長
-              </span>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                投資
-              </span>
+              {questionTags && questionTags.length > 0
+                ? questionTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))
+                : null}
             </div>
           </div>
           <div className="ml-4 text-right">

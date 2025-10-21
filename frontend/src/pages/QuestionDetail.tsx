@@ -237,10 +237,12 @@ const QuestionDetail = () => {
           <div className="px-6 py-8">
             <ThemePromptSection
               themeTitle={themeData.title}
-              themeDescription={questionData.question}
-              themeTags={questionData.tags}
+              themeDescription={themeInfo?.theme?.description || ""}
               participantCount={questionDetail?.participantCount || 0}
               dialogueCount={questionDetail?.dialogueCount || 0}
+              questionTitle={questionData.tagLine || questionData.question}
+              questionDescription={questionData.question}
+              questionTags={questionData.tags}
             />
           </div>
 

@@ -1,3 +1,5 @@
+import MarkdownRenderer from "../common/MarkdownRenderer";
+
 interface ReportIssue {
   title: string;
   description: string;
@@ -26,7 +28,9 @@ const OpinionSummaryContent = ({
   return (
     <div className="space-y-6">
       {/* 導入文 */}
-      <p className="text-gray-800 leading-8">{reportExample.introduction}</p>
+      <div className="text-gray-800 leading-8">
+        <MarkdownRenderer content={reportExample.introduction} />
+      </div>
 
       {/* 課題一覧 */}
       {reportExample.issues && reportExample.issues.length > 0 && (
@@ -36,7 +40,9 @@ const OpinionSummaryContent = ({
               <h5 className="text-xl font-bold text-gray-800 mb-3">
                 {issue.title}
               </h5>
-              <p className="text-gray-800 leading-8">{issue.description}</p>
+              <div className="text-gray-800 leading-8">
+                <MarkdownRenderer content={issue.description} />
+              </div>
             </div>
           ))}
         </div>

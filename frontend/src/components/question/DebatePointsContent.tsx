@@ -1,3 +1,5 @@
+import MarkdownRenderer from "../common/MarkdownRenderer";
+
 interface DebateAxis {
   title: string;
   options?: {
@@ -48,9 +50,9 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                     <h6 className="font-bold text-gray-800 mb-1">
                       {option.label}
                     </h6>
-                    <p className="text-gray-800 leading-8">
-                      {option.description}
-                    </p>
+                    <div className="text-gray-800 leading-8">
+                      <MarkdownRenderer content={option.description} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -64,9 +66,9 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                 <h5 className="text-xl font-bold text-gray-800 mb-2">合意点</h5>
                 <div className="pl-6 space-y-2">
                   {debateData.agreementPoints.map((point) => (
-                    <p key={point} className="text-gray-800 leading-8">
-                      • {point}
-                    </p>
+                    <div key={point} className="text-gray-800 leading-8">
+                      • <MarkdownRenderer content={point} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -79,9 +81,9 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
                 <h5 className="text-xl font-bold text-gray-800 mb-2">対立点</h5>
                 <div className="pl-6 space-y-2">
                   {debateData.disagreementPoints.map((point) => (
-                    <p key={point} className="text-gray-800 leading-8">
-                      • {point}
-                    </p>
+                    <div key={point} className="text-gray-800 leading-8">
+                      • <MarkdownRenderer content={point} />
+                    </div>
                   ))}
                 </div>
               </div>
