@@ -387,6 +387,7 @@ const QuestionDetail = () => {
               isEmpty={!questionDetail?.debateData}
               emptyDescription="多くの対話が集まると、論点をまとめたレポートが表示されるようになります。"
               downloadData={questionDetail?.debateData}
+              reportId="debate-report"
             >
               <DebatePointsContent debateData={questionDetail?.debateData} />
             </ReportCard>
@@ -401,6 +402,7 @@ const QuestionDetail = () => {
               }
               emptyDescription="多くの対話が集まると、意見をまとめたレポートが表示されるようになります。"
               downloadData={questionDetail?.reportExample}
+              reportId="opinion-report"
             >
               <OpinionSummaryContent
                 reportExample={

@@ -7,6 +7,7 @@ interface DownloadButtonProps {
   className?: string;
   downloadType?: "pdf" | "image";
   data?: unknown; // ダウンロードするデータ（将来の拡張用）
+  targetId?: string; // ダウンロード対象の要素ID
 }
 
 export const DownloadButton: React.FC<DownloadButtonProps> = ({
@@ -15,6 +16,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
   className = "",
   downloadType = "pdf",
   data: _data, // 将来の拡張用にインターフェースに保持
+  targetId,
 }) => {
   const handleDownload = () => {
     if (onClick) {
@@ -25,10 +27,12 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
     if (downloadType === "pdf") {
       // HTML要素をキャプチャしてPDFとしてダウンロード
       // 実際のコンテンツをキャプチャする
-      const contentElement = document.querySelector('.report-content-for-download');
-      
+      const contentElement = targetId 
+        ? document.getElementById(targetId)
+        : document.querySelector(".report-content-for-download");
+
       if (!contentElement) {
-        alert('ダウンロード可能なコンテンツが見つかりません');
+        alert("ダウンロード可能なコンテンツが見つかりません");
         return;
       }
 
@@ -62,24 +66,24 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
         ctx.fillStyle = "#1e293b";
         ctx.font = "14px Arial";
         ctx.textAlign = "left";
-        
+
         const textContent = contentElement.textContent || "データがありません";
-        const lines = textContent.split('\n').filter(line => line.trim());
+        const lines = textContent.split("\n").filter((line) => line.trim());
         let y = 120;
         const lineHeight = 22;
         const maxWidth = canvas.width - 60;
 
         for (const line of lines) {
           if (y > canvas.height - 80) break;
-          
+
           // 長い行を折り返す
-          const words = line.trim().split('');
-          let currentLine = '';
-          
+          const words = line.trim().split("");
+          let currentLine = "";
+
           for (let i = 0; i < words.length; i++) {
             const testLine = currentLine + words[i];
             const metrics = ctx.measureText(testLine);
-            
+
             if (metrics.width > maxWidth && currentLine.length > 0) {
               ctx.fillText(currentLine, 30, y);
               currentLine = words[i];
@@ -89,7 +93,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
               currentLine = testLine;
             }
           }
-          
+
           if (currentLine) {
             ctx.fillText(currentLine, 30, y);
             y += lineHeight;

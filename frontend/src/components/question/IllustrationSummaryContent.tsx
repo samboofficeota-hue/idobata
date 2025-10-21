@@ -19,10 +19,10 @@ const IllustrationSummaryContent = ({
       visualReport.includes("<html")
     ) {
       return (
-        <div className="w-full h-[600px] md:h-[800px]">
+        <div className="w-full min-h-[600px] md:min-h-[800px]">
           <iframe
             srcDoc={visualReport}
-            className="w-full h-full border-0 rounded-2xl"
+            className="w-full min-h-[600px] md:min-h-[800px] border-0 rounded-2xl"
             title="イラスト要約"
             sandbox="allow-same-origin"
           />

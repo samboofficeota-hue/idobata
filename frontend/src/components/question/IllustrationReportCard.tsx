@@ -10,7 +10,7 @@ interface IllustrationReportCardProps {
   isEmpty?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
-  downloadData?: any;
+  downloadData?: unknown;
 }
 
 const IllustrationReportCard = ({
@@ -55,7 +55,7 @@ const IllustrationReportCard = ({
           // Normal content
           <>
             <div
-              className={`${isExpanded ? "h-auto" : "h-[200px] md:h-[280px]"} overflow-hidden flex justify-center items-center`}
+              className={`${isExpanded ? "h-auto" : "h-[400px] md:h-[600px]"} overflow-hidden flex justify-center items-start`}
             >
               {children}
             </div>
