@@ -40,6 +40,10 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
   );
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [isGeneratingOpinionSummaries, setIsGeneratingOpinionSummaries] =
+    useState(false);
+  const [isGeneratingDownloadOutput, setIsGeneratingDownloadOutput] =
+    useState(false);
   const [isGeneratingReports, setIsGeneratingReports] = useState<
     Record<string, boolean>
   >({});
@@ -185,6 +189,60 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     pollForQuestions();
   };
 
+  const handleGenerateOpinionSummaries = async () => {
+    if (!theme?._id) return;
+
+    setIsGeneratingOpinionSummaries(true);
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    const result = await apiClient.generateOpinionSummaries(theme._id);
+
+    if (result.isErr()) {
+      console.error("Failed to generate opinion summaries:", result.error);
+      setQuestionsError("意見まとめの生成に失敗しました。");
+      setIsGeneratingOpinionSummaries(false);
+      return;
+    }
+
+    setSuccessMessage(
+      `意見まとめの生成を開始しました。${result.value.questionCount}個の問いに対して処理を実行中です。`
+    );
+    setIsGeneratingOpinionSummaries(false);
+  };
+
+  const handleDownloadOutput = async () => {
+    if (!theme?._id) return;
+
+    setIsGeneratingDownloadOutput(true);
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    const result = await apiClient.getDownloadOutput(theme._id);
+
+    if (result.isErr()) {
+      console.error("Failed to get download output:", result.error);
+      setQuestionsError("ダウンロード用アウトプットの取得に失敗しました。");
+      setIsGeneratingDownloadOutput(false);
+      return;
+    }
+
+    // JSONファイルとしてダウンロード
+    const dataStr = JSON.stringify(result.value, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `theme-${theme._id}-output-${new Date().toISOString()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setSuccessMessage("ダウンロード用アウトプットをダウンロードしました。");
+    setIsGeneratingDownloadOutput(false);
+  };
+
   const handleGenerateVisualReport = async () => {
     if (!theme?._id || !selectedQuestionId) return;
 
@@ -225,17 +283,17 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     setQuestionsError(null);
     setSuccessMessage(null);
 
-    const result = await apiClient.generateReportExample(theme._id, questionId);
+    const result = await apiClient.generateDigestDraft(theme._id, questionId);
 
     if (result.isErr()) {
       console.error("Failed to generate report:", result.error);
-      setQuestionsError("市民意見レポート例の生成に失敗しました。");
+      setQuestionsError("意見まとめの生成に失敗しました。");
       setIsGeneratingReports((prev) => ({ ...prev, [questionId]: false }));
       return;
     }
 
     setSuccessMessage(
-      "市民意見レポート例の生成を開始しました。生成には数分かかる場合があります。"
+      "意見まとめの生成を開始しました。生成には数分かかる場合があります。"
     );
     setIsGeneratingReports((prev) => ({ ...prev, [questionId]: false }));
   };
@@ -444,7 +502,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
       for (let i = 0; i < questions.length; i++) {
         const question = questions[i];
         try {
-          await apiClient.generateReportExample(theme._id, question._id);
+          await apiClient.generateDigestDraft(theme._id, question._id);
 
           // 進捗更新
           setBulkProgress((prev) => ({
@@ -463,11 +521,11 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
       }
 
       setSuccessMessage(
-        `市民意見レポートの一括生成が完了しました。${questions.length}個のレポートを生成しました。`
+        `意見まとめの一括生成が完了しました。${questions.length}個の意見まとめを生成しました。`
       );
     } catch (error) {
       console.error("Failed to generate reports:", error);
-      setQuestionsError("市民意見レポートの一括生成に失敗しました。");
+      setQuestionsError("意見まとめの一括生成に失敗しました。");
     }
 
     setIsGeneratingBulkReports(false);
@@ -522,17 +580,19 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     if (!theme?._id) return;
 
     try {
-      const result = await apiClient.getReportExample(theme._id, questionId);
-      if (result.isOk()) {
+      const result = await apiClient.getDigestDraft(theme._id, questionId);
+      if (result.isOk() && result.value.length > 0) {
         const question = questions.find((q) => q._id === questionId);
+        // 最新のDigestDraftを取得
+        const latestDigest = result.value[0];
         setReportModal({
           isOpen: true,
           type: "report",
-          data: result.value,
+          data: latestDigest,
           questionText: question?.questionText || "",
         });
       } else {
-        setQuestionsError("レポートが見つかりません。");
+        setQuestionsError("意見まとめが見つかりません。");
       }
     } catch (error) {
       console.error("Failed to get report:", error);
@@ -801,56 +861,155 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
             </div>
           )}
 
-          {/* Generation Button */}
-          <div className="mb-6 p-4 bg-background rounded-lg border border-border shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-primary-dark mb-1">
-                  シャープな問い生成
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  課題データから新しいシャープな問いを生成します
-                </p>
+          {/* Generation Buttons */}
+          <div className="mb-6 space-y-4">
+            {/* シャープな問い生成 */}
+            <div className="p-4 bg-background rounded-lg border border-border shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-primary-dark mb-1">
+                    シャープな問い生成
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    課題データから新しいシャープな問いを生成します
+                  </p>
+                </div>
+                <button
+                  onClick={handleGenerateQuestions}
+                  disabled={isGeneratingQuestions}
+                  className="btn bg-primary text-primary-foreground px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm whitespace-nowrap hover:bg-primary/90"
+                  type="button"
+                >
+                  {isGeneratingQuestions ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-label="読み込み中"
+                        role="img"
+                      >
+                        <title>読み込み中</title>
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      生成中...
+                    </span>
+                  ) : questions.length === 0 ? (
+                    "生成する"
+                  ) : (
+                    "さらに生成する"
+                  )}
+                </button>
               </div>
-              <button
-                onClick={handleGenerateQuestions}
-                disabled={isGeneratingQuestions}
-                className="btn bg-primary text-primary-foreground px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm whitespace-nowrap hover:bg-primary/90"
-                type="button"
-              >
-                {isGeneratingQuestions ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      aria-label="読み込み中"
-                      role="img"
-                    >
-                      <title>読み込み中</title>
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    生成中...
-                  </span>
-                ) : questions.length === 0 ? (
-                  "生成する"
-                ) : (
-                  "さらに生成する"
-                )}
-              </button>
+            </div>
+
+            {/* 意見まとめ一括生成 */}
+            <div className="p-4 bg-background rounded-lg border border-border shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-primary-dark mb-1">
+                    意見まとめ一括生成
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    すべての問いに対して、論点まとめと意見まとめを一括生成します
+                  </p>
+                </div>
+                <button
+                  onClick={handleGenerateOpinionSummaries}
+                  disabled={isGeneratingOpinionSummaries || questions.length === 0}
+                  className="btn bg-purple-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm whitespace-nowrap hover:bg-purple-700"
+                  type="button"
+                >
+                  {isGeneratingOpinionSummaries ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      生成中...
+                    </span>
+                  ) : (
+                    "意見まとめを生成"
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* ダウンロード用アウトプット生成 */}
+            <div className="p-4 bg-background rounded-lg border border-border shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-primary-dark mb-1">
+                    ダウンロード用アウトプット
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    テーマ全体のデータをJSON形式でダウンロードします
+                  </p>
+                </div>
+                <button
+                  onClick={handleDownloadOutput}
+                  disabled={isGeneratingDownloadOutput}
+                  className="btn bg-green-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm whitespace-nowrap hover:bg-green-700"
+                  type="button"
+                >
+                  {isGeneratingDownloadOutput ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      生成中...
+                    </span>
+                  ) : (
+                    "ダウンロード"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -983,7 +1142,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                         className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                       >
                         <div className="flex flex-col space-y-2">
-                          <span>市民意見レポート</span>
+                          <span>意見まとめ</span>
                           <div className="flex flex-col space-y-1">
                             <button
                               onClick={() => handleBulkGenerateReports()}

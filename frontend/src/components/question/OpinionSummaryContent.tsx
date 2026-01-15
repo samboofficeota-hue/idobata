@@ -1,52 +1,37 @@
 import MarkdownRenderer from "../common/MarkdownRenderer";
 
-interface ReportIssue {
+interface DigestDraft {
   title: string;
-  description: string;
-}
-
-interface ReportExample {
-  introduction: string;
-  issues: ReportIssue[];
+  content: string;
+  createdAt: string;
 }
 
 interface OpinionSummaryContentProps {
-  reportExample: ReportExample | null | undefined;
+  digestDraft: DigestDraft | null | undefined;
 }
 
 const OpinionSummaryContent = ({
-  reportExample,
+  digestDraft,
 }: OpinionSummaryContentProps) => {
-  if (!reportExample) {
+  if (!digestDraft) {
     return (
       <div className="text-gray-500 text-center py-8">
-        意見データを読み込み中...
+        意見まとめはまだ生成されていません。より多くの意見が集まると意見まとめが表示されるようになります。
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* 導入文 */}
-      <div className="text-gray-800 leading-8">
-        <MarkdownRenderer markdown={reportExample.introduction} />
-      </div>
+      {/* タイトル */}
+      <h3 className="text-2xl font-bold text-gray-800 mb-4">
+        {digestDraft.title}
+      </h3>
 
-      {/* 課題一覧 */}
-      {reportExample.issues && reportExample.issues.length > 0 && (
-        <div className="space-y-6">
-          {reportExample.issues.map((issue) => (
-            <div key={issue.title}>
-              <h5 className="text-xl font-bold text-gray-800 mb-3">
-                {issue.title}
-              </h5>
-              <div className="text-gray-800 leading-8">
-                <MarkdownRenderer markdown={issue.description} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* 本文 */}
+      <div className="text-gray-800 leading-8">
+        <MarkdownRenderer markdown={digestDraft.content} />
+      </div>
     </div>
   );
 };

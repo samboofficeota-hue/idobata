@@ -5,6 +5,7 @@ import QuestionLink from "../models/QuestionLink.js"; // Import QuestionLink mod
 import SharpQuestion from "../models/SharpQuestion.js"; // Import SharpQuestion model
 import Theme from "../models/Theme.js"; // Import Theme model for custom prompts
 import { callLLM } from "../services/llmService.js"; // Import the LLM service
+import { getQualityOpinionsForChat } from "../workers/dailyBatchProcessor.js"; // Import batch processor for quality opinions
 import { processExtraction } from "../workers/extractionWorker.js"; // Import the extraction worker function
 
 // Controller function for handling new chat messages by theme
@@ -211,119 +212,54 @@ const handleNewMessageByTheme = async (req, res) => {
       }
     } else {
       try {
+        // バッチ処理で選別された品質の高い意見を取得
+        const { problems: qualityProblems, solutions: qualitySolutions } =
+          await getQualityOpinionsForChat(themeId, 10);
+
         const themeQuestions = await SharpQuestion.find({ themeId }).lean();
 
-        if (themeQuestions.length > 0) {
+        if (
+          themeQuestions.length > 0 ||
+          qualityProblems.length > 0 ||
+          qualitySolutions.length > 0
+        ) {
           referenceOpinions +=
             "参考情報として、システム内で議論されている主要な「問い」と、それに関連する意見の一部を紹介します:\n\n";
 
-          for (const question of themeQuestions) {
-            referenceOpinions += `問い: ${question.questionText}\n`;
-
-            // Find up to 10 random related problems with relevance > 0.8
-            const problemLinks = await QuestionLink.aggregate([
-              {
-                $match: {
-                  questionId: question._id,
-                  linkedItemType: "problem",
-                  linkType: "prompts_question",
-                  relevanceScore: { $gte: 0.8 },
-                },
-              },
-              { $sample: { size: 10 } },
-              {
-                $lookup: {
-                  from: "problems",
-                  localField: "linkedItemId",
-                  foreignField: "_id",
-                  as: "linkedProblem",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$linkedProblem",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-            ]);
-
-            if (
-              problemLinks.length > 0 &&
-              problemLinks.some((link) => link.linkedProblem)
-            ) {
-              referenceOpinions += "  関連性の高い課題:\n";
-              for (const link of problemLinks) {
-                if (link.linkedProblem) {
-                  const problem = link.linkedProblem;
-                  if (
-                    problem.themeId &&
-                    problem.themeId.toString() === themeId
-                  ) {
-                    const statement =
-                      problem.statement ||
-                      problem.combinedStatement ||
-                      problem.statementA ||
-                      problem.statementB ||
-                      "N/A";
-                    referenceOpinions += `    - ${statement})\n`;
-                  }
-                }
-              }
-            } else {
-              referenceOpinions += "  関連性の高い課題: (ありません)\n";
+          // 問いがある場合は表示
+          if (themeQuestions.length > 0) {
+            for (const question of themeQuestions) {
+              referenceOpinions += `問い: ${question.questionText}\n`;
             }
-
-            // Find up to 10 random related solutions with relevance > 0.8
-            const solutionLinks = await QuestionLink.aggregate([
-              {
-                $match: {
-                  questionId: question._id,
-                  linkedItemType: "solution",
-                  linkType: "answers_question",
-                  relevanceScore: { $gte: 0.8 },
-                },
-              },
-              { $sample: { size: 10 } },
-              {
-                $lookup: {
-                  from: "solutions",
-                  localField: "linkedItemId",
-                  foreignField: "_id",
-                  as: "linkedSolution",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$linkedSolution",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-            ]);
-
-            if (
-              solutionLinks.length > 0 &&
-              solutionLinks.some((link) => link.linkedSolution)
-            ) {
-              referenceOpinions +=
-                "  関連性の高い解決策 (最大10件, 関連度 >80%):\n";
-              for (const link of solutionLinks) {
-                if (link.linkedSolution) {
-                  const solution = link.linkedSolution;
-                  if (
-                    solution.themeId &&
-                    solution.themeId.toString() === themeId
-                  ) {
-                    referenceOpinions += `    - ${solution.statement || "N/A"})\n`;
-                  }
-                }
-              }
-            } else {
-              referenceOpinions += "  関連性の高い解決策: (ありません)\n";
-            }
-            referenceOpinions += "\n"; // Add space between questions
+            referenceOpinions += "\n";
           }
+
+          // 品質の高い課題を表示
+          if (qualityProblems.length > 0) {
+            referenceOpinions += "関連性の高い課題:\n";
+            for (const problem of qualityProblems) {
+              const statement =
+                problem.statement ||
+                problem.combinedStatement ||
+                problem.statementA ||
+                problem.statementB ||
+                "N/A";
+              referenceOpinions += `  - ${statement}\n`;
+            }
+            referenceOpinions += "\n";
+          }
+
+          // 品質の高い解決策を表示
+          if (qualitySolutions.length > 0) {
+            referenceOpinions += "関連性の高い解決策:\n";
+            for (const solution of qualitySolutions) {
+              referenceOpinions += `  - ${solution.statement || "N/A"}\n`;
+            }
+            referenceOpinions += "\n";
+          }
+
           referenceOpinions +=
-            "---\nこれらの「問い」や関連意見も踏まえ、ユーザーとの対話を深めてください。\n";
+            "---\nこれらの「問い」や関連意見も踏まえ、ユーザーとの対話を深めてください。特に、ユーザーが自分の意見を述べた際には、「他にはこういう意見もありますが？」と自然に他の意見を紹介して、対話を広げてください。\n";
         }
       } catch (dbError) {
         console.error(
@@ -347,28 +283,32 @@ const handleNewMessageByTheme = async (req, res) => {
         systemPrompt = theme.customPrompt;
       } else {
         // --- Use default system prompt ---
-        systemPrompt = `あなたは、ユーザーが抱える課題やその解決策についての考えを深めるための、対話型アシスタントです。以下の点を意識して応答してください。
+        systemPrompt = `あなたは、ユーザーが抱える課題やその解決策についての考えを**深める**ための、対話型アシスタントです。
 
-1.  **思考の深掘り:** ユーザーの発言から、具体的な課題や解決策のアイデアを引き出すことを目指します。曖昧な点や背景が不明な場合は、「いつ」「どこで」「誰が」「何を」「なぜ」「どのように」といった質問（5W1H）を自然な会話の中で投げかけ、具体的な情報を引き出してください。
-2.  **簡潔な応答:** あなたの応答は、最大でも4文以内にまとめてください。
-3.  **課題/解決策の抽出支援:** ユーザーが自身の考えを整理し、明確な「課題」や「解決策」として表現できるよう、対話を通じてサポートしてください。
-課題の表現は、主語を明確にし、具体的な状況と影響を記述することで、問題の本質を捉えやすくする必要があります。現状と理想の状態を明確に記述し、そのギャップを課題として定義する。解決策の先走りや抽象的な表現を避け、「誰が」「何を」「なぜ」という構造で課題を定義することで、問題の範囲を明確にし、多様な視点からの議論を促します。感情的な表現や主観的な解釈を排し、客観的な事実に基づいて課題を記述することが重要です。
-解決策の表現は、具体的な行動や機能、そしてそれがもたらす価値を明確に記述する必要があります。実現可能性や費用対効果といった制約条件も考慮し、曖昧な表現や抽象的な概念を避けることが重要です。解決策は、課題に対する具体的な応答として提示され、その効果やリスク、そして実装に必要なステップを明確にすべき。
-4.  **心理的安全性の確保:** ユーザーのペースを尊重し、急かさないこと。論理的な詰め寄りや過度な質問攻めを避けること。ユーザーが答えられない質問には固執せず、別の角度からアプローチすること。完璧な回答を求めず、ユーザーの部分的な意見も尊重すること。対話は協力的な探索であり、試験や審査ではないことを意識すること。
-5.  **話題の誘導:** ユーザーの発言が曖昧で、特に話したいトピックが明確でない場合、参考情報として提示された既存の問いのどれかをピックアップしてそれについて議論することを優しく提案してください。（問いを一字一句読み上げるのではなく、文脈や相手に合わせて言い換えて分かりやすく伝える）
+**【必須ルール】**
+- 応答は必ず4文以内にまとめてください。箇条書きやリスト形式は使用せず、通常の文章で記述してください。
+
+**【応答の指針】**
+1. **課題/解決策の明確化**: ユーザーが自身の考えを「課題」や「解決策」として明確に表現できるよう、対話を通じてサポートしてください。
+2. **心理的安全性の確保**: ユーザーのペースを尊重し、急かさず、論理的な詰め寄りや質問攻めを避け、協力的な探索の姿勢を保ってください。
+3. **思考の深掘り**: ユーザーの発言から具体的な課題や解決策のアイデアを引き出します。5W1H（いつ・どこで・誰が・何を・なぜ・どのように）に照らして、不足している情報を1つか2つに絞って自然に質問してください。ただし、この質問は1ターンのみです。
+4. **価値観の可視化**: 思考の深掘りにより、明らかになってきた情報につき、思考を掘り下げます。「意見 ー 経験 ー 感情 ー 価値観」という構造が人間の脳内にはあるので、表出した意見・経験・感情に対して、どのような価値観、つまりどのようなことを大事にしたいかを、自然に質問してください。
+5. **話題の終了**: ユーザーの回答から、価値観が判別できるようになった場合には、チャットをいったん終了するか、他の話題に変えるかを、AI側から提案してください。
 `;
       }
     } catch (error) {
       console.error(`Error fetching theme ${themeId} for prompt:`, error);
-      systemPrompt = `あなたは、ユーザーが抱える課題やその解決策についての考えを深めるための、対話型アシスタントです。以下の点を意識して応答してください。
+      systemPrompt = `あなたは、ユーザーが抱える課題やその解決策についての考えを**深める**ための、対話型アシスタントです。
 
-1.  **思考の深掘り:** ユーザーの発言から、具体的な課題や解決策のアイデアを引き出すことを目指します。曖昧な点や背景が不明な場合は、「いつ」「どこで」「誰が」「何を」「なぜ」「どのように」といった質問（5W1H）を自然な会話の中で投げかけ、具体的な情報を引き出してください。
-2.  **簡潔な応答:** あなたの応答は、最大でも4文以内にまとめてください。
-3.  **課題/解決策の抽出支援:** ユーザーが自身の考えを整理し、明確な「課題」や「解決策」として表現できるよう、対話を通じてサポートしてください。
-課題の表現は、主語を明確にし、具体的な状況と影響を記述することで、問題の本質を捉えやすくする必要があります。現状と理想の状態を明確に記述し、そのギャップを課題として定義する。解決策の先走りや抽象的な表現を避け、「誰が」「何を」「なぜ」という構造で課題を定義することで、問題の範囲を明確にし、多様な視点からの議論を促します。感情的な表現や主観的な解釈を排し、客観的な事実に基づいて課題を記述することが重要です。
-解決策の表現は、具体的な行動や機能、そしてそれがもたらす価値を明確に記述する必要があります。実現可能性や費用対効果といった制約条件も考慮し、曖昧な表現や抽象的な概念を避けることが重要です。解決策は、課題に対する具体的な応答として提示され、その効果やリスク、そして実装に必要なステップを明確にすべき。
-4.  **心理的安全性の確保:** ユーザーのペースを尊重し、急かさないこと。論理的な詰め寄りや過度な質問攻めを避けること。ユーザーが答えられない質問には固執せず、別の角度からアプローチすること。完璧な回答を求めず、ユーザーの部分的な意見も尊重すること。対話は協力的な探索であり、試験や審査ではないことを意識すること。
-5.  **話題の誘導:** ユーザーの発言が曖昧で、特に話したいトピックが明確でない場合、参考情報として提示された既存の問いのどれかをピックアップしてそれについて議論することを優しく提案してください。（問いを一字一句読み上げるのではなく、文脈や相手に合わせて言い換えて分かりやすく伝える）
+**【必須ルール】**
+- 応答は必ず4文以内にまとめてください。箇条書きやリスト形式は使用せず、通常の文章で記述してください。
+
+**【応答の指針】**
+1. **課題/解決策の明確化**: ユーザーが自身の考えを「課題」や「解決策」として明確に表現できるよう、対話を通じてサポートしてください。
+2. **心理的安全性の確保**: ユーザーのペースを尊重し、急かさず、論理的な詰め寄りや質問攻めを避け、協力的な探索の姿勢を保ってください。
+3. **思考の深掘り**: ユーザーの発言から具体的な課題や解決策のアイデアを引き出します。5W1H（いつ・どこで・誰が・何を・なぜ・どのように）に照らして、不足している情報を1つか2つに絞って自然に質問してください。ただし、この質問は1ターンのみです。
+4. **価値観の可視化**: 思考の深掘りにより、明らかになってきた情報につき、思考を掘り下げます。「意見 ー 経験 ー 感情 ー 価値観」という構造が人間の脳内にはあるので、表出した意見・経験・感情に対して、どのような価値観、つまりどのようなことを大事にしたいかを、自然に質問してください。
+5. **話題の終了**: ユーザーの回答から、価値観が判別できるようになった場合には、チャットをいったん終了するか、他の話題に変えるかを、AI側から提案してください。
 `;
     }
 
@@ -673,10 +613,87 @@ const getThreadByUserAndTheme = async (req, res) => {
   }
 };
 
+// 新しいチャット開始時の初期メッセージを生成
+const getInitialChatMessage = async (req, res) => {
+  const { themeId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(themeId)) {
+    return res.status(400).json({ error: "Invalid theme ID format" });
+  }
+
+  try {
+    // バッチ処理で選別された品質の高い意見を取得
+    const { problems: qualityProblems, solutions: qualitySolutions } =
+      await getQualityOpinionsForChat(themeId, 5); // 初期メッセージ用には5件程度
+
+    const themeQuestions = await SharpQuestion.find({ themeId })
+      .limit(3)
+      .lean();
+
+    // 初期メッセージを生成
+    let initialMessage =
+      "こんにちは！このテーマについて、あなたの意見や考えを聞かせてください。\n\n";
+
+    if (qualityProblems.length > 0 || qualitySolutions.length > 0) {
+      initialMessage += "他にはどんな切り口があると思うか？\n\n";
+      initialMessage += "他の意見では、以下のような意見が出ています：\n\n";
+
+      if (qualityProblems.length > 0) {
+        initialMessage += "【課題として挙げられている意見】\n";
+        qualityProblems.slice(0, 3).forEach((problem, index) => {
+          const statement =
+            problem.statement ||
+            problem.combinedStatement ||
+            problem.statementA ||
+            problem.statementB ||
+            "N/A";
+          initialMessage += `${index + 1}. ${statement}\n`;
+        });
+        initialMessage += "\n";
+      }
+
+      if (qualitySolutions.length > 0) {
+        initialMessage += "【解決策として提案されている意見】\n";
+        qualitySolutions.slice(0, 3).forEach((solution, index) => {
+          initialMessage += `${index + 1}. ${solution.statement || "N/A"}\n`;
+        });
+        initialMessage += "\n";
+      }
+
+      initialMessage +=
+        "これらの意見も参考にしながら、あなたの考えを教えてください。";
+    } else if (themeQuestions.length > 0) {
+      initialMessage +=
+        "このテーマについて、以下のような問いが議論されています：\n\n";
+      themeQuestions.forEach((question, index) => {
+        initialMessage += `${index + 1}. ${question.questionText}\n`;
+      });
+      initialMessage +=
+        "\nこれらの問いについて、あなたの意見を聞かせてください。";
+    } else {
+      initialMessage +=
+        "このテーマについて、あなたの意見や考えを自由に聞かせてください。";
+    }
+
+    res.status(200).json({
+      message: initialMessage,
+    });
+  } catch (error) {
+    console.error(
+      `Error generating initial chat message for theme ${themeId}:`,
+      error
+    );
+    res.status(500).json({
+      error: "Internal server error while generating initial message.",
+    });
+  }
+};
+
 export {
   getThreadExtractionsByTheme,
   getThreadMessagesByTheme,
   handleNewMessageByTheme,
   getThreadByUserAndTheme,
   getThreadByUserAndQuestion,
+  getInitialChatMessage,
 };

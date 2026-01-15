@@ -2,12 +2,14 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cors from "cors";
+import cron from "node-cron";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
+import { runDailyBatch } from "./workers/dailyBatchProcessor.js"; // Import daily batch processor
 
 // Load environment variables
 dotenv.config();
@@ -97,6 +99,8 @@ import themeDigestRoutes from "./routes/themeDigestRoutes.js";
 import themeEmbeddingRoutes from "./routes/themeEmbeddingRoutes.js";
 import themeGenerateQuestionsRoutes from "./routes/themeGenerateQuestionsRoutes.js";
 import themeImportRoutes from "./routes/themeImportRoutes.js";
+import themeOpinionSummaryRoutes from "./routes/themeOpinionSummaryRoutes.js";
+import themeDownloadOutputRoutes from "./routes/themeDownloadOutputRoutes.js";
 import themePolicyRoutes from "./routes/themePolicyRoutes.js";
 import themeProblemRoutes from "./routes/themeProblemRoutes.js";
 // Import theme-based routes
@@ -117,6 +121,11 @@ app.use(
   "/api/themes/:themeId/generate-questions",
   themeGenerateQuestionsRoutes
 );
+app.use(
+  "/api/themes/:themeId/generate-opinion-summaries",
+  themeOpinionSummaryRoutes
+);
+app.use("/api/themes/:themeId/download-output", themeDownloadOutputRoutes);
 app.use("/api/themes/:themeId/policy-drafts", themePolicyRoutes);
 app.use("/api/themes/:themeId/digest-drafts", themeDigestRoutes);
 app.use("/api/themes/:themeId/import", themeImportRoutes);
@@ -197,6 +206,27 @@ app.get("/api/health", (req, res) => {
     service: "idobata-backend",
   });
 });
+
+// --- Daily Batch Processing Scheduler ---
+// 1日1回、深夜2時にバッチ処理を実行
+// 処理対象: 管理画面でアクティブ設定（isActive: true）されているテーマのみ
+// 非アクティブなテーマは自動的にスキップされる
+const BATCH_SCHEDULE = process.env.BATCH_SCHEDULE || "0 2 * * *"; // デフォルト: 毎日2時
+
+cron.schedule(BATCH_SCHEDULE, async () => {
+  console.log(
+    `[Scheduler] Daily batch processing triggered at ${new Date().toISOString()}`
+  );
+  try {
+    await runDailyBatch();
+  } catch (error) {
+    console.error("[Scheduler] Error in scheduled daily batch processing:", error);
+  }
+});
+
+console.log(
+  `[Scheduler] Daily batch processing scheduled with cron: ${BATCH_SCHEDULE}`
+);
 
 // --- Start Server ---
 httpServer.listen(PORT, () => {

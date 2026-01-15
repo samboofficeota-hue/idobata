@@ -396,23 +396,12 @@ const QuestionDetail = () => {
             <ReportCard
               title="意見まとめ"
               downloadButtonText="PDFダウンロード"
-              isEmpty={
-                !questionDetail?.reportExample ||
-                questionDetail?.reportExample?.issues?.length === 0
-              }
+              isEmpty={!questionDetail?.digestDraft}
               emptyDescription="多くの対話が集まると、意見をまとめたレポートが表示されるようになります。"
-              downloadData={questionDetail?.reportExample}
+              downloadData={questionDetail?.digestDraft}
               reportId="opinion-report"
             >
-              <OpinionSummaryContent
-                reportExample={
-                  questionDetail?.reportExample ?? {
-                    introduction:
-                      "レポート例はまだ作成されていません。より多くの意見が集まるとレポート例が表示されるようになります。",
-                    issues: [],
-                  }
-                }
-              />
+              <OpinionSummaryContent digestDraft={questionDetail?.digestDraft} />
             </ReportCard>
 
             {/* イラスト要約カード */}

@@ -42,6 +42,9 @@ const policyDraftSchema = new mongoose.Schema(
   { timestamps: true }
 ); // createdAt, updatedAt を自動追加 (todo.md指示)
 
+// インデックスを追加（パフォーマンス向上のため）
+policyDraftSchema.index({ questionId: 1, createdAt: -1 });
+
 const PolicyDraft = mongoose.model("PolicyDraft", policyDraftSchema);
 
 export default PolicyDraft;

@@ -2,6 +2,7 @@ import { Bot, Loader2 } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useDraggable } from "../../../hooks/useDraggable";
+import { apiClient } from "../../../services/api/apiClient";
 import { Button } from "../../ui/button";
 import {
   ChatSheet as BaseChatSheet,
@@ -17,6 +18,7 @@ interface ChatSheetProps {
   isDesktop?: boolean;
   disabled?: boolean;
   disabledMessage?: string;
+  themeId?: string | null;
 }
 
 export const ChatSheet: React.FC<ChatSheetProps> = ({
@@ -26,8 +28,9 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   isDesktop = false,
   disabled = false,
   disabledMessage = "このテーマではコメントが無効化されています",
+  themeId = null,
 }) => {
-  const { messages, addMessage } = useChat();
+  const { messages, addMessage, clearMessages } = useChat();
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const { height } = useDraggable({
@@ -102,6 +105,39 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     // Enter alone should just create a new line (default behavior)
   };
 
+  const handleNewChat = async () => {
+    // 新しいチャット: チャット履歴をクリアして新しい会話を開始
+    clearMessages();
+
+    // 初期メッセージを取得して追加
+    if (themeId) {
+      try {
+        const result = await apiClient.getInitialChatMessage(themeId);
+        if (result.isOk()) {
+          addMessage(result.value.message, "system");
+        }
+      } catch (error) {
+        console.error("Failed to get initial chat message:", error);
+        // エラー時はデフォルトメッセージを追加
+        addMessage(
+          "こんにちは！このテーマについて、あなたの意見や考えを聞かせてください。",
+          "system"
+        );
+      }
+    } else {
+      // themeIdがない場合はデフォルトメッセージを追加
+      addMessage(
+        "こんにちは！このテーマについて、あなたの意見や考えを聞かせてください。",
+        "system"
+      );
+    }
+  };
+
+  const handleEndChat = () => {
+    // チャットを終了: チャットを閉じる
+    onClose();
+  };
+
   const renderDisabledState = () => (
     <div className="p-4 bg-gray-100 text-gray-500 text-center border-t">
       <p className="text-base">{disabledMessage}</p>
@@ -151,17 +187,17 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                       variant="outline"
                       size="sm"
                       className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={() => onSendMessage?.("お題を変える")}
+                      onClick={handleNewChat}
                     >
-                      お題を変える
+                      新しいチャット
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={() => onSendMessage?.("対話を終わる")}
+                      onClick={handleEndChat}
                     >
-                      対話を終わる
+                      チャットを終了
                     </Button>
                   </div>
                   <Button
@@ -234,17 +270,17 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                       variant="outline"
                       size="sm"
                       className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={() => onSendMessage?.("お題を変える")}
+                      onClick={handleNewChat}
                     >
-                      お題を変える
+                      新しいチャット
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={() => onSendMessage?.("対話を終わる")}
+                      onClick={handleEndChat}
                     >
-                      対話を終わる
+                      チャットを終了
                     </Button>
                   </div>
                   <Button

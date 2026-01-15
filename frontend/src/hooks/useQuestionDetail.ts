@@ -19,13 +19,11 @@ export interface QuestionDetailResponse {
   };
   relatedProblems: RelatedProblem[];
   relatedSolutions: RelatedSolution[];
-  reportExample: {
-    introduction: string;
-    issues: {
-      title: string;
-      description: string;
-    }[];
-  };
+  digestDraft: {
+    title: string;
+    content: string;
+    createdAt: string;
+  } | null;
   visualReport: string;
   participantCount?: number;
   dialogueCount?: number;

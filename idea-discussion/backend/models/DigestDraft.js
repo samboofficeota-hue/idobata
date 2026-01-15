@@ -48,6 +48,9 @@ const digestDraftSchema = new mongoose.Schema(
   { timestamps: true }
 ); // createdAt, updatedAt を自動追加
 
+// インデックスを追加（パフォーマンス向上のため）
+digestDraftSchema.index({ questionId: 1, createdAt: -1 });
+
 const DigestDraft = mongoose.model("DigestDraft", digestDraftSchema);
 
 export default DigestDraft;

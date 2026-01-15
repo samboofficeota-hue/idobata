@@ -4,16 +4,29 @@ import SharpQuestion from "../models/SharpQuestion.js";
 
 export const getDigestDraftsByTheme = async (req, res) => {
   const { themeId } = req.params;
+  const { questionId } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(themeId)) {
     return res.status(400).json({ message: "Invalid theme ID format" });
   }
 
   try {
-    const questions = await SharpQuestion.find({ themeId });
-    const questionIds = questions.map((q) => q._id);
+    let query = {};
+    
+    if (questionId) {
+      // 特定のquestionIdでフィルタリング
+      if (!mongoose.Types.ObjectId.isValid(questionId)) {
+        return res.status(400).json({ message: "Invalid question ID format" });
+      }
+      query.questionId = questionId;
+    } else {
+      // テーマ内のすべての問いを取得
+      const questions = await SharpQuestion.find({ themeId });
+      const questionIds = questions.map((q) => q._id);
+      query.questionId = { $in: questionIds };
+    }
 
-    const drafts = await DigestDraft.find({ questionId: { $in: questionIds } })
+    const drafts = await DigestDraft.find(query)
       .sort({ createdAt: -1 })
       .populate("questionId", "questionText")
       .populate("policyDraftId", "title");

@@ -226,6 +226,16 @@ export class ApiClient {
     );
   }
 
+  async getInitialChatMessage(
+    themeId: string
+  ): Promise<HttpResult<{ message: string }>> {
+    return this.withRetry(() =>
+      this.httpClient.get<{ message: string }>(
+        `/themes/${themeId}/chat/initial-message`
+      )
+    );
+  }
+
   async sendMessage(
     userId: string,
     message: string,

@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import ChatThread from "../models/ChatThread.js";
 import DebateAnalysis from "../models/DebateAnalysis.js";
+import DigestDraft from "../models/DigestDraft.js";
 import Like from "../models/Like.js";
 import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
-import ReportExample from "../models/ReportExample.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
@@ -13,7 +13,6 @@ import { getVisualReport as getQuestionVisualReport } from "../services/question
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
 import { generateDigestDraft } from "../workers/digestGenerator.js";
 import { generatePolicyDraft } from "../workers/policyGenerator.js";
-import { generateReportExample } from "../workers/reportGenerator.js";
 import { generateVisualReport } from "../workers/visualReportGenerator.js";
 
 // GET /api/questions - 全ての質問を集計データ付きで取得（統一API）
@@ -29,39 +28,72 @@ export const getAllQuestions = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100);
 
-    const enhancedQuestions = await Promise.all(
-      questions.map(async (question) => {
-        const questionId = question._id;
+    // すべてのquestionIdを取得
+    const questionIds = questions.map((q) => q._id);
+    const themeIds = [...new Set(questions.map((q) => q.themeId.toString()))];
 
-        const issueCount = await QuestionLink.countDocuments({
-          questionId,
-          linkedItemType: "problem",
-        });
+    // 一括でクエリを実行（N+1クエリ問題を解決）
+    const [allQuestionLinks, allLikes, allChatThreads] = await Promise.all([
+      QuestionLink.find({ questionId: { $in: questionIds } }),
+      Like.find({
+        targetId: { $in: questionIds },
+        targetType: "question",
+      }),
+      ChatThread.find({ themeId: { $in: themeIds } }),
+    ]);
 
-        const solutionCount = await QuestionLink.countDocuments({
-          questionId,
-          linkedItemType: "solution",
-        });
+    // メモリ上で集計
+    const issueCountMap = new Map();
+    const solutionCountMap = new Map();
+    const likeCountMap = new Map();
+    const participantCountMap = new Map();
 
-        const likeCount = await Like.countDocuments({
-          targetId: questionId,
-          targetType: "question",
-        });
+    // QuestionLinkを集計
+    for (const link of allQuestionLinks) {
+      const qId = link.questionId.toString();
+      if (link.linkedItemType === "problem") {
+        issueCountMap.set(qId, (issueCountMap.get(qId) || 0) + 1);
+      } else if (link.linkedItemType === "solution") {
+        solutionCountMap.set(qId, (solutionCountMap.get(qId) || 0) + 1);
+      }
+    }
 
-        // Get unique participant count from chat threads
-        const uniqueParticipantCount = await ChatThread.distinct("userId", {
-          themeId: question.themeId,
-        }).then((userIds) => userIds.filter((userId) => userId).length);
+    // Likeを集計
+    for (const like of allLikes) {
+      const qId = like.targetId.toString();
+      likeCountMap.set(qId, (likeCountMap.get(qId) || 0) + 1);
+    }
 
-        return {
-          ...question.toObject(),
-          issueCount,
-          solutionCount,
-          likeCount,
-          uniqueParticipantCount,
-        };
-      })
-    );
+    // ChatThreadからユニークユーザー数を集計
+    const themeUserMap = new Map();
+    for (const thread of allChatThreads) {
+      const themeId = thread.themeId.toString();
+      if (!themeUserMap.has(themeId)) {
+        themeUserMap.set(themeId, new Set());
+      }
+      if (thread.userId) {
+        themeUserMap.get(themeId).add(thread.userId.toString());
+      }
+    }
+
+    // 各テーマのユニークユーザー数を計算
+    for (const [themeId, userSet] of themeUserMap) {
+      participantCountMap.set(themeId, userSet.size);
+    }
+
+    // メモリ上のデータを使用して結果を構築
+    const enhancedQuestions = questions.map((question) => {
+      const questionIdStr = question._id.toString();
+      const themeIdStr = question.themeId.toString();
+
+      return {
+        ...question.toObject(),
+        issueCount: issueCountMap.get(questionIdStr) || 0,
+        solutionCount: solutionCountMap.get(questionIdStr) || 0,
+        likeCount: likeCountMap.get(questionIdStr) || 0,
+        uniqueParticipantCount: participantCountMap.get(themeIdStr) || 0,
+      };
+    });
 
     return res.status(200).json(enhancedQuestions);
   } catch (error) {
@@ -141,10 +173,10 @@ export const getQuestionDetails = async (req, res) => {
       targetType: "question",
     });
 
-    const reportExample = await ReportExample.findOne({
+    const digestDraft = await DigestDraft.findOne({
       questionId: questionId,
     })
-      .sort({ version: -1 })
+      .sort({ createdAt: -1 })
       .lean();
 
     const visualReport = await getQuestionVisualReport(questionId);
@@ -202,7 +234,13 @@ export const getQuestionDetails = async (req, res) => {
       relatedProblems,
       relatedSolutions,
       debateData,
-      reportExample,
+      digestDraft: digestDraft
+        ? {
+            title: digestDraft.title,
+            content: digestDraft.content,
+            createdAt: digestDraft.createdAt,
+          }
+        : null,
       visualReport: visualReport ? visualReport.overallAnalysis : null,
       participantCount,
       dialogueCount,
