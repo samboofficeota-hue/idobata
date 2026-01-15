@@ -11,6 +11,7 @@ import Forum from "./pages/Forum";
 import HowTo from "./pages/HowTo";
 import MainPage from "./pages/MainPage";
 import MyPage from "./pages/MyPage";
+import NotFound from "./pages/NotFound";
 import QuestionDetail from "./pages/QuestionDetail";
 import ThemeDetail from "./pages/ThemeDetail";
 import Themes from "./pages/Themes";
@@ -112,6 +113,14 @@ export const router = createBrowserRouter([
         element: (
           <PageLayout>
             <MyPage />
+          </PageLayout>
+        ),
+      },
+      {
+        path: "*",
+        element: (
+          <PageLayout>
+            <NotFound />
           </PageLayout>
         ),
       },
