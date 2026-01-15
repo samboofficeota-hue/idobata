@@ -335,9 +335,9 @@ export class ApiClient {
     const result = await this.getDigestDraft(themeId, questionId);
     if (result.isOk() && result.value.length > 0) {
       // 最新のDigestDraftを返す
-      return { ...result, value: result.value[0] };
+      return ok(result.value[0]);
     }
-    return result as ApiResult<any>;
+    return result.mapErr((err) => err);
   }
 }
 
