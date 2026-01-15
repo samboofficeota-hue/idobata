@@ -73,8 +73,10 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
+      - '--update-secrets'
+      - 'MONGODB_URI=mongodb-uri:latest,OPENAI_API_KEY=openai-api-key:latest,PASSWORD_PEPPER=password-pepper:latest,JWT_SECRET=jwt-secret:latest'
       - '--set-env-vars'
-      - 'NODE_ENV=production'
+      - 'NODE_ENV=production,JWT_EXPIRES_IN=24h,IDEA_CORS_ORIGIN=https://idobata-frontend-336788531163.asia-northeast1.run.app,https://idobata-admin-336788531163.asia-northeast1.run.app,https://idobata-admin-doisltwsmq-an.a.run.app,PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app,API_BASE_URL=https://idobata-backend-336788531163.asia-northeast1.run.app,ALLOW_DELETE_THEME=true'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
@@ -91,6 +93,8 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
+      - '--update-secrets'
+      - 'OPENAI_API_KEY=openai-api-key:latest'
 
 images:
   - 'gcr.io/$PROJECT_ID/idobata-frontend'
