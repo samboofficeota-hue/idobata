@@ -46,54 +46,122 @@ export const getTopPageData = async (req, res) => {
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 15);
 
-    // Get sharp question details for opinions
-    const opinionsWithQuestions = await Promise.all(
-      allOpinions.map(async (opinion) => {
-        // Find which sharp question this opinion is linked to
-        const questionLink = await QuestionLink.findOne({
-          linkedItemId: opinion._id,
-          linkedItemType: opinion.type,
-        }).populate("questionId");
+    // すべてのopinionIdを取得
+    const opinionIds = allOpinions.map((o) => o._id);
+    const problemIds = allOpinions
+      .filter((o) => o.type === "problem")
+      .map((o) => o._id);
+    const solutionIds = allOpinions
+      .filter((o) => o.type === "solution")
+      .map((o) => o._id);
 
-        // Get author info from chat thread
-        const chatThread = await ChatThread.findOne({
-          $or: [
-            { extractedProblemIds: opinion._id },
-            { extractedSolutionIds: opinion._id },
-          ],
-        });
+    // 一括でクエリを実行（N+1クエリ問題を解決）
+    const [allQuestionLinks, allChatThreads, allLikes] = await Promise.all([
+      QuestionLink.find({
+        linkedItemId: { $in: opinionIds },
+        linkedItemType: { $in: ["problem", "solution"] },
+      }).populate("questionId"),
+      ChatThread.find({
+        $or: [
+          { extractedProblemIds: { $in: problemIds } },
+          { extractedSolutionIds: { $in: solutionIds } },
+        ],
+      }),
+      Like.find({
+        targetId: { $in: opinionIds },
+        targetType: { $in: ["problem", "solution"] },
+      }),
+    ]);
 
-        let authorName = "匿名ユーザー";
-        if (chatThread?.userId) {
-          const user = await getUser(chatThread.userId);
-          if (user?.displayName) {
-            authorName = user.displayName;
+    // メモリ上でマッピング
+    const questionLinkMap = new Map();
+    for (const link of allQuestionLinks) {
+      const itemId = link.linkedItemId.toString();
+      questionLinkMap.set(itemId, link);
+    }
+
+    const chatThreadMap = new Map();
+    for (const thread of allChatThreads) {
+      // Problem IDでマッピング
+      if (thread.extractedProblemIds) {
+        for (const pid of thread.extractedProblemIds) {
+          const pidStr = pid.toString();
+          if (!chatThreadMap.has(pidStr)) {
+            chatThreadMap.set(pidStr, thread);
           }
         }
+      }
+      // Solution IDでマッピング
+      if (thread.extractedSolutionIds) {
+        for (const sid of thread.extractedSolutionIds) {
+          const sidStr = sid.toString();
+          if (!chatThreadMap.has(sidStr)) {
+            chatThreadMap.set(sidStr, thread);
+          }
+        }
+      }
+    }
 
-        // Get like and comment counts
-        const likeCount = await Like.countDocuments({
-          targetId: opinion._id,
-          targetType: opinion.type,
-        });
+    const likeCountMap = new Map();
+    for (const like of allLikes) {
+      const targetId = like.targetId.toString();
+      likeCountMap.set(targetId, (likeCountMap.get(targetId) || 0) + 1);
+    }
 
-        return {
-          id: opinion._id,
-          type: opinion.type,
-          text: opinion.statement,
-          authorName,
-          questionTitle:
-            questionLink?.questionId?.questionText ||
-            opinion.themeId?.title ||
-            "質問",
-          questionTagline: questionLink?.questionId?.tagLine || "",
-          questionId: questionLink?.questionId?._id || "",
-          createdAt: opinion.createdAt,
-          likeCount,
-          commentCount: 0, // You can implement comment counting if needed
-        };
-      })
-    );
+    // ユーザー情報を一括取得（必要に応じて）
+    const userIds = [
+      ...new Set(
+        Array.from(chatThreadMap.values())
+          .map((t) => t.userId)
+          .filter(Boolean)
+      ),
+    ];
+    const userMap = new Map();
+    if (userIds.length > 0) {
+      await Promise.all(
+        userIds.map(async (userId) => {
+          try {
+            const user = await getUser(userId);
+            if (user) {
+              userMap.set(userId.toString(), user);
+            }
+          } catch (error) {
+            console.error(`Error fetching user ${userId}:`, error);
+          }
+        })
+      );
+    }
+
+    // メモリ上のデータを使用して結果を構築
+    const opinionsWithQuestions = allOpinions.map((opinion) => {
+      const opinionIdStr = opinion._id.toString();
+      const questionLink = questionLinkMap.get(opinionIdStr);
+      const chatThread = chatThreadMap.get(opinionIdStr);
+
+      let authorName = "匿名ユーザー";
+      if (chatThread?.userId) {
+        const user = userMap.get(chatThread.userId.toString());
+        if (user?.displayName) {
+          authorName = user.displayName;
+        }
+      }
+
+      return {
+        id: opinion._id,
+        type: opinion.type,
+        text: opinion.statement,
+        authorName,
+        questionTitle:
+          questionLink?.questionId?.questionText ||
+          opinion.themeId?.title ||
+          "質問",
+        questionTagline: questionLink?.questionId?.tagLine || "",
+        questionId: questionLink?.questionId?._id || "",
+        createdAt: opinion.createdAt,
+        likeCount: likeCountMap.get(opinionIdStr) || 0,
+        commentCount: 0, // You can implement comment counting if needed
+      };
+    });
 
     const enhancedThemes = await Promise.all(
       themes.map(async (theme) => {

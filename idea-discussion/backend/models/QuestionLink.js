@@ -61,6 +61,10 @@ questionLinkSchema.pre("save", function (next) {
   next();
 });
 
+// インデックスを追加（パフォーマンス向上のため）
+questionLinkSchema.index({ questionId: 1 });
+questionLinkSchema.index({ linkedItemId: 1, linkedItemType: 1 });
+
 const QuestionLink = mongoose.model("QuestionLink", questionLinkSchema);
 
 export default QuestionLink;

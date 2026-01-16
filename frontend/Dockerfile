@@ -27,14 +27,16 @@ FROM nginx:alpine
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration template
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Set environment variable for port
-ENV PORT=80
+# Cloud Run will set PORT environment variable automatically
+# Default to 8080 if not set (Cloud Run standard)
+ENV PORT=8080
 
 # Expose port
-EXPOSE $PORT
+EXPOSE 8080
 
 # Start nginx with environment variable substitution
-CMD envsubst '${PORT}' < /etc/nginx/conf.d/default.conf > /tmp/default.conf && mv /tmp/default.conf /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
+# Cloud Run sets PORT automatically, so we use it
+CMD sh -c "envsubst '\$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"

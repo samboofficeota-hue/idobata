@@ -3,17 +3,29 @@ import { Button } from "../../ui/button";
 
 interface ChatHeaderProps {
   onSendMessage?: (message: string) => void;
+  onChangeTopic?: () => void;
+  onEndConversation?: () => void;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({ onSendMessage }) => {
+export const ChatHeader: React.FC<ChatHeaderProps> = ({
+  onSendMessage,
+  onChangeTopic,
+  onEndConversation,
+}) => {
   const handleChangeTopicClick = () => {
-    if (onSendMessage) {
+    if (onChangeTopic) {
+      onChangeTopic();
+    } else if (onSendMessage) {
+      // フォールバック: 既存の動作を維持（後方互換性）
       onSendMessage("このテーマに関して別の話題を話しましょう");
     }
   };
 
   const handleEndConversationClick = () => {
-    if (onSendMessage) {
+    if (onEndConversation) {
+      onEndConversation();
+    } else if (onSendMessage) {
+      // フォールバック: 既存の動作を維持（後方互換性）
       onSendMessage("会話を終了");
     }
   };
@@ -28,7 +40,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onSendMessage }) => {
           onClick={handleChangeTopicClick}
           className="text-sm bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200"
         >
-          話題を変える
+          新しいチャット
         </Button>
         <Button
           variant="outline"
@@ -36,7 +48,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onSendMessage }) => {
           onClick={handleEndConversationClick}
           className="text-sm bg-red-100 text-red-800 border border-red-300 hover:bg-red-200"
         >
-          会話を終了
+          チャットを終了
         </Button>
       </div>
     </div>

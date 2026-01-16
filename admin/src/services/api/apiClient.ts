@@ -229,6 +229,23 @@ export class ApiClient {
     });
   }
 
+  async generateOpinionSummaries(
+    themeId: string
+  ): Promise<ApiResult<{ message: string; questionCount: number }>> {
+    return this.request<{ message: string; questionCount: number }>(
+      `/themes/${themeId}/generate-opinion-summaries`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  async getDownloadOutput(themeId: string): Promise<ApiResult<unknown>> {
+    return this.request<unknown>(`/themes/${themeId}/download-output`, {
+      method: "GET",
+    });
+  }
+
   async generateVisualReport(
     themeId: string,
     questionId: string
@@ -241,16 +258,24 @@ export class ApiClient {
     );
   }
 
-  async generateReportExample(
+  async generateDigestDraft(
     themeId: string,
     questionId: string
   ): Promise<ApiResult<{ message: string }>> {
     return this.request<{ message: string }>(
-      `/themes/${themeId}/questions/${questionId}/generate-report`,
+      `/themes/${themeId}/questions/${questionId}/generate-digest`,
       {
         method: "POST",
       }
     );
+  }
+
+  // 後方互換性のため残す（非推奨）
+  async generateReportExample(
+    themeId: string,
+    questionId: string
+  ): Promise<ApiResult<{ message: string }>> {
+    return this.generateDigestDraft(themeId, questionId);
   }
 
   async generateDebateAnalysis(
@@ -290,16 +315,29 @@ export class ApiClient {
     );
   }
 
-  async getReportExample(
+  async getDigestDraft(
     themeId: string,
     questionId: string
-  ): Promise<ApiResult<any>> {
-    return this.request<any>(
-      `/themes/${themeId}/questions/${questionId}/report`,
+  ): Promise<ApiResult<any[]>> {
+    return this.request<any[]>(
+      `/themes/${themeId}/digest-drafts?questionId=${questionId}`,
       {
         method: "GET",
       }
     );
+  }
+
+  // 後方互換性のため残す（非推奨）
+  async getReportExample(
+    themeId: string,
+    questionId: string
+  ): Promise<ApiResult<any>> {
+    const result = await this.getDigestDraft(themeId, questionId);
+    if (result.isOk() && result.value.length > 0) {
+      // 最新のDigestDraftを返す
+      return ok(result.value[0]);
+    }
+    return result.mapErr((err) => err);
   }
 }
 

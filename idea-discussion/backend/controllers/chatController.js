@@ -5,6 +5,7 @@ import QuestionLink from "../models/QuestionLink.js"; // Import QuestionLink mod
 import SharpQuestion from "../models/SharpQuestion.js"; // Import SharpQuestion model
 import Theme from "../models/Theme.js"; // Import Theme model for custom prompts
 import { callLLM } from "../services/llmService.js"; // Import the LLM service
+import { getQualityOpinionsForChat } from "../workers/dailyBatchProcessor.js"; // Import batch processor for quality opinions
 import { processExtraction } from "../workers/extractionWorker.js"; // Import the extraction worker function
 
 // Controller function for handling new chat messages by theme
@@ -211,117 +212,52 @@ const handleNewMessageByTheme = async (req, res) => {
       }
     } else {
       try {
+        // バッチ処理で選別された品質の高い意見を取得
+        const { problems: qualityProblems, solutions: qualitySolutions } =
+          await getQualityOpinionsForChat(themeId, 10);
+
         const themeQuestions = await SharpQuestion.find({ themeId }).lean();
 
-        if (themeQuestions.length > 0) {
+        if (
+          themeQuestions.length > 0 ||
+          qualityProblems.length > 0 ||
+          qualitySolutions.length > 0
+        ) {
           referenceOpinions +=
             "参考情報として、システム内で議論されている主要な「問い」と、それに関連する意見の一部を紹介します:\n\n";
 
-          for (const question of themeQuestions) {
-            referenceOpinions += `問い: ${question.questionText}\n`;
-
-            // Find up to 10 random related problems with relevance > 0.8
-            const problemLinks = await QuestionLink.aggregate([
-              {
-                $match: {
-                  questionId: question._id,
-                  linkedItemType: "problem",
-                  linkType: "prompts_question",
-                  relevanceScore: { $gte: 0.8 },
-                },
-              },
-              { $sample: { size: 10 } },
-              {
-                $lookup: {
-                  from: "problems",
-                  localField: "linkedItemId",
-                  foreignField: "_id",
-                  as: "linkedProblem",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$linkedProblem",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-            ]);
-
-            if (
-              problemLinks.length > 0 &&
-              problemLinks.some((link) => link.linkedProblem)
-            ) {
-              referenceOpinions += "  関連性の高い課題:\n";
-              for (const link of problemLinks) {
-                if (link.linkedProblem) {
-                  const problem = link.linkedProblem;
-                  if (
-                    problem.themeId &&
-                    problem.themeId.toString() === themeId
-                  ) {
-                    const statement =
-                      problem.statement ||
-                      problem.combinedStatement ||
-                      problem.statementA ||
-                      problem.statementB ||
-                      "N/A";
-                    referenceOpinions += `    - ${statement})\n`;
-                  }
-                }
-              }
-            } else {
-              referenceOpinions += "  関連性の高い課題: (ありません)\n";
+          // 問いがある場合は表示
+          if (themeQuestions.length > 0) {
+            for (const question of themeQuestions) {
+              referenceOpinions += `問い: ${question.questionText}\n`;
             }
-
-            // Find up to 10 random related solutions with relevance > 0.8
-            const solutionLinks = await QuestionLink.aggregate([
-              {
-                $match: {
-                  questionId: question._id,
-                  linkedItemType: "solution",
-                  linkType: "answers_question",
-                  relevanceScore: { $gte: 0.8 },
-                },
-              },
-              { $sample: { size: 10 } },
-              {
-                $lookup: {
-                  from: "solutions",
-                  localField: "linkedItemId",
-                  foreignField: "_id",
-                  as: "linkedSolution",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$linkedSolution",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-            ]);
-
-            if (
-              solutionLinks.length > 0 &&
-              solutionLinks.some((link) => link.linkedSolution)
-            ) {
-              referenceOpinions +=
-                "  関連性の高い解決策 (最大10件, 関連度 >80%):\n";
-              for (const link of solutionLinks) {
-                if (link.linkedSolution) {
-                  const solution = link.linkedSolution;
-                  if (
-                    solution.themeId &&
-                    solution.themeId.toString() === themeId
-                  ) {
-                    referenceOpinions += `    - ${solution.statement || "N/A"})\n`;
-                  }
-                }
-              }
-            } else {
-              referenceOpinions += "  関連性の高い解決策: (ありません)\n";
-            }
-            referenceOpinions += "\n"; // Add space between questions
+            referenceOpinions += "\n";
           }
+
+          // 品質の高い問題を表示
+          if (qualityProblems.length > 0) {
+            referenceOpinions += "関連性の高い課題:\n";
+            for (const problem of qualityProblems) {
+              const statement =
+                problem.statement ||
+                problem.combinedStatement ||
+                problem.statementA ||
+                problem.statementB ||
+                "N/A";
+              referenceOpinions += `  - ${statement}\n`;
+            }
+            referenceOpinions += "\n";
+          }
+
+          // 品質の高い解決策を表示
+          if (qualitySolutions.length > 0) {
+            referenceOpinions += "関連性の高い解決策:\n";
+            for (const solution of qualitySolutions) {
+              referenceOpinions += `  - ${solution.statement || "N/A"}\n`;
+            }
+            referenceOpinions += "\n";
+          }
+
           referenceOpinions +=
             "---\nこれらの「問い」や関連意見も踏まえ、ユーザーとの対話を深めてください。\n";
         }

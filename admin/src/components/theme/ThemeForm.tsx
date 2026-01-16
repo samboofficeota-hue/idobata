@@ -225,17 +225,17 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     setQuestionsError(null);
     setSuccessMessage(null);
 
-    const result = await apiClient.generateReportExample(theme._id, questionId);
+    const result = await apiClient.generateDigestDraft(theme._id, questionId);
 
     if (result.isErr()) {
       console.error("Failed to generate report:", result.error);
-      setQuestionsError("市民意見レポート例の生成に失敗しました。");
+      setQuestionsError("意見まとめの生成に失敗しました。");
       setIsGeneratingReports((prev) => ({ ...prev, [questionId]: false }));
       return;
     }
 
     setSuccessMessage(
-      "市民意見レポート例の生成を開始しました。生成には数分かかる場合があります。"
+      "意見まとめの生成を開始しました。生成には数分かかる場合があります。"
     );
     setIsGeneratingReports((prev) => ({ ...prev, [questionId]: false }));
   };
@@ -444,7 +444,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
       for (let i = 0; i < questions.length; i++) {
         const question = questions[i];
         try {
-          await apiClient.generateReportExample(theme._id, question._id);
+          await apiClient.generateDigestDraft(theme._id, question._id);
 
           // 進捗更新
           setBulkProgress((prev) => ({
@@ -463,11 +463,11 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
       }
 
       setSuccessMessage(
-        `市民意見レポートの一括生成が完了しました。${questions.length}個のレポートを生成しました。`
+        `意見まとめの一括生成が完了しました。${questions.length}個の意見まとめを生成しました。`
       );
     } catch (error) {
       console.error("Failed to generate reports:", error);
-      setQuestionsError("市民意見レポートの一括生成に失敗しました。");
+      setQuestionsError("意見まとめの一括生成に失敗しました。");
     }
 
     setIsGeneratingBulkReports(false);
@@ -522,17 +522,19 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     if (!theme?._id) return;
 
     try {
-      const result = await apiClient.getReportExample(theme._id, questionId);
-      if (result.isOk()) {
+      const result = await apiClient.getDigestDraft(theme._id, questionId);
+      if (result.isOk() && result.value.length > 0) {
         const question = questions.find((q) => q._id === questionId);
+        // 最新のDigestDraftを取得
+        const latestDigest = result.value[0];
         setReportModal({
           isOpen: true,
           type: "report",
-          data: result.value,
+          data: latestDigest,
           questionText: question?.questionText || "",
         });
       } else {
-        setQuestionsError("レポートが見つかりません。");
+        setQuestionsError("意見まとめが見つかりません。");
       }
     } catch (error) {
       console.error("Failed to get report:", error);

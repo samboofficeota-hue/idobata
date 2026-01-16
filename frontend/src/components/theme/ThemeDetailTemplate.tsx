@@ -214,6 +214,7 @@ const ThemeDetailTemplate = forwardRef<
           ref={chatRef}
           onSendMessage={handleSendMessageInternal}
           disabled={disabled}
+          themeId={theme._id}
         />
       </div>
     );
