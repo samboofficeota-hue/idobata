@@ -50,38 +50,79 @@ wait_for_service() {
     sleep 30
 }
 
-# Step 1: Basic environment variables
+# Note: This script now uses --set-env-vars-file for better handling of comma-separated values
+# Secret Manager should be used for sensitive values (MONGODB_URI, PASSWORD_PEPPER, JWT_SECRET, OPENAI_API_KEY)
+# Use --update-secrets flag during deployment instead of --set-env-vars for secrets
+
+# Step 1: Basic environment variables (non-sensitive)
 echo -e "${YELLOW}📝 Step 1: Setting basic environment variables${NC}"
+TEMP_ENV_FILE=$(mktemp)
+cat > "$TEMP_ENV_FILE" << 'EOF'
+NODE_ENV: production
+EOF
+
 gcloud run services update $SERVICE_NAME \
-  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here" \
+  --set-env-vars-file="$TEMP_ENV_FILE" \
   --region=$REGION
 
+rm -f "$TEMP_ENV_FILE"
 wait_for_service
 check_health
 
-# Step 2: JWT configuration
+# Step 2: JWT configuration (non-sensitive)
 echo -e "${YELLOW}📝 Step 2: Setting JWT configuration${NC}"
+TEMP_ENV_FILE=$(mktemp)
+cat > "$TEMP_ENV_FILE" << 'EOF'
+NODE_ENV: production
+JWT_EXPIRES_IN: 24h
+EOF
+
 gcloud run services update $SERVICE_NAME \
-  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here,JWT_SECRET=your-jwt-secret-key-here,JWT_EXPIRES_IN=24h" \
+  --set-env-vars-file="$TEMP_ENV_FILE" \
   --region=$REGION
 
+rm -f "$TEMP_ENV_FILE"
 wait_for_service
 check_health
 
-# Step 3: AI functionality
+# Step 3: AI functionality configuration
 echo -e "${YELLOW}📝 Step 3: Setting AI functionality${NC}"
+TEMP_ENV_FILE=$(mktemp)
+cat > "$TEMP_ENV_FILE" << 'EOF'
+NODE_ENV: production
+JWT_EXPIRES_IN: 24h
+PYTHON_SERVICE_URL: https://idobata-python-doisltwsmq-an.a.run.app
+EOF
+
 gcloud run services update $SERVICE_NAME \
-  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here,JWT_SECRET=your-jwt-secret-key-here,JWT_EXPIRES_IN=24h,OPENAI_API_KEY=your-openai-api-key-here,PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app" \
+  --set-env-vars-file="$TEMP_ENV_FILE" \
   --region=$REGION
+
+rm -f "$TEMP_ENV_FILE"
 
 wait_for_service
 check_health
 
 # Step 4: Additional configuration
 echo -e "${YELLOW}📝 Step 4: Setting additional configuration${NC}"
+
+# Create temporary environment variables file
+TEMP_ENV_FILE=$(mktemp)
+cat > "$TEMP_ENV_FILE" << 'EOF'
+NODE_ENV: production
+JWT_EXPIRES_IN: 24h
+IDEA_CORS_ORIGIN: "https://idobata-frontend-336788531163.asia-northeast1.run.app,https://idobata-admin-336788531163.asia-northeast1.run.app,https://idobata-admin-doisltwsmq-an.a.run.app"
+PYTHON_SERVICE_URL: https://idobata-python-doisltwsmq-an.a.run.app
+API_BASE_URL: https://idobata-backend-336788531163.asia-northeast1.run.app
+ALLOW_DELETE_THEME: "true"
+EOF
+
 gcloud run services update $SERVICE_NAME \
-  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here,JWT_SECRET=your-jwt-secret-key-here,JWT_EXPIRES_IN=24h,OPENAI_API_KEY=your-openai-api-key-here,PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app,API_BASE_URL=https://idobata-backend-336788531163.asia-northeast1.run.app,ALLOW_DELETE_THEME=true,IDEA_CORS_ORIGIN=https://idobata-frontend-336788531163.asia-northeast1.run.app,https://idobata-admin-336788531163.asia-northeast1.run.app,https://idobata-admin-doisltwsmq-an.a.run.app" \
+  --set-env-vars-file="$TEMP_ENV_FILE" \
   --region=$REGION
+
+# Clean up temporary file
+rm -f "$TEMP_ENV_FILE"
 
 wait_for_service
 check_health

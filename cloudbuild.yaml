@@ -24,6 +24,16 @@ steps:
     args: ['push', 'gcr.io/$PROJECT_ID/idobata-python-service']
 
   # Deploy to Cloud Run
+  # Create environment variables file for frontend
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cat > /workspace/frontend-env.yaml << 'EOF'
+        NODE_ENV: production
+        EOF
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
@@ -39,8 +49,8 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
-      - '--set-env-vars'
-      - 'NODE_ENV=production'
+      - '--set-env-vars-file'
+      - '/workspace/frontend-env.yaml'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
@@ -57,6 +67,21 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
+
+  # Create environment variables file for backend
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cat > /workspace/backend-env.yaml << 'EOF'
+        NODE_ENV: production
+        JWT_EXPIRES_IN: 24h
+        IDEA_CORS_ORIGIN: "https://idobata-frontend-336788531163.asia-northeast1.run.app,https://idobata-admin-336788531163.asia-northeast1.run.app,https://idobata-admin-doisltwsmq-an.a.run.app"
+        PYTHON_SERVICE_URL: https://idobata-python-doisltwsmq-an.a.run.app
+        API_BASE_URL: https://idobata-backend-336788531163.asia-northeast1.run.app
+        ALLOW_DELETE_THEME: "true"
+        EOF
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
@@ -75,8 +100,8 @@ steps:
       - '8080'
       - '--update-secrets'
       - 'MONGODB_URI=mongodb-uri:latest,OPENAI_API_KEY=openai-api-key:latest,PASSWORD_PEPPER=password-pepper:latest,JWT_SECRET=jwt-secret:latest'
-      - '--set-env-vars'
-      - 'NODE_ENV=production,JWT_EXPIRES_IN=24h,IDEA_CORS_ORIGIN="https://idobata-frontend-336788531163.asia-northeast1.run.app,https://idobata-admin-336788531163.asia-northeast1.run.app,https://idobata-admin-doisltwsmq-an.a.run.app",PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app,API_BASE_URL=https://idobata-backend-336788531163.asia-northeast1.run.app,ALLOW_DELETE_THEME=true'
+      - '--set-env-vars-file'
+      - '/workspace/backend-env.yaml'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
