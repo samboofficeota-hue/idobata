@@ -10,7 +10,7 @@ import { MessageType } from "../../types";
 import { FloatingChat, type FloatingChatRef } from "../chat";
 import BreadcrumbView from "../common/BreadcrumbView";
 import SectionHeading from "../common/SectionHeading";
-import CommentCard from "./CommentCard";
+import OpinionCard from "./OpinionCard";
 import KeyQuestionCard from "./KeyQuestionCard";
 import ThemeCard from "./ThemeCard";
 
@@ -49,9 +49,6 @@ const ThemeDetailTemplate = forwardRef<
     { theme, keyQuestions, issues, solutions, disabled = false, onSendMessage },
     ref
   ) => {
-    const [activeTab, setActiveTab] = useState<"issues" | "solutions">(
-      "issues"
-    );
     const chatRef = useRef<FloatingChatRef>(null);
     const [threadId, setThreadId] = useState<string | null>(null);
     const [userId, setUserId] = useState<string>(
@@ -149,8 +146,15 @@ const ThemeDetailTemplate = forwardRef<
         </div>
 
         <div className="mb-8">
-          <SectionHeading title={`重要論点（${keyQuestions.length}件）`} />
-          <div className="space-y-4">
+          <div className="mb-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide mb-2">
+              主な論点（{keyQuestions.length}件）
+            </h2>
+            <p className="text-gray-600">
+              みんなの議論をまとめて論点を抽出しました
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {keyQuestions.map((question) => (
               <KeyQuestionCard
                 key={question.id}
@@ -168,45 +172,38 @@ const ThemeDetailTemplate = forwardRef<
         </div>
 
         <div className="mb-12">
-          <SectionHeading title="寄せられた意見" />
-
-          <div className="flex border-b border-border mb-4">
-            <button
-              className={`flex-1 py-2 px-4 text-base font-bold ${
-                activeTab === "issues"
-                  ? "border-b-4 border-primary-700 text-primary"
-                  : "text-neutral-700"
-              }`}
-              onClick={() => setActiveTab("issues")}
-              type="button"
-            >
-              課題点 ({issues.length})
-            </button>
-            <button
-              className={`flex-1 py-2 px-4 text-base font-bold ${
-                activeTab === "solutions"
-                  ? "border-b-4 border-primary-700 text-primary"
-                  : "text-neutral-700"
-              }`}
-              onClick={() => setActiveTab("solutions")}
-              type="button"
-            >
-              解決策 ({solutions.length})
-            </button>
+          {/* 課題ブロック */}
+          <div className="mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide mb-2">
+              課題は何か？
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {issues.map((issue) => (
+                <OpinionCard
+                  key={issue.id}
+                  id={issue.id.toString()}
+                  text={issue.text}
+                  type="issue"
+                />
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {activeTab === "issues"
-              ? issues.map((issue) => (
-                  <CommentCard key={issue.id} text={issue.text} type="issue" />
-                ))
-              : solutions.map((solution) => (
-                  <CommentCard
-                    key={solution.id}
-                    text={solution.text}
-                    type="solution"
-                  />
-                ))}
+          {/* 解決策ブロック */}
+          <div className="mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide mb-2">
+              解決アイディア！
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {solutions.map((solution) => (
+                <OpinionCard
+                  key={solution.id}
+                  id={solution.id.toString()}
+                  text={solution.text}
+                  type="solution"
+                />
+              ))}
+            </div>
           </div>
         </div>
 

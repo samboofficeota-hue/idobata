@@ -63,6 +63,10 @@ export async function generateQuestionVisualReport(questionId) {
       `[VisualReportGenerator] Found ${problemStatements.length} related problems and ${solutionStatements.length} related solutions, sorted by relevance.`
     );
 
+    // 今日の日付を取得（YYYY年MM月DD日形式）
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
     const markdownContent = `
 # ${question.questionText}
 
@@ -109,7 +113,7 @@ ${solutionStatements.map((statement, index) => `${index + 1}. ${statement}`).joi
     </style>
 
 ### 4. レイアウト
-  - ヘッダー：右上に小さく日付/出典。その下に、左揃えタイトル。
+  - ヘッダー：右上に小さく（今日の日付）／（問いのタイトル）を表示。日付は現在の日付（YYYY年MM月DD日形式）、問いのタイトルは提供された問いのテキストを使用。
   - 1カラム構成：幅100%の単一カラム
   - カード型コンポーネント：白背景、角丸16px、微細シャドウ
   - セクション間の余白を広めに取り、階層構造を明確に
@@ -130,15 +134,20 @@ ${solutionStatements.map((statement, index) => `${index + 1}. ${statement}`).joi
 - 情報の階層と関連性を視覚的に明確化
 - スマートフォンでも見やすいように、階層は浅く保つ
 - 埋め込み表示するのでmarginは0、paddingは2px
-- 視覚的な記憶に残るデザイン
-- 遠くからでも見やすいデザイン
-- フッターに出典情報を明記
-- 複雑すぎる構造はCSSが壊れる可能性があるため避ける
-- 単に原文のキーワードだけ書いても意味が分からないため、誰にでも伝わるような分かりやすい表現に書き換えて説明する
-- 作成日や出典など不正確な情報は含めない
+  - 視覚的な記憶に残るデザイン
+  - 遠くからでも見やすいデザイン
+  - フッターに「idobata by DD2030」を明記
+  - 複雑すぎる構造はCSSが壊れる可能性があるため避ける
+  - 単に原文のキーワードだけ書いても意味が分からないため、誰にでも伝わるような分かりやすい表現に書き換えて説明する
+  - 作成日や出典など不正確な情報は含めない
 
 ## 変換する文章/記事
 ${markdownContent}
+
+## 重要な注意事項
+- ヘッダーには、右上に小さく「${dateStr}／${question.questionText}」を表示してください。
+- フッターには「idobata by DD2030」を表示してください。
+
 ---
 レスポンスは完全なHTML+CSSコードのみを返してください。`;
 

@@ -9,7 +9,9 @@ import { RECOMMENDED_MODELS, callLLM } from "./llmService.js";
 export async function getDebateAnalysis(questionId) {
   return DebateAnalysis.findOne({
     questionId: new mongoose.Types.ObjectId(questionId),
-  }).sort({ version: -1 });
+  })
+    .sort({ version: -1 })
+    .lean(); // オブジェクトとして返す
 }
 
 export async function generateDebateAnalysis(questionId) {

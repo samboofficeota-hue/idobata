@@ -43,10 +43,10 @@ const IllustrationReportCard = ({
           // Empty state
           <div className="flex flex-col items-center justify-center gap-4 py-8">
             <div className="flex flex-col gap-2 text-center">
-              <h4 className="text-xl font-bold text-zinc-500 leading-10 tracking-wide">
+              <h4 className="text-xl font-bold text-zinc-500 leading-[1.8] tracking-wide">
                 {emptyTitle}
               </h4>
-              <p className="text-base text-zinc-500 leading-8 tracking-wide">
+              <p className="text-base text-zinc-500 leading-[1.8] tracking-wide">
                 {emptyDescription}
               </p>
             </div>
@@ -55,7 +55,7 @@ const IllustrationReportCard = ({
           // Normal content
           <>
             <div
-              className={`${isExpanded ? "h-auto" : "h-[400px] md:h-[600px]"} overflow-hidden flex justify-center items-start`}
+              className={`${isExpanded ? "h-auto" : "h-[200px] md:h-[280px]"} overflow-hidden flex justify-center items-center`}
             >
               {children}
             </div>

@@ -1,14 +1,11 @@
-import { Lightbulb, SquareChartGantt } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { FloatingChat, type FloatingChatRef } from "../components/chat";
 import BreadcrumbView from "../components/common/BreadcrumbView";
+import CitizenOpinionContent from "../components/question/CitizenOpinionContent";
 import DebatePointsContent from "../components/question/DebatePointsContent";
-import IllustrationReportCard from "../components/question/IllustrationReportCard";
-import IllustrationSummaryContent from "../components/question/IllustrationSummaryContent";
-import OpinionSummaryContent from "../components/question/OpinionSummaryContent";
 import OtherOpinionCard from "../components/question/OtherOpinionCard";
-import ReportCard from "../components/question/ReportCard";
 import ThemePromptSection from "../components/question/ThemePromptSection";
 import { DownloadButton } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
@@ -246,7 +243,44 @@ const QuestionDetail = () => {
             />
           </div>
 
-          {/* ほかの人の意見セクション */}
+          {/* みんなの論点セクション */}
+          <div className="mb-8 px-6">
+            <div className="mb-6">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
+                  みんなの論点
+                </h2>
+                {questionDetail?.visualReport && 
+                  typeof questionDetail.visualReport === "string" && 
+                  !questionDetail.visualReport.includes("<!DOCTYPE html>") && 
+                  !questionDetail.visualReport.includes("<html") && (
+                  <DownloadButton
+                    downloadType="image"
+                    data={{ imageUrl: questionDetail.visualReport }}
+                  >
+                    イラスト要約をダウンロード
+                  </DownloadButton>
+                )}
+              </div>
+            </div>
+            <div className="bg-gray-100 rounded-xl p-4 md:p-6">
+              <DebatePointsContent debateData={questionDetail?.debateData} />
+            </div>
+          </div>
+
+          {/* みんなが思う課題の整理セクション */}
+          <div className="mb-8 px-6">
+            <div className="mb-6">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
+                みんなが思う課題の整理
+              </h2>
+            </div>
+            <div className="bg-gray-100 rounded-xl p-4 md:p-6">
+              <CitizenOpinionContent digestDraft={questionDetail?.digestDraft} />
+            </div>
+          </div>
+
+          {/* みんなの意見セクション */}
           <div className="mb-8 px-6">
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 md:gap-0">
@@ -361,63 +395,6 @@ const QuestionDetail = () => {
             })()}
           </div>
 
-          {/* 生成されたレポートセクション */}
-          <div className="mb-8 px-6">
-            {/* ヘッダー */}
-            <div className="mb-6">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
-                    <SquareChartGantt className="w-8 h-8 text-blue-400 stroke-2" />
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                    生成されたレポート
-                  </h2>
-                </div>
-                <DownloadButton downloadType="pdf" data={questionDetail}>
-                  すべてダウンロード
-                </DownloadButton>
-              </div>
-            </div>
-
-            {/* 論点まとめカード */}
-            <ReportCard
-              title="論点まとめ"
-              downloadButtonText="PDFダウンロード"
-              isEmpty={!questionDetail?.debateData}
-              emptyDescription="多くの対話が集まると、論点をまとめたレポートが表示されるようになります。"
-              downloadData={questionDetail?.debateData}
-              reportId="debate-report"
-            >
-              <DebatePointsContent debateData={questionDetail?.debateData} />
-            </ReportCard>
-
-            {/* 意見まとめカード */}
-            <ReportCard
-              title="意見まとめ"
-              downloadButtonText="PDFダウンロード"
-              isEmpty={!questionDetail?.digestDraft}
-              emptyDescription="多くの対話が集まると、意見をまとめたレポートが表示されるようになります。"
-              downloadData={questionDetail?.digestDraft}
-              reportId="opinion-report"
-            >
-              <OpinionSummaryContent digestDraft={questionDetail?.digestDraft} />
-            </ReportCard>
-
-            {/* イラスト要約カード */}
-            <IllustrationReportCard
-              title="イラスト要約"
-              downloadButtonText="画像ダウンロード"
-              isEmpty={!questionDetail?.visualReport}
-              emptyDescription="多くの対話が集まると、意見をまとめたイラストが表示されるようになります。"
-              downloadData={{ imageUrl: questionDetail?.visualReport }}
-            >
-              <IllustrationSummaryContent
-                visualReport={questionDetail?.visualReport}
-                questionDetail={questionDetail}
-              />
-            </IllustrationReportCard>
-          </div>
         </div>
         <FloatingChat
           ref={chatRef}

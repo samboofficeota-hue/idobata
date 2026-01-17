@@ -16,7 +16,7 @@ export interface QuestionDetailResponse {
     }[];
     agreementPoints: string[];
     disagreementPoints: string[];
-  };
+  } | null;
   relatedProblems: RelatedProblem[];
   relatedSolutions: RelatedSolution[];
   digestDraft: {
@@ -24,7 +24,7 @@ export interface QuestionDetailResponse {
     content: string;
     createdAt: string;
   } | null;
-  visualReport: string;
+  visualReport: string | null;
   participantCount?: number;
   dialogueCount?: number;
 }

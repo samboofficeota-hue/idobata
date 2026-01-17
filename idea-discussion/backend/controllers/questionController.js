@@ -8,7 +8,7 @@ import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
-import { getDebateAnalysis as generateDebateAnalysis } from "../services/debateAnalysisGenerator.js";
+import { getDebateAnalysis } from "../services/debateAnalysisGenerator.js";
 import { getVisualReport as getQuestionVisualReport } from "../services/questionVisualReportGenerator.js";
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
 import { generateDigestDraft } from "../workers/digestGenerator.js";
@@ -174,14 +174,22 @@ export const getQuestionDetails = async (req, res) => {
     });
 
     const digestDraft = await DigestDraft.findOne({
-      questionId: questionId,
+      questionId: new mongoose.Types.ObjectId(questionId),
     })
       .sort({ createdAt: -1 })
       .lean();
 
     const visualReport = await getQuestionVisualReport(questionId);
 
-    const debateData = await generateDebateAnalysis(questionId);
+    const debateAnalysisDoc = await getDebateAnalysis(questionId);
+    // debateDataをフロントエンドが期待する形式に変換
+    const debateData = debateAnalysisDoc
+      ? {
+          axes: debateAnalysisDoc.axes || [],
+          agreementPoints: debateAnalysisDoc.agreementPoints || [],
+          disagreementPoints: debateAnalysisDoc.disagreementPoints || [],
+        }
+      : null;
 
     // 対話参加人数と対話数を計算
     // 1. この質問に関連するProblemとSolutionのsourceOriginIdを取得
