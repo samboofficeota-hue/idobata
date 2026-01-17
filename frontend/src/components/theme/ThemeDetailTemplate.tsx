@@ -9,7 +9,6 @@ import { apiClient } from "../../services/api/apiClient";
 import { MessageType } from "../../types";
 import { FloatingChat, type FloatingChatRef } from "../chat";
 import BreadcrumbView from "../common/BreadcrumbView";
-import SectionHeading from "../common/SectionHeading";
 import OpinionCard from "./OpinionCard";
 import KeyQuestionCard from "./KeyQuestionCard";
 import ThemeCard from "./ThemeCard";
