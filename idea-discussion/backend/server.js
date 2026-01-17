@@ -28,17 +28,17 @@ if (!mongoUri) {
   process.exit(1);
 }
 
-// Connect to MongoDB
-mongoose
-  .connect(mongoUri)
-  .then(() => {
+// Connect to MongoDB with async/await
+async function connectToDatabase() {
+  try {
+    await mongoose.connect(mongoUri);
     console.log("MongoDB connected successfully.");
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("MongoDB connection error:", err);
     console.error("Failed to connect to MongoDB. Exiting...");
     process.exit(1);
-  });
+  }
+}
 
 // --- Express App Setup ---
 const app = express();
@@ -229,6 +229,18 @@ console.log(
 );
 
 // --- Start Server ---
-httpServer.listen(PORT, () => {
-  console.log(`Backend server listening on port ${PORT}`);
+async function startServer() {
+  // Connect to database first
+  await connectToDatabase();
+  
+  // Then start the HTTP server
+  httpServer.listen(PORT, () => {
+    console.log(`Backend server listening on port ${PORT}`);
+  });
+}
+
+// Start the application
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });
