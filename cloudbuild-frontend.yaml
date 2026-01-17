@@ -10,3 +10,6 @@ steps:
   args: ['push', 'gcr.io/${PROJECT_ID}/idobata-frontend']
 images:
 - 'gcr.io/${PROJECT_ID}/idobata-frontend'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

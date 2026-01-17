@@ -126,3 +126,6 @@ images:
   - 'gcr.io/$PROJECT_ID/idobata-admin'
   - 'gcr.io/$PROJECT_ID/idobata-backend'
   - 'gcr.io/$PROJECT_ID/idobata-python-service'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
