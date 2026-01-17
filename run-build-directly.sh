@@ -31,11 +31,10 @@ echo ""
 
 # Submit build directly
 echo -e "${YELLOW}🔨 Submitting build...${NC}"
-gcloud builds submit \
+gcloud builds submit . \
   --config=cloudbuild-backend.yaml \
   --project=$PROJECT_ID \
-  --region=$REGION \
-  --source=.
+  --region=$REGION
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Build submitted successfully!${NC}"
