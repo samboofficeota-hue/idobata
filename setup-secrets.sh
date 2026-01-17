@@ -38,6 +38,15 @@ echo -e "${YELLOW}Enter OpenRouter API Key:${NC}"
 read -s OPENROUTER_API_KEY
 echo -n "$OPENROUTER_API_KEY" | gcloud secrets create openrouter-api-key --data-file=-
 
+# Password Pepper
+echo -e "${YELLOW}Enter Password Pepper (or press Enter to generate one):${NC}"
+read -r PASSWORD_PEPPER
+if [ -z "$PASSWORD_PEPPER" ]; then
+    PASSWORD_PEPPER=$(openssl rand -base64 32)
+    echo -e "${GREEN}Generated Password Pepper: $PASSWORD_PEPPER${NC}"
+fi
+echo -n "$PASSWORD_PEPPER" | gcloud secrets create password-pepper --data-file=-
+
 # JWT Secret
 echo -e "${YELLOW}Enter JWT Secret (or press Enter to generate one):${NC}"
 read -r JWT_SECRET
@@ -66,6 +75,10 @@ gcloud secrets add-iam-policy-binding openrouter-api-key \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
+gcloud secrets add-iam-policy-binding password-pepper \
+    --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+    --role="roles/secretmanager.secretAccessor"
+
 gcloud secrets add-iam-policy-binding jwt-secret \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
@@ -75,4 +88,5 @@ echo -e "${GREEN}🔐 Created secrets:${NC}"
 echo -e "${GREEN}  - mongodb-uri${NC}"
 echo -e "${GREEN}  - openai-api-key${NC}"
 echo -e "${GREEN}  - openrouter-api-key${NC}"
+echo -e "${GREEN}  - password-pepper${NC}"
 echo -e "${GREEN}  - jwt-secret${NC}"

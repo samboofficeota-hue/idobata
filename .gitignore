@@ -5,3 +5,8 @@ commandResult.txt
 */**/package-lock.json
 uploads/
 uploads/profile-images/
+
+# Temporary scripts (optional - uncomment if you want to exclude them)
+# create-password-pepper.sh
+# check-current-password-pepper.sh
+# check-password-pepper-issue.md
