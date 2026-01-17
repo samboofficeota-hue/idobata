@@ -28,10 +28,8 @@ RUN apk add --no-cache curl
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/api/health || exit 1
 
-# Start the application
-# Use sh to log output more clearly
-# Temporarily use server-simple-test.js to verify deployment works
-CMD ["sh", "-c", "echo 'Starting backend server...' && if [ -f server-simple-test.js ]; then echo 'Using test server'; node server-simple-test.js; else node server.js; fi"]
+# Start the application with startup wrapper
+CMD ["node", "start.js"]
 
 # Development stage
 FROM node:20-alpine AS development
