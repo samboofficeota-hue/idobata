@@ -200,10 +200,22 @@ app.get("/", (req, res) => {
 
 // --- Health Check Endpoint ---
 app.get("/api/health", (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = {
+    0: "disconnected",
+    1: "connected",
+    2: "connecting",
+    3: "disconnecting",
+  };
+  
   res.status(200).json({
     status: "healthy",
     timestamp: new Date().toISOString(),
     service: "idobata-backend",
+    database: {
+      status: dbStatus[dbState] || "unknown",
+      ready: dbState === 1,
+    },
   });
 });
 
@@ -229,18 +241,19 @@ console.log(
 );
 
 // --- Start Server ---
-async function startServer() {
-  // Connect to database first
-  await connectToDatabase();
-  
-  // Then start the HTTP server
-  httpServer.listen(PORT, () => {
-    console.log(`Backend server listening on port ${PORT}`);
-  });
-}
-
-// Start the application
-startServer().catch((err) => {
-  console.error("Failed to start server:", err);
-  process.exit(1);
+// Start HTTP server immediately for health checks
+httpServer.listen(PORT, () => {
+  console.log(`Backend server listening on port ${PORT}`);
+  console.log("Server started. Connecting to MongoDB...");
 });
+
+// Connect to database in the background
+connectToDatabase()
+  .then(() => {
+    console.log("Server is fully ready with database connection.");
+  })
+  .catch((err) => {
+    console.error("Failed to connect to database:", err);
+    // Don't exit immediately - let the server continue running for health checks
+    // The API endpoints will handle database connection errors appropriately
+  });
