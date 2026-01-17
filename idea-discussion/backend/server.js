@@ -14,22 +14,30 @@ import { runDailyBatch } from "./workers/dailyBatchProcessor.js"; // Import dail
 // Load environment variables
 dotenv.config();
 
+// Log startup information
+console.log("=== Backend Starting ===");
+console.log("Node version:", process.version);
+console.log("Environment:", process.env.NODE_ENV);
+console.log("PORT:", process.env.PORT);
+console.log("MONGODB_URI exists:", !!process.env.MONGODB_URI);
+
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // --- Database Connection ---
 const mongoUri = process.env.MONGODB_URI;
 
-if (!mongoUri) {
-  console.error(
-    "Error: MONGODB_URI is not defined in the environment variables."
-  );
-  console.error("Please set MONGODB_URI environment variable.");
-  process.exit(1);
-}
-
 // Connect to MongoDB with async/await
 async function connectToDatabase() {
+  if (!mongoUri) {
+    console.error(
+      "Error: MONGODB_URI is not defined in the environment variables."
+    );
+    console.error("Please set MONGODB_URI environment variable.");
+    console.error("Available env vars:", Object.keys(process.env).join(", "));
+    throw new Error("MONGODB_URI not set");
+  }
+  
   try {
     await mongoose.connect(mongoUri);
     console.log("MongoDB connected successfully.");
