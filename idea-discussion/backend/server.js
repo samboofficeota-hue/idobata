@@ -35,8 +35,10 @@ async function connectToDatabase() {
     console.log("MongoDB connected successfully.");
   } catch (err) {
     console.error("MongoDB connection error:", err);
-    console.error("Failed to connect to MongoDB. Exiting...");
-    process.exit(1);
+    console.error("Failed to connect to MongoDB.");
+    // Don't exit - let server continue for health checks
+    // API endpoints will handle database connection errors
+    throw err;
   }
 }
 
@@ -242,9 +244,19 @@ console.log(
 
 // --- Start Server ---
 // Start HTTP server immediately for health checks
-httpServer.listen(PORT, () => {
+const server = httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server listening on port ${PORT}`);
+  console.log(`Server process started at ${new Date().toISOString()}`);
   console.log("Server started. Connecting to MongoDB...");
+});
+
+// Handle server errors
+server.on('error', (err) => {
+  console.error("Server error:", err);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+    process.exit(1);
+  }
 });
 
 // Connect to database in the background
