@@ -44,7 +44,7 @@ steps:
       - '8080'
       - '--update-secrets'
       - 'MONGODB_URI=mongodb-uri:latest,OPENAI_API_KEY=openai-api-key:latest,PASSWORD_PEPPER=password-pepper:latest,JWT_SECRET=jwt-secret:latest'
-      - '--set-env-vars-file'
+      - '--env-vars-file'
       - '/workspace/backend-env.yaml'
 
 images:
