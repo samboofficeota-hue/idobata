@@ -48,7 +48,7 @@ steps:
       - '512Mi'
       - '--cpu'
       - '1'
-      - '--startup-cpu-boost'
+      - '--cpu-boost'
       - '--update-secrets'
       - 'MONGODB_URI=mongodb-uri:latest,OPENAI_API_KEY=openai-api-key:latest,PASSWORD_PEPPER=password-pepper:latest,JWT_SECRET=jwt-secret:latest'
       - '--env-vars-file'
