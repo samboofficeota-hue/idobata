@@ -13,7 +13,7 @@ COPY idea-discussion/backend/ ./
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=8080
+# PORT is automatically set by Cloud Run, no need to set it here
 
 # Create uploads directory
 RUN mkdir -p uploads/profile-images uploads/temp
@@ -29,7 +29,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Start the application
-CMD ["node", "server.js"]
+# Verify server.js exists before starting and provide detailed debugging
+CMD ["sh", "-c", "echo '=== Container Startup Debug ===' && echo 'Current directory:' && pwd && echo 'Files in /app:' && ls -la /app/ && echo 'PORT environment variable:' && echo $PORT && echo 'Checking for server.js...' && if [ ! -f server.js ]; then echo 'ERROR: server.js not found in /app/'; echo 'Directory contents:'; ls -la; exit 1; fi && echo 'server.js found, starting server...' && echo 'Node version:' && node --version && echo 'Starting backend server on port' $PORT && exec node server.js"]
 
 # Development stage
 FROM node:20-alpine AS development

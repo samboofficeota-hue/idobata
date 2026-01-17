@@ -8,7 +8,7 @@ import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
-import { getDebateAnalysis as fetchDebateAnalysis } from "../services/debateAnalysisGenerator.js";
+import { getDebateAnalysis as getDebateAnalysisFromService } from "../services/debateAnalysisGenerator.js";
 import { getVisualReport as getQuestionVisualReport } from "../services/questionVisualReportGenerator.js";
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
 import { generateDigestDraft } from "../workers/digestGenerator.js";
@@ -181,7 +181,7 @@ export const getQuestionDetails = async (req, res) => {
 
     const visualReport = await getQuestionVisualReport(questionId);
 
-    const debateAnalysisDoc = await fetchDebateAnalysis(questionId);
+    const debateAnalysisDoc = await getDebateAnalysisFromService(questionId);
     // debateDataをフロントエンドが期待する形式に変換
     const debateData = debateAnalysisDoc
       ? {
