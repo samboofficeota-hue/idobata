@@ -9,11 +9,7 @@ COPY idea-discussion/backend/package*.json ./
 RUN npm install --omit=dev
 
 # Copy backend source code
-# Note: Build context is project root (.), so we copy from idea-discussion/backend/
 COPY idea-discussion/backend/ ./
-
-# Verify server.js was copied correctly
-RUN ls -la && test -f server.js || (echo "ERROR: server.js not found after COPY" && exit 1)
 
 # Set environment variables
 ENV NODE_ENV=production
