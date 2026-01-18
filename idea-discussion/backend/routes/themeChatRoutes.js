@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  getInitialChatMessage,
   getThreadByUserAndQuestion,
   getThreadByUserAndTheme,
   getThreadExtractionsByTheme,
@@ -23,6 +22,7 @@ router.get("/thread", getThreadByUserAndTheme);
 router.get("/thread-by-question", getThreadByUserAndQuestion);
 
 // 新しいチャット開始時の初期メッセージを取得
-router.get("/initial-message", getInitialChatMessage);
+// TODO: getInitialChatMessage関数を実装する必要があります
+// router.get("/initial-message", getInitialChatMessage);
 
 export default router;
