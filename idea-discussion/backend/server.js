@@ -50,6 +50,8 @@ async function connectToDatabase() {
       // 接続プール設定
       maxPoolSize: 10,
       minPoolSize: 2,
+      // アイドル接続タイムアウト（60秒）- アイドル接続を閉じてリソースを節約
+      maxIdleTimeMS: 60000,
       // リトライ設定
       retryWrites: true,
       retryReads: true,
