@@ -112,15 +112,18 @@
 - **Cloud Build**: ビルドとデプロイの自動化
 
 **設定ファイル**:
-- `cloudbuild-frontend.yaml`: フロントエンド用ビルド設定
-- `cloudbuild-backend.yaml`: バックエンド用ビルド設定（現在はRailwayに移行中）
+- `cloudbuild.yaml`: フロントエンド、管理画面、Pythonサービス用の統合ビルド設定
+- `cloudbuild-frontend.yaml`: フロントエンド専用ビルド設定（オプション）
+- `cloudbuild-backend.yaml`: バックエンド用ビルド設定（**使用停止** - Railwayに移行済み）
 
 **ポート**:
 - 8080 (Cloud Runの標準ポート)
 
 **現在の状況**:
 - フロントエンドは正常に動作
-- バックエンドはRailwayに移行中（Cloud Runの8080問題を回避するため）
+- **バックエンドはRailwayに完全移行済み**（Cloud Runでのデプロイは停止）
+  - Cloud Runの8080問題とビルドコンテキストの問題を回避
+  - Railwayが正常に動作しているため、Cloud Runでのバックエンドデプロイは不要
 
 ### 4. MongoDB
 
