@@ -81,8 +81,9 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
-      - '--update-secrets'
-      - 'OPENAI_API_KEY=openai-api-key:latest'
+      # Note: OPENAI_API_KEY is already set as environment variable, not as secret
+      # Using --update-env-vars to preserve existing value or --clear-env-vars to remove and set as secret
+      # For now, we keep the existing environment variable setting
 
 images:
   - 'gcr.io/$PROJECT_ID/idobata-frontend'
