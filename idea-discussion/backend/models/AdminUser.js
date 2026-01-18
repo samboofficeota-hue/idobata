@@ -43,6 +43,14 @@ adminUserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   try {
+    if (!process.env.PASSWORD_PEPPER) {
+      const error = new Error(
+        "PASSWORD_PEPPER環境変数が設定されていません。パスワードのハッシュ化に失敗しました。"
+      );
+      console.error("[AdminUser] PASSWORD_PEPPER is not set");
+      return next(error);
+    }
+
     const pepperPassword = this.password + process.env.PASSWORD_PEPPER;
 
     const salt = await bcrypt.genSalt(10);
@@ -51,11 +59,19 @@ adminUserSchema.pre("save", async function (next) {
     this.password = hash;
     next();
   } catch (error) {
+    console.error("[AdminUser] Password hashing error:", error);
     next(error);
   }
 });
 
 adminUserSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!process.env.PASSWORD_PEPPER) {
+    console.error("[AdminUser] PASSWORD_PEPPER is not set during password comparison");
+    throw new Error(
+      "PASSWORD_PEPPER環境変数が設定されていません。パスワードの検証に失敗しました。"
+    );
+  }
+
   const pepperPassword = candidatePassword + process.env.PASSWORD_PEPPER;
   return bcrypt.compare(pepperPassword, this.password);
 };

@@ -35,14 +35,21 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success) {
         navigate("/");
       } else {
-        setError("メールアドレスまたはパスワードが正しくありません");
+        setError(
+          result.error ||
+            "メールアドレスまたはパスワードが正しくありません"
+        );
       }
     } catch (err) {
-      setError("ログイン処理中にエラーが発生しました。");
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "ログイン処理中にエラーが発生しました";
+      setError(errorMessage);
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);

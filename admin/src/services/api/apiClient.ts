@@ -46,14 +46,41 @@ export class ApiClient {
       headers,
     };
 
+    // デバッグ用ログ（本番環境では削除可能）
+    if (import.meta.env.DEV || endpoint.includes("/auth/login")) {
+      console.log("[ApiClient] Request:", {
+        url,
+        method: options.method || "GET",
+        headers: { ...headers, Authorization: token ? "Bearer ***" : undefined },
+      });
+    }
+
     try {
       const response = await fetch(url, config);
+
+      // デバッグ用ログ
+      if (import.meta.env.DEV || endpoint.includes("/auth/login")) {
+        console.log("[ApiClient] Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const message =
           errorData.message ||
           `API request failed with status ${response.status}`;
+
+        // デバッグ用ログ
+        if (import.meta.env.DEV || endpoint.includes("/auth/login")) {
+          console.error("[ApiClient] Error response:", {
+            status: response.status,
+            message,
+            errorData,
+          });
+        }
 
         let errorType: ApiErrorType;
         switch (response.status) {
@@ -84,6 +111,11 @@ export class ApiClient {
       const data = await response.json();
       return ok(data);
     } catch (error) {
+      // デバッグ用ログ
+      if (import.meta.env.DEV || endpoint.includes("/auth/login")) {
+        console.error("[ApiClient] Network error:", error);
+      }
+
       return err(
         new ApiError(
           ApiErrorType.NETWORK_ERROR,

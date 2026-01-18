@@ -3,6 +3,15 @@ import authService from "../services/auth/authService.js";
 
 const initializeAdminUser = async (req, res) => {
   try {
+    // PASSWORD_PEPPERの事前チェック
+    if (!process.env.PASSWORD_PEPPER) {
+      console.error("[AuthController] PASSWORD_PEPPER is not set during initialization");
+      return res.status(500).json({
+        message:
+          "サーバー設定エラー: PASSWORD_PEPPER環境変数が設定されていません。管理者に連絡してください。",
+      });
+    }
+
     const adminCount = await AdminUser.countDocuments();
 
     if (adminCount > 0) {
@@ -28,6 +37,7 @@ const initializeAdminUser = async (req, res) => {
 
     await newUser.save();
 
+    console.log(`[AuthController] Initial admin user created: ${email}`);
     res.status(201).json({
       message: "初期管理者ユーザーが正常に作成されました",
       user: {
@@ -39,6 +49,14 @@ const initializeAdminUser = async (req, res) => {
     });
   } catch (error) {
     console.error("[AuthController] Initialize admin user error:", error);
+    
+    // PASSWORD_PEPPER関連のエラーの場合、より詳細なメッセージを返す
+    if (error.message && error.message.includes("PASSWORD_PEPPER")) {
+      return res.status(500).json({
+        message: error.message,
+      });
+    }
+
     res.status(500).json({ message: "サーバーエラーが発生しました" });
   }
 };
@@ -46,12 +64,34 @@ const initializeAdminUser = async (req, res) => {
 const login = async (req, res) => {
   const { email, password } = req.body;
 
+  // リクエスト情報をログに記録（パスワードは除く）
+  console.log("[AuthController] Login attempt:", {
+    email,
+    hasPassword: !!password,
+    passwordLength: password ? password.length : 0,
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    userAgent: req.headers["user-agent"],
+  });
+
   try {
     if (!email || !password) {
+      console.warn("[AuthController] Missing email or password");
       return res.status(400).json({
         message: "メールアドレスとパスワードを入力してください",
       });
     }
+
+    // PASSWORD_PEPPERの事前チェック
+    if (!process.env.PASSWORD_PEPPER) {
+      console.error("[AuthController] PASSWORD_PEPPER is not set");
+      return res.status(500).json({
+        message:
+          "サーバー設定エラー: PASSWORD_PEPPER環境変数が設定されていません。管理者に連絡してください。",
+      });
+    }
+
+    console.log("[AuthController] PASSWORD_PEPPER is set:", !!process.env.PASSWORD_PEPPER);
 
     try {
       const { user, token } = await authService.authenticate("local", {
@@ -59,6 +99,10 @@ const login = async (req, res) => {
         password,
       });
 
+      console.log(`[AuthController] Login successful for user: ${email}`, {
+        userId: user._id,
+        role: user.role,
+      });
       res.json({
         token,
         user: {
@@ -69,11 +113,30 @@ const login = async (req, res) => {
         },
       });
     } catch (error) {
-      console.error("[AuthController] Authentication error:", error);
-      return res.status(401).json({ message: "認証に失敗しました" });
+      console.error("[AuthController] Authentication error:", {
+        error: error.message,
+        stack: error.stack,
+        email,
+      });
+      const errorMessage = error.message || "認証に失敗しました";
+
+      // PASSWORD_PEPPER関連のエラーは500を返す
+      if (errorMessage.includes("PASSWORD_PEPPER")) {
+        return res.status(500).json({
+          message: errorMessage,
+        });
+      }
+
+      // その他の認証エラーは401を返す
+      return res.status(401).json({
+        message: errorMessage,
+      });
     }
   } catch (error) {
-    console.error("[AuthController] Login error:", error);
+    console.error("[AuthController] Login error:", {
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({ message: "サーバーエラーが発生しました" });
   }
 };

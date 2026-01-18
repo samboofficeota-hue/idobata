@@ -7,7 +7,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -57,20 +57,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
+      console.log("[AuthContext] Attempting login for:", email);
+      console.log("[AuthContext] API Base URL:", import.meta.env.VITE_API_BASE_URL);
+
       const result = await apiClient.login(email, password);
       if (result.isOk()) {
         const { token, user } = result.value;
+        console.log("[AuthContext] Login successful:", user.email);
         localStorage.setItem("auth_token", token);
         setToken(token);
         setUser(user);
-        return true;
+        return { success: true };
       }
-      return false;
+
+      // エラーメッセージを取得
+      const errorMessage =
+        result.error.message ||
+        "メールアドレスまたはパスワードが正しくありません";
+      console.error("[AuthContext] Login failed:", {
+        error: result.error,
+        message: errorMessage,
+        status: result.error.status,
+      });
+      return { success: false, error: errorMessage };
     } catch (error) {
-      console.error("Login failed:", error);
-      return false;
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "ログイン処理中にエラーが発生しました";
+      console.error("[AuthContext] Login exception:", error);
+      return { success: false, error: errorMessage };
     }
   };
 
