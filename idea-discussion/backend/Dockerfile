@@ -16,6 +16,10 @@ RUN npm install --omit=dev
 # Railwayのルートディレクトリが idea-discussion/backend の場合、相対パスでコピー
 COPY . .
 
+# Debug: Verify files were copied (non-failing)
+RUN echo "=== Files in /app ===" && ls -la /app/ | head -20 || true
+RUN echo "=== Checking server.js ===" && (test -f /app/server.js && echo "✅ server.js exists" || echo "❌ server.js NOT FOUND") || true
+
 # Set environment variables
 ENV NODE_ENV=production
 # PORT is automatically set by Railway, no need to set it here
