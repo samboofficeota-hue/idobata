@@ -27,75 +27,101 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
     );
   }
 
+  // データが存在するかチェック
+  const hasAxes = debateData.axes && debateData.axes.length > 0;
+  const hasAgreementPoints =
+    debateData.agreementPoints && debateData.agreementPoints.length > 0;
+  const hasDisagreementPoints =
+    debateData.disagreementPoints && debateData.disagreementPoints.length > 0;
+
+  // すべてのデータが空の場合
+  if (!hasAxes && !hasAgreementPoints && !hasDisagreementPoints) {
+    return (
+      <div className="text-gray-500 text-center py-8">
+        論点データがまだ生成されていません。対話が集まると、AIによって論点が自動的に抽出・分析されます。
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-12">
       {/* 主要な論点と対立軸 */}
-      <div>
-        <div className="border-b border-gray-300 pb-2 mb-4">
-          <h4 className="text-2xl font-bold text-gray-800">
-            主要な論点と対立軸
-          </h4>
-        </div>
+      {hasAxes && (
+        <div>
+          <div className="border-b border-gray-300 pb-2 mb-4">
+            <h4 className="text-2xl font-bold text-gray-800">
+              主要な論点と対立軸
+            </h4>
+          </div>
 
-        <div className="space-y-6">
-          {/* 対立軸の表示 */}
-          {debateData.axes?.map((axis) => (
-            <div key={axis.title}>
-              <h5 className="text-xl font-bold text-gray-800 mb-2">
-                {axis.title}
-              </h5>
-              <div className="pl-6 space-y-4">
-                {axis.options?.map((option) => (
-                  <div key={option.label}>
-                    <h6 className="font-bold text-gray-800 mb-1">
-                      {option.label}
-                    </h6>
-                    <div className="text-gray-800 leading-8">
-                      <MarkdownRenderer markdown={option.description} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* 合意点の表示 */}
-          {debateData.agreementPoints &&
-            debateData.agreementPoints.length > 0 && (
-              <div>
-                <h5 className="text-xl font-bold text-gray-800 mb-2">合意点</h5>
-                <div className="pl-6 space-y-2">
-                  {debateData.agreementPoints.map((point) => (
-                    <div key={point} className="text-gray-800 leading-8 flex gap-2">
-                      <span>•</span>
-                      <div className="flex-1">
-                        <MarkdownRenderer markdown={point} />
+          <div className="space-y-6">
+            {/* 対立軸の表示 */}
+            {debateData.axes?.map((axis) => (
+              <div key={axis.title}>
+                <h5 className="text-xl font-bold text-gray-800 mb-2">
+                  {axis.title}
+                </h5>
+                <div className="pl-6 space-y-4">
+                  {axis.options && axis.options.length > 0 ? (
+                    axis.options.map((option) => (
+                      <div key={option.label}>
+                        <h6 className="font-bold text-gray-800 mb-1">
+                          {option.label}
+                        </h6>
+                        <div className="text-gray-800 leading-8">
+                          <MarkdownRenderer markdown={option.description} />
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500 text-sm">
+                      選択肢の情報がありません
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+      )}
 
-          {/* 対立点の表示 */}
-          {debateData.disagreementPoints &&
-            debateData.disagreementPoints.length > 0 && (
-              <div>
-                <h5 className="text-xl font-bold text-gray-800 mb-2">対立点</h5>
-                <div className="pl-6 space-y-2">
-                  {debateData.disagreementPoints.map((point) => (
-                    <div key={point} className="text-gray-800 leading-8 flex gap-2">
-                      <span>•</span>
-                      <div className="flex-1">
-                        <MarkdownRenderer markdown={point} />
-                      </div>
-                    </div>
-                  ))}
+      {/* 合意点の表示 */}
+      {hasAgreementPoints && (
+        <div>
+          <div className="border-b border-gray-300 pb-2 mb-4">
+            <h4 className="text-2xl font-bold text-gray-800">合意点</h4>
+          </div>
+          <div className="pl-6 space-y-2">
+            {debateData.agreementPoints.map((point) => (
+              <div key={point} className="text-gray-800 leading-8 flex gap-2">
+                <span>•</span>
+                <div className="flex-1">
+                  <MarkdownRenderer markdown={point} />
                 </div>
               </div>
-            )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* 対立点の表示 */}
+      {hasDisagreementPoints && (
+        <div>
+          <div className="border-b border-gray-300 pb-2 mb-4">
+            <h4 className="text-2xl font-bold text-gray-800">対立点</h4>
+          </div>
+          <div className="pl-6 space-y-2">
+            {debateData.disagreementPoints.map((point) => (
+              <div key={point} className="text-gray-800 leading-8 flex gap-2">
+                <span>•</span>
+                <div className="flex-1">
+                  <MarkdownRenderer markdown={point} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
