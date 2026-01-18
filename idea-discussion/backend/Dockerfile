@@ -16,9 +16,6 @@ RUN npm install --omit=dev
 # Railwayのルートディレクトリが idea-discussion/backend の場合、相対パスでコピー
 COPY . .
 
-# Verify server.js exists (for debugging)
-RUN ls -la /app/server.js || (echo "ERROR: server.js not found!" && ls -la /app/ && exit 1)
-
 # Set environment variables
 ENV NODE_ENV=production
 # PORT is automatically set by Railway, no need to set it here
