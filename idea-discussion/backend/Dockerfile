@@ -13,8 +13,9 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 # Copy backend source code
-# Railwayのルートディレクトリが idea-discussion/backend の場合、相対パスでコピー
-COPY . .
+# Cloud Buildではプロジェクトルート全体がビルドコンテキストになるため、
+# idea-discussion/backend の内容を明示的にコピー
+COPY idea-discussion/backend/ ./
 
 # Debug: Verify files were copied (non-failing)
 RUN echo "=== Files in /app ===" && ls -la /app/ | head -20 || true
