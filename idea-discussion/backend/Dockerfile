@@ -13,13 +13,9 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 # Copy backend source code
-# Cloud Buildではプロジェクトルート全体がビルドコンテキストになるため、
-# idea-discussion/backend の内容を明示的にコピー
-COPY idea-discussion/backend/ ./
-
-# Debug: Verify files were copied (non-failing)
-RUN echo "=== Files in /app ===" && ls -la /app/ | head -20 || true
-RUN echo "=== Checking server.js ===" && (test -f /app/server.js && echo "✅ server.js exists" || echo "❌ server.js NOT FOUND") || true
+# Railwayのルートディレクトリが idea-discussion/backend に設定されている場合、
+# ビルドコンテキストはそのディレクトリ内になるため、COPY . . を使用
+COPY . .
 
 # Set environment variables
 ENV NODE_ENV=production
