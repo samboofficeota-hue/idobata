@@ -39,13 +39,29 @@ async function connectToDatabase() {
   }
   
   try {
-    await mongoose.connect(mongoUri);
+    // MongoDB接続オプションを追加（Cloud Run最適化）
+    await mongoose.connect(mongoUri, {
+      // 接続タイムアウト（30秒）
+      connectTimeoutMS: 30000,
+      // サーバー選択タイムアウト（10秒）
+      serverSelectionTimeoutMS: 10000,
+      // ソケットタイムアウト（45秒）
+      socketTimeoutMS: 45000,
+      // 接続プール設定
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      // リトライ設定
+      retryWrites: true,
+      retryReads: true,
+      // ハートビート頻度（10秒）
+      heartbeatFrequencyMS: 10000,
+    });
     console.log("MongoDB connected successfully.");
   } catch (err) {
     console.error("MongoDB connection error:", err);
     console.error("Failed to connect to MongoDB.");
     // Don't exit - let server continue for health checks
-    // API endpoints will handle database connection errors
+    // API endpoints will handle database connection errors appropriately
     throw err;
   }
 }
@@ -210,6 +226,8 @@ app.get("/", (req, res) => {
 
 // --- Health Check Endpoint ---
 app.get("/api/health", (req, res) => {
+  // サーバーが起動していることを即座に返す
+  // データベース接続は非同期で行われるため、ここでは待たない
   const dbState = mongoose.connection.readyState;
   const dbStatus = {
     0: "disconnected",
@@ -218,10 +236,15 @@ app.get("/api/health", (req, res) => {
     3: "disconnecting",
   };
   
+  // サーバーが起動していれば200を返す（DB接続状態は情報として含める）
   res.status(200).json({
     status: "healthy",
     timestamp: new Date().toISOString(),
     service: "idobata-backend",
+    server: {
+      listening: true,
+      port: PORT,
+    },
     database: {
       status: dbStatus[dbState] || "unknown",
       ready: dbState === 1,
@@ -256,6 +279,7 @@ const server = httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server listening on port ${PORT}`);
   console.log(`Server process started at ${new Date().toISOString()}`);
   console.log("Server started. Connecting to MongoDB...");
+  console.log("Health check endpoint available at /api/health");
 });
 
 // Handle server errors
