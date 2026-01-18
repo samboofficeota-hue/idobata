@@ -13,7 +13,8 @@ RUN npm install
 COPY . .
 
 # Set environment variables for build
-ENV VITE_API_BASE_URL=https://idobata-backend-336788531163.asia-northeast1.run.app
+# Railway backend URL
+ENV VITE_API_BASE_URL=https://idobata-backend-production.up.railway.app
 
 # Build the application
 RUN npm run build
