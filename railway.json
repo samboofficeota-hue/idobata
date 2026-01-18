@@ -1,9 +1,11 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "_comment": "⚠️ このファイルは非推奨です。バックエンド用のrailway.jsonは idea-discussion/backend/railway.json に移動しました。",
+  "_note": "Railwayのルートディレクトリが idea-discussion/backend に設定されている場合、そのディレクトリ内のrailway.jsonが使用されます。",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "idea-discussion/backend/Dockerfile",
-    "buildCommand": "docker build -f idea-discussion/backend/Dockerfile --target production ."
+    "dockerfilePath": "Dockerfile",
+    "buildCommand": "docker build -f Dockerfile --target production ."
   },
   "deploy": {
     "startCommand": "node server.js",
