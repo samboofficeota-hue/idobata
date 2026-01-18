@@ -8,8 +8,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Set environment variables for Cloud Run
-ENV PORT=8080
+# PORT is automatically set by Railway, use it from environment
+# Railway will inject PORT environment variable
 
 # Start FastAPI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Use PORT from environment variable, default to 8080 if not set
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
