@@ -173,11 +173,38 @@ export const getQuestionDetails = async (req, res) => {
       targetType: "question",
     });
 
+    // questionIdをObjectIdに変換（文字列の場合も対応）
+    const questionObjectId = mongoose.Types.ObjectId.isValid(questionId)
+      ? new mongoose.Types.ObjectId(questionId)
+      : questionId;
+    
+    console.log(`[getQuestionDetails] DigestDraft lookup for questionId: ${questionId} (converted to: ${questionObjectId})`);
+    
+    // まず、すべてのDigestDraftを確認（デバッグ用）
+    const allDigestDrafts = await DigestDraft.find({}).select('questionId title createdAt').lean();
+    console.log(`[getQuestionDetails] All DigestDrafts in DB:`, allDigestDrafts.map(d => ({
+      _id: d._id,
+      questionId: d.questionId,
+      questionIdType: typeof d.questionId,
+      title: d.title,
+      createdAt: d.createdAt,
+    })));
+    
     const digestDraft = await DigestDraft.findOne({
-      questionId: new mongoose.Types.ObjectId(questionId),
+      questionId: questionObjectId,
     })
       .sort({ createdAt: -1 })
       .lean();
+    
+    console.log(`[getQuestionDetails] Found digestDraft:`, digestDraft ? {
+      _id: digestDraft._id,
+      questionId: digestDraft.questionId,
+      questionIdType: typeof digestDraft.questionId,
+      title: digestDraft.title,
+      hasContent: !!digestDraft.content,
+      contentLength: digestDraft.content?.length || 0,
+      createdAt: digestDraft.createdAt,
+    } : null);
 
     const visualReport = await getQuestionVisualReport(questionId);
 

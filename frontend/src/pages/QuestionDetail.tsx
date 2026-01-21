@@ -270,25 +270,25 @@ const QuestionDetail = () => {
           </div>
 
           {/* みんなが思う課題の整理セクション */}
-          <div className="mb-8 px-6">
-            <div className="mb-6">
+          <div className="mb-12 px-6">
+            <div className="mb-8">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
                 みんなが思う課題の整理
               </h2>
             </div>
-            <div className="bg-gray-100 rounded-xl p-4 md:p-6">
+            <div className="bg-gray-100 rounded-xl p-6 md:p-8">
               <CitizenOpinionContent digestDraft={questionDetail?.digestDraft} />
             </div>
           </div>
 
           {/* みんなから出てきた解決アイディアセクション */}
-          <div className="mb-8 px-6">
-            <div className="mb-6">
+          <div className="mb-12 px-6">
+            <div className="mb-8">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
                 みんなから出てきた解決アイディア
               </h2>
             </div>
-            <div className="bg-gray-100 rounded-xl p-4 md:p-6">
+            <div className="bg-gray-100 rounded-xl p-6 md:p-8">
               <SolutionIdeasContent
                 solutions={questionDetail?.relatedSolutions || []}
               />

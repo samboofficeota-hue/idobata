@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
-import React from "react";
+import React, { useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "../ui/button";
 
 interface VisualReportData {
@@ -33,11 +34,19 @@ interface ReportExampleData {
   [key: string]: unknown;
 }
 
+interface DigestDraftData {
+  _id?: string;
+  title: string;
+  content: string;
+  createdAt?: string;
+  [key: string]: unknown;
+}
+
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   reportType: "visual" | "debate" | "report";
-  reportData: VisualReportData | DebateAnalysisData | ReportExampleData | null;
+  reportData: VisualReportData | DebateAnalysisData | ReportExampleData | DigestDraftData | null;
   questionText: string;
 }
 
@@ -48,6 +57,23 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   reportData,
   questionText,
 }) => {
+  // デバッグログ
+  useEffect(() => {
+    console.log(`[ReportModal] Effect triggered - isOpen:`, isOpen, {
+      reportType,
+      hasReportData: !!reportData,
+      reportDataKeys: reportData ? Object.keys(reportData) : [],
+      questionText,
+    });
+  }, [isOpen, reportType, reportData, questionText]);
+
+  console.log(`[ReportModal] Rendering with:`, {
+    isOpen,
+    reportType,
+    hasReportData: !!reportData,
+    reportDataKeys: reportData ? Object.keys(reportData) : [],
+    questionText,
+  });
   const renderVisualReport = () => {
     if (!reportData) return <div>レポートデータがありません</div>;
 
@@ -157,8 +183,105 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   };
 
   const renderReportExample = () => {
-    if (!reportData) return <div>レポートデータがありません</div>;
+    console.log(`[renderReportExample] Called with reportData:`, reportData);
+    
+    if (!reportData) {
+      console.warn(`[renderReportExample] No reportData provided`);
+      return <div>レポートデータがありません</div>;
+    }
 
+    // DigestDraftの構造をチェック（titleとcontentがあるか）
+    const hasDigestDraftStructure =
+      "title" in reportData && "content" in reportData;
+    
+    console.log(`[renderReportExample] hasDigestDraftStructure:`, hasDigestDraftStructure, {
+      hasTitle: "title" in reportData,
+      hasContent: "content" in reportData,
+      reportDataKeys: Object.keys(reportData),
+    });
+
+    if (hasDigestDraftStructure) {
+      // DigestDraft形式の場合
+      const digestDraft = reportData as DigestDraftData;
+
+      // Markdownコンテンツを加工（フロントエンドと同じ処理）
+      let processedContent = digestDraft.content;
+
+      // 「市民の意見レポート」というタイトルを削除
+      processedContent = processedContent.replace(
+        /^#+\s*市民の意見レポート\s*\n*/gm,
+        ""
+      );
+
+      // 「問い」セクションを削除
+      processedContent = processedContent.replace(
+        /^##?\s*問い\s*\n[\s\S]*?(?=\n##?\s|\n\n##?\s|$)/gm,
+        ""
+      );
+
+      // 「概要」を「まとめ」に変更
+      processedContent = processedContent.replace(
+        /^(##?\s*)概要(\s*)$/gm,
+        "$1まとめ$2"
+      );
+
+      return (
+        <div className="space-y-6">
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-purple-900 mb-2">問い</h3>
+            <p className="text-purple-800">{questionText}</p>
+          </div>
+
+          {digestDraft.title && (
+            <div className="border-b border-gray-200 pb-4">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {digestDraft.title}
+              </h3>
+              {digestDraft.createdAt && (
+                <p className="text-sm text-gray-500 mt-1">
+                  作成日時: {new Date(digestDraft.createdAt).toLocaleString("ja-JP")}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="prose prose-neutral max-w-none">
+            <ReactMarkdown
+              components={{
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-2xl font-bold mb-4 mt-6" {...props} />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2 className="text-xl font-bold mb-3 mt-5 border-l-4 border-purple-500 pl-3" {...props} />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3 className="text-lg font-semibold mb-2 mt-4" {...props} />
+                ),
+                p: ({ node, ...props }) => (
+                  <p className="text-gray-700 leading-relaxed mb-4" {...props} />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />
+                ),
+                li: ({ node, ...props }) => (
+                  <li className="text-gray-700" {...props} />
+                ),
+                strong: ({ node, ...props }) => (
+                  <strong className="font-semibold text-gray-900" {...props} />
+                ),
+              }}
+            >
+              {processedContent}
+            </ReactMarkdown>
+          </div>
+        </div>
+      );
+    }
+
+    // 旧形式（ReportExampleData）のフォールバック
     const reportDataTyped = reportData as ReportExampleData;
 
     return (
@@ -219,6 +342,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   };
 
   const renderContent = () => {
+    console.log(`[renderContent] Called with reportType:`, reportType);
     switch (reportType) {
       case "visual":
         return renderVisualReport();
@@ -227,11 +351,17 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       case "report":
         return renderReportExample();
       default:
+        console.warn(`[renderContent] Unknown reportType:`, reportType);
         return <div>不明なレポートタイプです</div>;
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log(`[ReportModal] Not rendering - isOpen is false`);
+    return null;
+  }
+
+  console.log(`[ReportModal] Rendering modal with isOpen=true`);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

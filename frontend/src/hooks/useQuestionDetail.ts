@@ -49,6 +49,9 @@ export function useQuestionDetail(themeId: string, questionId: string) {
         return;
       }
 
+      console.log(`[useQuestionDetail] API response:`, result.value);
+      console.log(`[useQuestionDetail] digestDraft:`, result.value.digestDraft);
+      
       setQuestionDetail(result.value);
       setIsLoading(false);
     };

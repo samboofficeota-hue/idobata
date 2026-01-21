@@ -99,6 +99,11 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     }
   }, [isEdit, theme]);
 
+  // レポートモーダルの状態を監視
+  useEffect(() => {
+    console.log(`[ThemeForm] reportModal state changed:`, reportModal);
+  }, [reportModal]);
+
   useEffect(() => {
     if (isEdit && theme?._id) {
       fetchQuestions(theme._id);
@@ -522,18 +527,32 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     if (!theme?._id) return;
 
     try {
+      console.log(`[handleViewReport] Fetching digest draft for questionId: ${questionId}, themeId: ${theme._id}`);
       const result = await apiClient.getDigestDraft(theme._id, questionId);
+      console.log(`[handleViewReport] API result:`, result);
+      
       if (result.isOk() && result.value.length > 0) {
         const question = questions.find((q) => q._id === questionId);
         // 最新のDigestDraftを取得
         const latestDigest = result.value[0];
-        setReportModal({
+        console.log(`[handleViewReport] Latest digest:`, latestDigest);
+        
+        const modalState = {
           isOpen: true,
-          type: "report",
+          type: "report" as const,
           data: latestDigest,
           questionText: question?.questionText || "",
-        });
+        };
+        console.log(`[handleViewReport] Setting modal state:`, modalState);
+        
+        setReportModal(modalState);
+        
+        // 状態更新後の確認
+        setTimeout(() => {
+          console.log(`[handleViewReport] Modal state after update:`, reportModal);
+        }, 100);
       } else {
+        console.warn(`[handleViewReport] No digest drafts found. Result:`, result);
         setQuestionsError("意見まとめが見つかりません。");
       }
     } catch (error) {
@@ -626,6 +645,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="max-w-8xl">
       {errors.form && (
         <div className="bg-destructive/20 text-destructive-foreground p-4 rounded mb-4">
@@ -1184,15 +1204,17 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
         </div>
       )}
 
-      {/* レポートモーダル */}
-      <ReportModal
-        isOpen={reportModal.isOpen}
-        onClose={() => setReportModal((prev) => ({ ...prev, isOpen: false }))}
-        reportType={reportModal.type}
-        reportData={reportModal.data as any}
-        questionText={reportModal.questionText}
-      />
     </form>
+
+    {/* レポートモーダル - formタグの外に配置 */}
+    <ReportModal
+      isOpen={reportModal.isOpen}
+      onClose={() => setReportModal((prev) => ({ ...prev, isOpen: false }))}
+      reportType={reportModal.type}
+      reportData={reportModal.data as any}
+      questionText={reportModal.questionText}
+    />
+  </>
   );
 };
 

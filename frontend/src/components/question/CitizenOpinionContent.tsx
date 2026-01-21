@@ -13,13 +13,23 @@ interface CitizenOpinionContentProps {
 const CitizenOpinionContent = ({
   digestDraft,
 }: CitizenOpinionContentProps) => {
+  console.log(`[CitizenOpinionContent] Received digestDraft:`, digestDraft);
+  
   if (!digestDraft) {
+    console.log(`[CitizenOpinionContent] No digestDraft provided, showing placeholder`);
     return (
-      <div className="text-gray-500 text-center py-8">
-        市民の意見レポートはまだ生成されていません。より多くの意見が集まると表示されるようになります。
+      <div className="text-gray-500 text-center py-12">
+        <p className="text-base leading-relaxed">
+          市民の意見レポートはまだ生成されていません。
+        </p>
+        <p className="text-sm mt-2">
+          より多くの意見が集まると表示されるようになります。
+        </p>
       </div>
     );
   }
+  
+  console.log(`[CitizenOpinionContent] Rendering digestDraft with title:`, digestDraft.title);
 
   // Markdownコンテンツを加工
   // 1. タイトル「市民の意見レポート」を削除
@@ -50,7 +60,7 @@ const CitizenOpinionContent = ({
   return (
     <div className="space-y-6">
       {/* 本文（タイトルは表示しない） */}
-      <div className="text-gray-800 leading-8">
+      <div className="text-gray-800 leading-relaxed text-base">
         <MarkdownRenderer markdown={processedContent} />
       </div>
     </div>
