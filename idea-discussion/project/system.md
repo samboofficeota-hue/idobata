@@ -31,7 +31,7 @@ graph TD
     end
 
     subgraph External Services
-        LLM_API[OpenRouter API (Gemini 2.0 Flash)]
+        LLM_API[OpenAI API (gpt-5-mini)]
     end
 
     UI -- User Input --> Chat
@@ -229,7 +229,7 @@ graph TD
     end
 
     subgraph External Services
-        LLM_API[OpenRouter API (Gemini 2.0 Flash)]
+        LLM_API[OpenAI API (gpt-5-mini)]
     end
 
     UI -- User Input --> Chat
@@ -302,7 +302,7 @@ graph TD
     *   **チャットハンドリング:**
         1.  ユーザーメッセージ受信 (`POST /api/chat/messages`)。
         2.  関連コンテキスト（会話履歴、DB内の既存課題/解決策サンプル、スレッド内抽出済み情報）を準備。
-        3.  LLM (OpenRouter) にコンテキストと共に渡し、応答生成を依頼。
+        3.  LLM (OpenAI) にコンテキストと共に渡し、応答生成を依頼。
             *   プロンプトには、他者の意見紹介や深掘りを促す指示も含める。
         4.  LLMからの応答をユーザーに返す。
         5.  **非同期処理:** 抽出ジョブをキュー (ExtractionQueue) に追加（`sourceType: "chat"`, `sourceOriginId: threadId`, 新しいメッセージ内容を含む）。
@@ -373,10 +373,10 @@ graph TD
         4.  LLM応答(JSON)をパース。
         5.  結果を `policy_drafts` に保存。
 
-**3.3. LLM連携 (OpenRouter - Gemini 2.0 Flash)**
+**3.3. LLM連携 (OpenAI - gpt-5-mini)**
 
 *   専用モジュール(`llm_service.js`等)を作成し、LLM APIコールを抽象化。
-*   `.env` ファイルでAPIキーを管理 (`OPENROUTER_API_KEY`)。
+*   `.env` ファイルでAPIキーを管理 (`OPENAI_API_KEY`)。
     ```javascript
     import OpenAI from 'openai';
     import dotenv from 'dotenv';
@@ -384,13 +384,12 @@ graph TD
     dotenv.config();
 
     const openai = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: process.env.OPENROUTER_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     async function callLLM(messages, jsonOutput = false) {
       const options = {
-        model: 'google/gemini-2.0-flash-001',
+        model: 'gpt-5-mini',
         messages: messages,
       };
       if (jsonOutput) {
@@ -414,7 +413,7 @@ graph TD
         }
         return content;
       } catch (error) {
-        console.error('Error calling OpenRouter:', error);
+        console.error('Error calling OpenAI:', error);
         // Implement retry logic if needed
         throw error;
       }
@@ -433,7 +432,7 @@ graph TD
 *   **フロントエンド:** Vite, React/Vue/Svelte, Tailwind CSS
 *   **バックエンド:** Node.js, Express
 *   **データベース:** MongoDB (Mongoose ODMを利用推奨)
-*   **LLM:** OpenRouter (Google Gemini 2.0 Flash)
+*   **LLM:** OpenAI (gpt-5-mini)
 *   **非同期処理:** BullMQ, Agenda, or MongoDB Change Streams
 *   **環境変数管理:** dotenv
 

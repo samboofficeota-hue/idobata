@@ -13,8 +13,8 @@ dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 export const PORT = process.env.PORT || 3001;
 export const NODE_ENV = process.env.NODE_ENV || "development";
 
-// OpenRouter API configuration
-export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+// OpenAI API configuration
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // GitHub repository settings
 export const GITHUB_REPO_OWNER = process.env.GITHUB_REPO_OWNER;
@@ -28,11 +28,10 @@ export const CORS_ORIGIN =
 export const DATABASE_URL = process.env.DATABASE_URL;
 
 // Validate required environment variables
-if (!OPENROUTER_API_KEY) {
+if (!OPENAI_API_KEY) {
   console.warn(
-    "OPENROUTER_API_KEY is not set. The chatbot will not function properly."
+    "OPENAI_API_KEY is not set. The chatbot will not function properly."
   );
-}
 if (!DATABASE_URL) {
   console.warn(
     "DATABASE_URL is not set. Database operations will not function."

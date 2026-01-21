@@ -166,7 +166,6 @@ Google Cloud Run (本番環境)
 3. **Docker**: Dockerがインストールされていること
 4. **API Keys**: 以下のAPIキーが必要
    - OpenAI API Key
-   - OpenRouter API Key
    - MongoDB Atlas URI (またはMongoDB接続文字列)
 
 ### 初期セットアップ手順
@@ -367,7 +366,7 @@ sleep 30
 
 # 第3段階: AI機能設定
 gcloud run services update idobata-backend \
-  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here,JWT_SECRET=your-jwt-secret-key-here,JWT_EXPIRES_IN=24h,OPENROUTER_API_KEY=your-openrouter-api-key-here,PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app" \
+  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here,JWT_SECRET=your-jwt-secret-key-here,JWT_EXPIRES_IN=24h,OPENAI_API_KEY=your-openai-api-key-here,PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app" \
   --region=asia-northeast1
 
 # ヘルスチェック
@@ -378,7 +377,7 @@ sleep 30
 
 # 第4段階: その他設定
 gcloud run services update idobata-backend \
-  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here,JWT_SECRET=your-jwt-secret-key-here,JWT_EXPIRES_IN=24h,OPENROUTER_API_KEY=your-openrouter-api-key-here,PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app,API_BASE_URL=https://idobata-backend-336788531163.asia-northeast1.run.app,ALLOW_DELETE_THEME=true" \
+  --set-env-vars="MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true,PASSWORD_PEPPER=your-password-pepper-here,JWT_SECRET=your-jwt-secret-key-here,JWT_EXPIRES_IN=24h,OPENAI_API_KEY=your-openai-api-key-here,PYTHON_SERVICE_URL=https://idobata-python-doisltwsmq-an.a.run.app,API_BASE_URL=https://idobata-backend-336788531163.asia-northeast1.run.app,ALLOW_DELETE_THEME=true" \
   --region=asia-northeast1
 
 # 最終ヘルスチェック

@@ -3,20 +3,18 @@ import OpenAI from "openai";
 // dotenv is loaded in server.js, no need to load it again here.
 dotenv.config({ override: true }); // Load environment variables from .env file
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY ||
-        process.env.OPENROUTER_API_KEY ||
-        "mock-api-key",
+    apiKey: process.env.OPENAI_API_KEY || "mock-api-key",
 });
 /**
  * Call an LLM model via OpenAI API
  * @param {Array} messages - Array of message objects with role and content properties
  * @param {boolean} jsonOutput - Whether to request JSON output from the LLM
- * @param {string} model - The model ID to use (defaults to gpt-4o-mini)
+ * @param {string} model - The model ID to use (defaults to gpt-5-mini)
  * @returns {string|Object} - Returns parsed JSON object if jsonOutput=true, otherwise string content
  */
-async function callLLM(messages, jsonOutput = false, model = "gpt-4o-mini") {
+async function callLLM(messages, jsonOutput = false, model = "gpt-5-mini") {
     const options = {
-        model: model, // Default to gpt-4o-mini, but allow override
+        model: model, // Default to gpt-5-mini, but allow override
         messages: messages,
     };
     if (jsonOutput) {
@@ -29,9 +27,10 @@ async function callLLM(messages, jsonOutput = false, model = "gpt-4o-mini") {
     }
     console.log("Calling LLM with options:", JSON.stringify(options, null, 2)); // Log request details
     // Check API key before making request
-    if (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
-        console.error("No valid API key found. Please set OPENAI_API_KEY or OPENROUTER_API_KEY in your .env file");
-        throw new Error("No valid API key found. Please set OPENAI_API_KEY or OPENROUTER_API_KEY in your .env file");
+    if (!process.env.OPENAI_API_KEY) {
+        const message = "No valid API key found. Please set OPENAI_API_KEY in your .env file";
+        console.error(message);
+        throw new Error(message);
     }
     try {
         const completion = await openai.chat.completions.create(options);
@@ -96,11 +95,7 @@ async function testLLM(model) {
 }
 // List of available models that work well with OpenAI
 const RECOMMENDED_MODELS = {
-    "gpt-4o-mini": "gpt-4o-mini",
-    "gpt-4o": "gpt-4o",
-    "gpt-4-turbo": "gpt-4-turbo",
-    "gpt-4": "gpt-4",
-    "gpt-3.5-turbo": "gpt-3.5-turbo",
+    "gpt-5-mini": "gpt-5-mini",
 };
 export { callLLM, testLLM, RECOMMENDED_MODELS };
 //# sourceMappingURL=llmService.js.map

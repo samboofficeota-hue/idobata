@@ -44,7 +44,7 @@ describe("llmService", () => {
             const response = await callLLM(messages);
             expect(mockCreate).toHaveBeenCalledTimes(1);
             expect(mockCreate).toHaveBeenCalledWith({
-                model: "google/gemini-2.0-flash-001", // Default model
+                model: "gpt-5-mini", // Default model
                 messages: messages,
             });
             expect(response).toBe("Test response");
@@ -58,7 +58,7 @@ describe("llmService", () => {
             const response = await callLLM(messages, true);
             expect(mockCreate).toHaveBeenCalledTimes(1);
             expect(mockCreate).toHaveBeenCalledWith({
-                model: "google/gemini-2.0-flash-001",
+                model: "gpt-5-mini",
                 messages: [
                     {
                         role: "user",
@@ -105,7 +105,7 @@ describe("llmService", () => {
             await expect(callLLM(messages)).rejects.toThrow("LLM returned empty content.");
         });
         it("should use the specified model", async () => {
-            const specificModel = "openai/gpt-4";
+            const specificModel = "gpt-5";
             const mockResponse = {
                 choices: [{ message: { content: "Response from GPT-4" } }],
             };
@@ -133,7 +133,7 @@ describe("llmService", () => {
             const result = await testLLM();
             expect(mockCreate).toHaveBeenCalledTimes(1);
             expect(mockCreate).toHaveBeenCalledWith({
-                model: "google/gemini-2.0-flash-001", // Default model for testLLM
+                model: "gpt-5-mini", // Default model for testLLM
                 messages: [{ role: "user", content: "Hello!" }],
             });
             expect(result).toBe(mockResponseContent);
@@ -165,7 +165,7 @@ describe("llmService", () => {
             consoleErrorSpy.mockRestore();
         });
         it("should allow specifying a model for testLLM", async () => {
-            const specificModel = "openai/gpt-3.5-turbo";
+            const specificModel = "gpt-5";
             const mockResponseContent = "Hello from GPT-3.5!";
             const mockResponse = {
                 choices: [{ message: { content: mockResponseContent } }],

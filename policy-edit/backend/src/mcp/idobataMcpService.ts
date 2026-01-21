@@ -1,6 +1,6 @@
 import { Result, err, ok } from "neverthrow";
 import OpenAI from "openai";
-import { OPENROUTER_API_KEY } from "../config.js";
+import { OPENAI_API_KEY } from "../config.js";
 import { McpClientError } from "../types/errors.js";
 import { logger } from "../utils/logger.js";
 import { McpClient } from "./client.js";
@@ -36,8 +36,7 @@ function convertMcpToolsToOpenAI(
 }
 
 const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: OPENROUTER_API_KEY,
+  apiKey: OPENAI_API_KEY,
 });
 
 export class IdobataMcpService {
@@ -109,7 +108,7 @@ export class IdobataMcpService {
       const openaiTools = convertMcpToolsToOpenAI(tools);
 
       const response = await openai.chat.completions.create({
-        model: "google/gemini-2.5-pro-preview-03-25",
+        model: "gpt-5-mini",
         messages: messages,
         tools: openaiTools.length > 0 ? openaiTools : undefined,
         tool_choice: openaiTools.length > 0 ? "auto" : undefined,
@@ -175,7 +174,7 @@ export class IdobataMcpService {
           }
 
           const followUpResponse = await openai.chat.completions.create({
-            model: "google/gemini-2.5-pro-preview-03-25",
+            model: "gpt-5-mini",
             messages: messages,
             max_tokens: 50000,
           });

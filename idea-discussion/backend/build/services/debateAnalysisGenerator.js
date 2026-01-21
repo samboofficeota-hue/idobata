@@ -104,7 +104,7 @@ ${markdownContent}
 
 日本語でJSONのみを返してください。JSONの前後にバッククォートやコメントは不要です。`;
         console.log("[DebateAnalysisGenerator] Calling LLM to generate debate analysis...");
-        const completion = await callLLM([{ role: "user", content: debatePrompt }], true, "gpt-4o-mini");
+        const completion = await callLLM([{ role: "user", content: debatePrompt }], true, "gpt-5-mini");
         if (!completion) {
             throw new Error("Failed to generate debate analysis");
         }

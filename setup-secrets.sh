@@ -33,11 +33,6 @@ echo -e "${YELLOW}Enter OpenAI API Key:${NC}"
 read -s OPENAI_API_KEY
 echo -n "$OPENAI_API_KEY" | gcloud secrets create openai-api-key --data-file=-
 
-# OpenRouter API Key
-echo -e "${YELLOW}Enter OpenRouter API Key:${NC}"
-read -s OPENROUTER_API_KEY
-echo -n "$OPENROUTER_API_KEY" | gcloud secrets create openrouter-api-key --data-file=-
-
 # Password Pepper
 echo -e "${YELLOW}Enter Password Pepper (or press Enter to generate one):${NC}"
 read -r PASSWORD_PEPPER
@@ -71,10 +66,6 @@ gcloud secrets add-iam-policy-binding openai-api-key \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-gcloud secrets add-iam-policy-binding openrouter-api-key \
-    --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-    --role="roles/secretmanager.secretAccessor"
-
 gcloud secrets add-iam-policy-binding password-pepper \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
@@ -87,6 +78,5 @@ echo -e "${GREEN}✅ Secrets setup completed!${NC}"
 echo -e "${GREEN}🔐 Created secrets:${NC}"
 echo -e "${GREEN}  - mongodb-uri${NC}"
 echo -e "${GREEN}  - openai-api-key${NC}"
-echo -e "${GREEN}  - openrouter-api-key${NC}"
 echo -e "${GREEN}  - password-pepper${NC}"
 echo -e "${GREEN}  - jwt-secret${NC}"

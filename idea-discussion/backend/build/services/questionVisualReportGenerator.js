@@ -114,7 +114,7 @@ ${markdownContent}
 ---
 レスポンスは完全なHTML+CSSコードのみを返してください。`;
         console.log("[VisualReportGenerator] Calling LLM to generate visual report...");
-        const completion = await callLLM([{ role: "user", content: visualPrompt }], false, "gpt-4o-mini");
+    const completion = await callLLM([{ role: "user", content: visualPrompt }], false, "gpt-5-mini");
         if (!completion) {
             throw new Error("Failed to generate visual report");
         }

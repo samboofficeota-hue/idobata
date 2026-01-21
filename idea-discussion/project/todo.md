@@ -5,7 +5,7 @@
 *   Node.js (npmまたはyarn) がインストールされていること。
 *   MongoDBがローカルまたはクラウドで利用可能であること。
 *   Gitがインストールされており、基本的な操作ができること。
-*   OpenRouterのAPIキーを取得済みであること (`.env` ファイルで管理)。
+*   OpenAIのAPIキーを取得済みであること (`.env` ファイルで管理)。
 *   コードエディタ (VSCodeなど) があること。
 
 ---
@@ -21,7 +21,7 @@
     *   `npm init -y` (または `yarn init -y`) を実行。
     *   必要なライブラリをインストール: `npm install express mongoose dotenv openai cors` (または `yarn add ...`)。開発用依存として `nodemon` もインストールすると便利 (`npm install -D nodemon`)。
     *   `.gitignore` ファイルを作成し、`node_modules` や `.env` を追加。
-    *   `.env` ファイルを作成し、`OPENROUTER_API_KEY=your_key_here` と `MONGODB_URI=your_mongodb_connection_string` を記述。
+    *   `.env` ファイルを作成し、`OPENAI_API_KEY=your_key_here` と `MONGODB_URI=your_mongodb_connection_string` を記述。
 4.  **フロントエンド (Vite + React/Vue/Svelte + Tailwind) セットアップ:**
     *   プロジェクトルートに戻り (`cd ..`)。
     *   Viteプロジェクトを作成: `npm create vite@latest frontend -- --template react` (Reactの場合。VueやSvelteも可)。
@@ -30,7 +30,7 @@
     *   `.gitignore` はViteが生成してくれるはず。
 5.  **MongoDB準備:** MongoDBサーバーが起動していること、または接続情報が正しいことを確認。データベース名を決めておく (例: `policy_chat_db`)。
 > **[完了] Step 1 は完了しました。**
-> **引き継ぎ事項:** `backend/.env` ファイルに実際の `MONGODB_URI` と `OPENROUTER_API_KEY` を設定してください。
+> **引き継ぎ事項:** `backend/.env` ファイルに実際の `MONGODB_URI` と `OPENAI_API_KEY` を設定してください。
 
 
 **Step 2: バックエンド - 基礎とDB接続**
@@ -94,13 +94,13 @@
 
 1.  `backend/services/llmService.js` を作成。
 2.  設計書にある `callLLM` 関数の雛形を実装。`openai` ライブラリを初期化し、APIキーを `.env` から読み込む。
-3.  簡単なテスト用関数 (例: `testLLM`) を作成し、`callLLM` を使って固定の質問 (例: "Hello!") をOpenRouterに投げ、応答をコンソールに出力する。
-4.  **動作確認:** バックエンドサーバー起動時に `testLLM` を実行するなどして、OpenRouter APIとの通信が成功し、応答が得られることを確認。（APIキーが正しく設定されているか？）
+3.  簡単なテスト用関数 (例: `testLLM`) を作成し、`callLLM` を使って固定の質問 (例: "Hello!") をOpenAIに投げ、応答をコンソールに出力する。
+4.  **動作確認:** バックエンドサーバー起動時に `testLLM` を実行するなどして、OpenAI APIとの通信が成功し、応答が得られることを確認。（APIキーが正しく設定されているか？）
 > **[完了] Step 4 は完了しました。**
 > **引き継ぎ事項:**
 > *   `backend/services/llmService.js` にLLM連携モジュール (`callLLM`) とテスト関数 (`testLLM`) を実装しました。
 > *   `backend/server.js` を修正し、MongoDB接続成功後に `testLLM` が実行されるようにしました。
-> *   **重要:** バックエンドサーバー (`npm run dev` または `yarn dev`) を起動し、コンソールに `testLLM` の実行結果（OpenRouterからの応答またはエラー）が表示されることを確認してください。APIキー (`.env` 内の `OPENROUTER_API_KEY`) が正しく設定されている必要があります。
+> *   **重要:** バックエンドサーバー (`npm run dev` または `yarn dev`) を起動し、コンソールに `testLLM` の実行結果（OpenAIからの応答またはエラー）が表示されることを確認してください。APIキー (`.env` 内の `OPENAI_API_KEY`) が正しく設定されている必要があります。
 > *   次のステップ (Step 5) は、バックエンドのチャットAPI (`POST /api/chat/messages`) の基本機能を実装することです。
 
 **Step 5: バックエンド - チャットAPI (基本機能)**
@@ -160,11 +160,11 @@
     *   応答メッセージを `role: "assistant"` としてスレッドの `messages` 配列に追加。
     *   スレッドをDBに保存。
     *   LLMの応答をレスポンスとしてフロントエンドに返す。
-3.  **動作確認:** フロントエンドからチャットを送ると、固定応答ではなく、LLM (Gemini Flash) が生成した応答が返ってくることを確認。
+3.  **動作確認:** フロントエンドからチャットを送ると、固定応答ではなく、LLM (gpt-5-mini) が生成した応答が返ってくることを確認。
 > **[完了] Step 8 は完了しました。**
 > **引き継ぎ事項:**
 > *   バックエンドのチャットAPI (`backend/controllers/chatController.js`) が、固定応答ではなく `llmService.callLLM` を使用して実際のAI応答を返すように修正されました。
-> *   動作確認として、フロントエンドからメッセージを送信し、LLMによって生成された応答がチャット履歴に表示されることを確認してください。フロントエンド (`npm run dev` in `frontend`) とバックエンド (`npm run dev` in `backend`) の両方の開発サーバーが起動している必要があります。OpenRouter APIキーが `.env` で正しく設定されているかも確認してください。
+> *   動作確認として、フロントエンドからメッセージを送信し、LLMによって生成された応答がチャット履歴に表示されることを確認してください。フロントエンド (`npm run dev` in `frontend`) とバックエンド (`npm run dev` in `backend`) の両方の開発サーバーが起動している必要があります。OpenAI APIキーが `.env` で正しく設定されているかも確認してください。
 > *   次のステップ (Step 9) は、バックエンドで会話から課題/解決策を非同期で抽出する処理 (`backend/workers/extractionWorker.js`) を実装することです。
 
 **Step 9: バックエンド - 課題/解決策 抽出 (非同期)**

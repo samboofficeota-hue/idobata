@@ -235,7 +235,7 @@ ${currentFilePath}
   });
 
   const response = await openai.chat.completions.create({
-    model: "google/gemini-2.5-pro-preview-03-25",
+    model: "gpt-5-mini",
     messages: [{ role: "user", content: prompt }],
     max_tokens: 1000,
   });
@@ -297,7 +297,7 @@ ${currentFilePath}
   });
 
   const response = await openai.chat.completions.create({
-    model: "google/gemini-2.5-pro-preview-03-25",
+    model: "gpt-5-mini",
     messages: [{ role: "user", content: prompt }],
     max_tokens: 1000,
   });

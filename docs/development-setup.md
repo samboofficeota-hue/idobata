@@ -43,7 +43,7 @@
 
 1.  **`.env` ファイルの設定:**
     `.env` ファイルを編集し、以下の変数を設定してください。
-    - `OPENROUTER_API_KEY`: OpenRouter の API キー (バックエンドで使用)
+    - `OPENAI_API_KEY`: OpenAI の API キー (バックエンドで使用)
     - `IDEA_FRONTEND_API_BASE_URL`: フロントエンドがアクセスするバックエンド API の URL（通常は `http://localhost:3000`）
 
 ### Policy Edit セットアップ
@@ -53,7 +53,7 @@
 1.  **`.env` ファイルの設定:**
     `.env` ファイルを編集し、以下の変数を設定してください。
 
-    - `OPENROUTER_API_KEY`: OpenRouter の API キー (バックエンドで使用)
+    - `OPENAI_API_KEY`: OpenAI の API キー (バックエンドで使用)
     - `GITHUB_APP_ID`: GitHub App の ID (バックエンドで使用)
     - `GITHUB_INSTALLATION_ID`: GitHub App の Installation ID (バックエンドで使用)
     - `GITHUB_TARGET_OWNER`: 対象リポジトリのオーナー名 (バックエンド・フロントエンドで使用)

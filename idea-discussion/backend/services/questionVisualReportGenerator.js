@@ -157,7 +157,7 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: visualPrompt }],
       false,
-      "gpt-4o-mini"
+      "gpt-5-mini"
     );
 
     if (!completion) {

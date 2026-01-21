@@ -99,7 +99,7 @@ IDEA_CORS_ORIGIN=https://your-frontend-url.com,https://your-admin-url.com
 PYTHON_SERVICE_URL=https://your-python-service-url.com
 API_BASE_URL=https://your-backend-url.com
 ALLOW_DELETE_THEME=true
-OPENROUTER_API_KEY=your-openrouter-api-key
+OPENAI_API_KEY=your-openai-api-key
 ```
 
 ## ステップ6: デプロイの確認

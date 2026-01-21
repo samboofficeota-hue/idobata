@@ -94,7 +94,6 @@
 - `PYTHON_SERVICE_URL`: PythonサービスURL
 - `API_BASE_URL`: APIベースURL
 - `ALLOW_DELETE_THEME=true`
-- `OPENROUTER_API_KEY`: OpenRouter APIキー
 
 **デプロイ方法**:
 - GitHubへのpushで自動デプロイ

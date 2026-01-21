@@ -30,11 +30,6 @@ REQUIRED_SECRETS=(
     "jwt-secret"
 )
 
-# Optional secrets (used in setup-secrets.sh but not in cloudbuild.yaml)
-OPTIONAL_SECRETS=(
-    "openrouter-api-key"
-)
-
 echo -e "${YELLOW}📋 Required Secrets (from cloudbuild.yaml):${NC}"
 echo ""
 
@@ -58,19 +53,6 @@ for secret in "${REQUIRED_SECRETS[@]}"; do
     fi
 done
 
-echo ""
-echo -e "${YELLOW}📋 Optional Secrets:${NC}"
-echo ""
-
-for secret in "${OPTIONAL_SECRETS[@]}"; do
-    if gcloud secrets describe "$secret" > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ $secret${NC} - exists"
-    else
-        echo -e "${YELLOW}⚠️  $secret${NC} - not found (optional)"
-    fi
-done
-
-echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 

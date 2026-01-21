@@ -140,7 +140,7 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: debatePrompt }],
       true,
-      "gpt-4o-mini"
+      "gpt-5-mini"
     );
 
     if (!completion) {
