@@ -71,20 +71,21 @@ async function generateDigestDraft(questionId) {
       .sort({ createdAt: -1 })
       .limit(1);
 
-    if (!latestPolicyDraft) {
-      console.error(
-        `[DigestGenerator] No policy draft found for questionId: ${questionId}`
+    const hasPolicyDraft = !!latestPolicyDraft;
+    
+    if (hasPolicyDraft) {
+      console.log(
+        `[DigestGenerator] Found latest policy draft: "${latestPolicyDraft.title}"`
       );
-      return;
+    } else {
+      console.log(
+        `[DigestGenerator] No policy draft found for questionId: ${questionId}. Generating digest without policy draft.`
+      );
     }
-    console.log(
-      `[DigestGenerator] Found latest policy draft: "${latestPolicyDraft.title}"`
-    );
 
-    const messages = [
-      {
-        role: "system",
-        content: `あなたはAIアシスタントです。あなたの任務は、中心的な問い（「私たちはどのようにして...できるか？」）、その問いに関連する問題点と解決策、そして政策ドラフトを分析し、一般市民向けに読みやすく噛み砕いたダイジェストを作成することです。
+    // プロンプトをPolicyDraftの有無に応じて調整
+    const systemPrompt = hasPolicyDraft
+      ? `あなたはAIアシスタントです。あなたの任務は、中心的な問い（「私たちはどのようにして...できるか？」）、その問いに関連する問題点と解決策、そして政策ドラフトを分析し、一般市民向けに読みやすく噛み砕いたダイジェストを作成することです。
 
 あなたの出力は、'title'（文字列）と'content'（文字列）のキーを含むJSONオブジェクトにする必要があります。
 
@@ -117,11 +118,42 @@ async function generateDigestDraft(questionId) {
     - 「主要な課題」という見出しを使用してください（## 主要な課題）
     - contentフィールドには、上記の構造に従ったMarkdownコンテンツを記述してください
 
-応答は、"title"（文字列、ダイジェスト全体に適したタイトル）と "content"（文字列、Markdownで適切にフォーマットされた内容）のキーを含むJSONオブジェクトのみで行ってください。JSON構造外に他のテキストや説明を含めないでください。`,
-      },
-      {
-        role: "user",
-        content: `Generate a digest for the following:
+応答は、"title"（文字列、ダイジェスト全体に適したタイトル）と "content"（文字列、Markdownで適切にフォーマットされた内容）のキーを含むJSONオブジェクトのみで行ってください。JSON構造外に他のテキストや説明を含めないでください。`
+      : `あなたはAIアシスタントです。あなたの任務は、中心的な問い（「私たちはどのようにして...できるか？」）と、その問いに関連する問題点と解決策を分析し、一般市民向けに読みやすく噛み砕いたダイジェストを作成することです。
+
+あなたの出力は、'title'（文字列）と'content'（文字列）のキーを含むJSONオブジェクトにする必要があります。
+
+以下のガイドラインに従ってください：
+
+1. 集まった意見や課題、解決策を一般市民向けにわかりやすく整理してください。
+
+2. 複雑な概念や専門用語を避け、平易な言葉で説明してください。
+
+3. 重要なポイントを強調し、細かい詳細よりも全体像を伝えることに重点を置いてください。
+
+4. なぜこの問いが重要なのか、どのように市民の生活に影響するのかを明確に説明してください。
+
+5. 視覚的に読みやすい構造（見出し、箇条書き、短い段落など）を使用してください。
+
+6. 正確さを保ちながらも、簡潔さを優先してください。
+
+7. 集まった意見の背景にある主要な問題や課題を簡潔に説明してください。
+
+8. 専門的な分析よりも、市民の声と期待される成果に焦点を当ててください。
+
+9. 重要な用語やコンセプトを説明するための簡単な例や比喩を含めてください。
+
+10. **重要：Markdownコンテンツの構造について**
+    - タイトル「市民の意見レポート」を含めないでください
+    - 「問い」というセクションを含めないでください
+    - 「概要」という見出しではなく、「まとめ」という見出しを使用してください（## まとめ）
+    - 「主要な課題」という見出しを使用してください（## 主要な課題）
+    - contentフィールドには、上記の構造に従ったMarkdownコンテンツを記述してください
+
+応答は、"title"（文字列、ダイジェスト全体に適したタイトル）と "content"（文字列、Markdownで適切にフォーマットされた内容）のキーを含むJSONオブジェクトのみで行ってください。JSON構造外に他のテキストや説明を含めないでください。`;
+
+    const userContent = hasPolicyDraft
+      ? `Generate a digest for the following:
 
 Question: ${question.questionText}
 
@@ -135,7 +167,27 @@ Policy Report:
 Title: ${latestPolicyDraft.title}
 Content: ${latestPolicyDraft.content}
 
-Please provide the output as a JSON object with "title" and "content" keys. The digest should be much more accessible to general readers than the policy report.`,
+Please provide the output as a JSON object with "title" and "content" keys. The digest should be much more accessible to general readers than the policy report.`
+      : `Generate a digest for the following:
+
+Question: ${question.questionText}
+
+Related Problems (sorted by relevance - higher items are more relevant to the question):
+${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n") : "- None provided"}
+
+Related Solutions (sorted by relevance - higher items are more relevant to the question):
+${solutionStatements.length > 0 ? solutionStatements.map((s) => `- ${s}`).join("\n") : "- None provided"}
+
+Please provide the output as a JSON object with "title" and "content" keys. The digest should summarize the collected opinions, problems, and solutions in an accessible way for general readers.`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: userContent,
       },
     ];
 
@@ -163,7 +215,7 @@ Please provide the output as a JSON object with "title" and "content" keys. The 
 
     const newDraft = new DigestDraft({
       questionId: questionId,
-      policyDraftId: latestPolicyDraft._id,
+      policyDraftId: hasPolicyDraft ? latestPolicyDraft._id : null,
       title: llmResponse.title,
       content: llmResponse.content,
       sourceProblemIds: problemIds,

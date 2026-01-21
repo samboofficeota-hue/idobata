@@ -9,10 +9,10 @@ const digestDraftSchema = new mongoose.Schema(
       required: true,
     },
     policyDraftId: {
-      // 元となる `policy_drafts` のID
+      // 元となる `policy_drafts` のID（PolicyDraftがない場合も許可）
       type: mongoose.Schema.Types.ObjectId,
       ref: "PolicyDraft",
-      required: true,
+      required: false,
     },
     title: {
       // ダイジェストのタイトル

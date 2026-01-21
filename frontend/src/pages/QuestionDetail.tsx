@@ -6,6 +6,7 @@ import BreadcrumbView from "../components/common/BreadcrumbView";
 import CitizenOpinionContent from "../components/question/CitizenOpinionContent";
 import DebatePointsContent from "../components/question/DebatePointsContent";
 import OtherOpinionCard from "../components/question/OtherOpinionCard";
+import SolutionIdeasContent from "../components/question/SolutionIdeasContent";
 import ThemePromptSection from "../components/question/ThemePromptSection";
 import { DownloadButton } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
@@ -277,6 +278,20 @@ const QuestionDetail = () => {
             </div>
             <div className="bg-gray-100 rounded-xl p-4 md:p-6">
               <CitizenOpinionContent digestDraft={questionDetail?.digestDraft} />
+            </div>
+          </div>
+
+          {/* みんなから出てきた解決アイディアセクション */}
+          <div className="mb-8 px-6">
+            <div className="mb-6">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
+                みんなから出てきた解決アイディア
+              </h2>
+            </div>
+            <div className="bg-gray-100 rounded-xl p-4 md:p-6">
+              <SolutionIdeasContent
+                solutions={questionDetail?.relatedSolutions || []}
+              />
             </div>
           </div>
 
