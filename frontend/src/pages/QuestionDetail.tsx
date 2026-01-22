@@ -25,6 +25,7 @@ const QuestionDetail = () => {
   const [chatManager, setChatManager] = useState<QuestionChatManager | null>(
     null
   );
+  const [threadId, setThreadId] = useState<string | null>(null);
 
   const { questionDetail, isLoading, error } = useQuestionDetail(
     themeId || "",
@@ -66,12 +67,33 @@ const QuestionDetail = () => {
 
       setChatManager(manager);
 
+      // Update threadId when manager loads chat history
+      const updateThreadId = () => {
+        const currentThreadId = manager.getThreadId();
+        if (currentThreadId) {
+          setThreadId(currentThreadId);
+        }
+      };
+
+      // Initial check after a short delay to allow chat history to load
+      setTimeout(updateThreadId, 1000);
+
       return () => {
         console.log("Cleaning up ChatManager");
         manager.cleanup();
       };
     }
   }, [themeId, qId, questionDetail, user?.id]);
+
+  // Update threadId when chatManager sends a message (which sets threadId)
+  useEffect(() => {
+    if (chatManager) {
+      const currentThreadId = chatManager.getThreadId();
+      if (currentThreadId && currentThreadId !== threadId) {
+        setThreadId(currentThreadId);
+      }
+    }
+  }, [chatManager, threadId]);
 
   // Separate effect for page updates via WebSocket
   useEffect(() => {
@@ -290,7 +312,7 @@ const QuestionDetail = () => {
             </div>
             <div className="bg-gray-100 rounded-xl p-6 md:p-8">
               <SolutionIdeasContent
-                solutions={questionDetail?.relatedSolutions || []}
+                solutionIdeas={questionDetail?.solutionIdeas || []}
               />
             </div>
           </div>
@@ -415,6 +437,8 @@ const QuestionDetail = () => {
           ref={chatRef}
           onSendMessage={handleSendMessage}
           disabled={isCommentDisabled}
+          themeId={themeId || null}
+          threadId={threadId}
         />
       </>
     );

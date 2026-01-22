@@ -111,8 +111,13 @@ export class QuestionChatManager {
 
     const { response, threadId } = result.value;
 
-    if (threadId && !this.threadId) {
-      this.setThreadId(threadId);
+    if (threadId) {
+      if (!this.threadId) {
+        this.setThreadId(threadId);
+      } else if (this.threadId !== threadId) {
+        // Update threadId if it changed
+        this.setThreadId(threadId);
+      }
     }
 
     if (response) {
@@ -206,6 +211,10 @@ export class QuestionChatManager {
 
   getMessages(): Message[] {
     return [...this.messages];
+  }
+
+  getThreadId(): string | undefined {
+    return this.threadId;
   }
 
   clearMessages(): void {

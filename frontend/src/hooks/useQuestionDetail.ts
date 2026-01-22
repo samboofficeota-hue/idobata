@@ -27,6 +27,10 @@ export interface QuestionDetailResponse {
   visualReport: string | null;
   participantCount?: number;
   dialogueCount?: number;
+  solutionIdeas: Array<{
+    id: string;
+    idea: string;
+  }>;
 }
 
 export function useQuestionDetail(themeId: string, questionId: string) {

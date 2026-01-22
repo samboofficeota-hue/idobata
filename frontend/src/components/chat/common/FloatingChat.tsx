@@ -12,6 +12,7 @@ interface FloatingChatProps {
   disabled?: boolean;
   disabledMessage?: string;
   themeId?: string | null;
+  threadId?: string | null;
 }
 
 export interface FloatingChatRef {
@@ -31,6 +32,7 @@ const FloatingChatInner = forwardRef<FloatingChatRef, FloatingChatProps>(
       disabled = false,
       disabledMessage = "このテーマではコメントが無効化されています",
       themeId = null,
+      threadId = null,
     },
     ref
   ) => {
@@ -117,6 +119,7 @@ const FloatingChatInner = forwardRef<FloatingChatRef, FloatingChatProps>(
               disabled={disabled}
               disabledMessage={disabledMessage}
               themeId={themeId}
+              threadId={threadId}
             />
           )}
         </div>

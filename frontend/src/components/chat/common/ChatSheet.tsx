@@ -19,6 +19,7 @@ interface ChatSheetProps {
   disabled?: boolean;
   disabledMessage?: string;
   themeId?: string | null;
+  threadId?: string | null;
 }
 
 export const ChatSheet: React.FC<ChatSheetProps> = ({
@@ -29,10 +30,12 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   disabled = false,
   disabledMessage = "このテーマではコメントが無効化されています",
   themeId = null,
+  threadId = null,
 }) => {
   const { messages, addMessage, clearMessages } = useChat();
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const { height } = useDraggable({
     minHeight: 400,
     maxHeight: window.innerHeight * 0.9,
@@ -107,6 +110,13 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
 
   const handleNewChat = async () => {
     // 新しいチャット: チャット履歴をクリアして新しい会話を開始
+    // ユーザーの回答が少ない場合は抽出しない（2件未満の場合は抽出しない）
+    const userMessages = messages.filter(
+      (msg) => msg.constructor.name === "UserMessage"
+    );
+    
+    // ユーザーメッセージが2件以上ある場合のみ抽出を試みる（ただし、新しいチャットなので抽出はしない）
+    // ここでは単にチャットをクリアするだけ
     clearMessages();
 
     // 初期メッセージを取得して追加
@@ -133,9 +143,46 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     }
   };
 
-  const handleEndChat = () => {
-    // チャットを終了: チャットを閉じる
-    onClose();
+  const handleSubmitOpinion = async () => {
+    // わたしの意見を送る: チャットスレッドの内容をProblem/Solutionに反映
+    if (!threadId || !themeId) {
+      console.error("Thread ID or Theme ID is missing");
+      addMessage(
+        "エラー: スレッド情報が見つかりません。",
+        "system-message"
+      );
+      return;
+    }
+
+    setIsExtracting(true);
+    try {
+      const result = await apiClient.triggerExtractionForThread(
+        threadId,
+        themeId
+      );
+
+      if (result.isOk()) {
+        addMessage(
+          "あなたの意見を送信しました。ありがとうございます！",
+          "system-message"
+        );
+        // チャットを閉じる
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        console.error("Error triggering extraction:", result.error);
+        addMessage(
+          result.error.message || "意見の送信に失敗しました。",
+          "system-message"
+        );
+      }
+    } catch (error) {
+      console.error("Error submitting opinion:", error);
+      addMessage("意見の送信中にエラーが発生しました。", "system-message");
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const renderDisabledState = () => (
@@ -186,18 +233,19 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleNewChat}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-3 py-1 text-sm h-8 font-medium"
+                      onClick={handleSubmitOpinion}
+                      disabled={isExtracting || !threadId || !themeId}
                     >
-                      新しいチャット
+                      {isExtracting ? "送信中..." : "わたしの意見を送る"}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleEndChat}
+                      onClick={handleNewChat}
                     >
-                      チャットを終了
+                      新しいチャット
                     </Button>
                   </div>
                   <Button
@@ -269,18 +317,19 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleNewChat}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-3 py-1 text-sm h-8 font-medium"
+                      onClick={handleSubmitOpinion}
+                      disabled={isExtracting || !threadId || !themeId}
                     >
-                      新しいチャット
+                      {isExtracting ? "送信中..." : "わたしの意見を送る"}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleEndChat}
+                      onClick={handleNewChat}
                     >
-                      チャットを終了
+                      新しいチャット
                     </Button>
                   </div>
                   <Button

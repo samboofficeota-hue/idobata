@@ -226,6 +226,17 @@ export class ApiClient {
     );
   }
 
+  async triggerExtractionForThread(
+    threadId: string,
+    themeId: string
+  ): Promise<HttpResult<{ message: string; threadId: string }>> {
+    return this.withRetry(() =>
+      this.httpClient.post<{ message: string; threadId: string }>(
+        `/themes/${themeId}/chat/threads/${threadId}/extract`
+      )
+    );
+  }
+
   async getInitialChatMessage(
     themeId: string
   ): Promise<HttpResult<{ message: string }>> {

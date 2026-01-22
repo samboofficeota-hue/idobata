@@ -13,6 +13,7 @@ import { getVisualReport as getQuestionVisualReport } from "../services/question
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
 import { generateDigestDraft } from "../workers/digestGenerator.js";
 import { generatePolicyDraft } from "../workers/policyGenerator.js";
+import { generateSolutionIdeas } from "../workers/solutionIdeasGenerator.js";
 import { generateVisualReport } from "../workers/visualReportGenerator.js";
 
 // GET /api/questions - 全ての質問を集計データ付きで取得（統一API）
@@ -261,6 +262,21 @@ export const getQuestionDetails = async (req, res) => {
     // 5. 対話数（オピニオンの数）= 関連するProblemとSolutionの総数
     const dialogueCount = relatedProblems.length + relatedSolutions.length;
 
+    // 6. Generate solution ideas from all related solutions (maximum 4)
+    let solutionIdeas = [];
+    try {
+      solutionIdeas = await generateSolutionIdeas(questionId);
+      console.log(
+        `[getQuestionDetails] Generated ${solutionIdeas.length} solution ideas`
+      );
+    } catch (error) {
+      console.error(
+        `[getQuestionDetails] Error generating solution ideas:`,
+        error
+      );
+      // Continue without solution ideas if generation fails
+    }
+
     res.status(200).json({
       question: {
         ...question.toObject(),
@@ -279,6 +295,7 @@ export const getQuestionDetails = async (req, res) => {
       visualReport: visualReport ? visualReport.overallAnalysis : null,
       participantCount,
       dialogueCount,
+      solutionIdeas: solutionIdeas || [],
     });
   } catch (error) {
     console.error(`Error fetching details for question ${questionId}:`, error);
