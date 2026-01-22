@@ -14,6 +14,8 @@ const CitizenOpinionContent = ({
   digestDraft,
 }: CitizenOpinionContentProps) => {
   console.log(`[CitizenOpinionContent] Received digestDraft:`, digestDraft);
+  console.log(`[CitizenOpinionContent] digestDraft type:`, typeof digestDraft);
+  console.log(`[CitizenOpinionContent] digestDraft keys:`, digestDraft ? Object.keys(digestDraft) : null);
   
   if (!digestDraft) {
     console.log(`[CitizenOpinionContent] No digestDraft provided, showing placeholder`);
@@ -28,8 +30,24 @@ const CitizenOpinionContent = ({
       </div>
     );
   }
+
+  // contentが空または存在しない場合のチェック
+  if (!digestDraft.content || digestDraft.content.trim() === "") {
+    console.log(`[CitizenOpinionContent] digestDraft.content is empty`);
+    return (
+      <div className="text-gray-500 text-center py-12">
+        <p className="text-base leading-relaxed">
+          市民の意見レポートはまだ生成されていません。
+        </p>
+        <p className="text-sm mt-2">
+          より多くの意見が集まると表示されるようになります。
+        </p>
+      </div>
+    );
+  }
   
   console.log(`[CitizenOpinionContent] Rendering digestDraft with title:`, digestDraft.title);
+  console.log(`[CitizenOpinionContent] Content length:`, digestDraft.content.length);
 
   // Markdownコンテンツを加工
   // 1. タイトル「市民の意見レポート」を削除

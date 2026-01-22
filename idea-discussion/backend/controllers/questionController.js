@@ -201,11 +201,25 @@ export const getQuestionDetails = async (req, res) => {
       _id: digestDraft._id,
       questionId: digestDraft.questionId,
       questionIdType: typeof digestDraft.questionId,
+      questionIdString: digestDraft.questionId?.toString(),
+      searchQuestionId: questionObjectId.toString(),
       title: digestDraft.title,
       hasContent: !!digestDraft.content,
       contentLength: digestDraft.content?.length || 0,
       createdAt: digestDraft.createdAt,
+      createdAtType: typeof digestDraft.createdAt,
     } : null);
+    
+    // デバッグ: questionIdの一致を確認
+    if (digestDraft) {
+      const draftQuestionIdStr = digestDraft.questionId?.toString();
+      const searchQuestionIdStr = questionObjectId.toString();
+      console.log(`[getQuestionDetails] QuestionId match check:`, {
+        draftQuestionId: draftQuestionIdStr,
+        searchQuestionId: searchQuestionIdStr,
+        match: draftQuestionIdStr === searchQuestionIdStr,
+      });
+    }
 
     const visualReport = await getQuestionVisualReport(questionId);
 
@@ -278,7 +292,7 @@ export const getQuestionDetails = async (req, res) => {
       // Continue without solution ideas if generation fails
     }
 
-    res.status(200).json({
+    const responseData = {
       question: {
         ...question.toObject(),
         voteCount,
@@ -288,16 +302,25 @@ export const getQuestionDetails = async (req, res) => {
       debateData,
       digestDraft: digestDraft
         ? {
-            title: digestDraft.title,
-            content: digestDraft.content,
-            createdAt: digestDraft.createdAt,
+            title: digestDraft.title || "",
+            content: digestDraft.content || "",
+            createdAt: digestDraft.createdAt
+              ? new Date(digestDraft.createdAt).toISOString()
+              : new Date().toISOString(),
           }
         : null,
       visualReport: visualReport ? visualReport.overallAnalysis : null,
       participantCount,
       dialogueCount,
       solutionIdeas: solutionIdeas || [],
-    });
+    };
+
+    // デバッグ: レスポンスデータの確認
+    console.log(`[getQuestionDetails] Response digestDraft:`, responseData.digestDraft);
+    console.log(`[getQuestionDetails] Response digestDraft type:`, typeof responseData.digestDraft);
+    console.log(`[getQuestionDetails] Response digestDraft keys:`, responseData.digestDraft ? Object.keys(responseData.digestDraft) : null);
+
+    res.status(200).json(responseData);
   } catch (error) {
     console.error(`Error fetching details for question ${questionId}:`, error);
     res.status(500).json({
