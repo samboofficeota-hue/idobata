@@ -16,6 +16,7 @@ export interface QuestionDetailResponse {
     }[];
     agreementPoints: string[];
     disagreementPoints: string[];
+    formattedReport: string | null;
   } | null;
   relatedProblems: RelatedProblem[];
   relatedSolutions: RelatedSolution[];

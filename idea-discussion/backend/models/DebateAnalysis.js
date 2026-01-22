@@ -25,6 +25,10 @@ const debateAnalysisSchema = new mongoose.Schema(
     ],
     agreementPoints: [String],
     disagreementPoints: [String],
+    formattedReport: {
+      type: String,
+      required: false,
+    },
     sourceProblemIds: [
       {
         type: mongoose.Schema.Types.ObjectId,

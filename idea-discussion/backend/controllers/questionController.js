@@ -216,6 +216,7 @@ export const getQuestionDetails = async (req, res) => {
           axes: debateAnalysisDoc.axes || [],
           agreementPoints: debateAnalysisDoc.agreementPoints || [],
           disagreementPoints: debateAnalysisDoc.disagreementPoints || [],
+          formattedReport: debateAnalysisDoc.formattedReport || null,
         }
       : null;
 

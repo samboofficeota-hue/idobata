@@ -147,6 +147,81 @@ ${markdownContent}
       throw new Error("Failed to generate debate analysis");
     }
 
+    // Generate formatted HTML report
+    const formattedReportPrompt = `
+# 論点レポートHTML生成プロンプト
+
+## 目的
+以下の論点分析データを、視覚的に読みやすく、デザイン性の高いHTMLレポートに変換してください。
+
+## 入力データ
+${JSON.stringify({
+  axes: completion.axes || [],
+  agreementPoints: completion.agreementPoints || [],
+  disagreementPoints: completion.disagreementPoints || [],
+}, null, 2)}
+
+## デザイン要件
+1. **カラースキーム**: 青系の色（#1E5EF3, #00A8E8, #38B6FFなど）を使用
+2. **レイアウト**: 
+   - カード型コンポーネント（白背景、角丸、シャドウ）
+   - セクションごとに明確に区切る
+   - 読みやすい余白とタイポグラフィ
+3. **構造**:
+   - 主要な論点と対立軸セクション
+   - 合意点セクション
+   - 対立点セクション
+4. **スタイリング**:
+   - 見出しは太字、適切なサイズ
+   - 対立軸の選択肢はカード形式で横並び表示
+   - 箇条書きは視覚的に分かりやすく
+5. **埋め込み表示用**:
+   - margin: 0, padding: 適切な余白
+   - 幅100%で表示されることを想定
+   - 高さはコンテンツに応じて自動調整
+
+## 出力形式
+完全なHTML+CSSコードのみを返してください。<!DOCTYPE html>から始まる完全なHTMLドキュメントとして出力してください。
+レスポンスは完全なHTML+CSSコードのみを返してください。`;
+
+    console.log(
+      "[DebateAnalysisGenerator] Calling LLM to generate formatted HTML report..."
+    );
+    const formattedReportCompletion = await callLLM(
+      [{ role: "user", content: formattedReportPrompt }],
+      false, // JSON形式ではなく、HTMLテキストとして取得
+      "gpt-5-mini"
+    );
+
+    let formattedReport = null;
+    if (formattedReportCompletion && typeof formattedReportCompletion === "string") {
+      // HTMLコードブロックを除去
+      formattedReport = formattedReportCompletion
+        .replace(/^```html\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/```\s*$/i, "")
+        .trim();
+      
+      // HTMLドキュメント構造がない場合は追加
+      if (!formattedReport.includes("<!DOCTYPE html>") && !formattedReport.includes("<html")) {
+        formattedReport = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>論点レポート</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+  </style>
+</head>
+<body>
+${formattedReport}
+</body>
+</html>`;
+      }
+    }
+
     const latestAnalysis = await DebateAnalysis.findOne({
       questionId: question._id,
     }).sort({ version: -1 }); // Sort by version descending to get the highest
@@ -159,6 +234,7 @@ ${markdownContent}
       axes: completion.axes || [],
       agreementPoints: completion.agreementPoints || [],
       disagreementPoints: completion.disagreementPoints || [],
+      formattedReport: formattedReport,
       sourceProblemIds: problemIds,
       sourceSolutionIds: solutionIds,
       version: nextVersion, // Use the calculated next version

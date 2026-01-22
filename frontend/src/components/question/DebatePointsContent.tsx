@@ -12,6 +12,7 @@ interface DebateData {
   axes?: DebateAxis[];
   agreementPoints?: string[];
   disagreementPoints?: string[];
+  formattedReport?: string | null;
 }
 
 interface DebatePointsContentProps {
@@ -25,6 +26,26 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
         論点データを読み込み中...
       </div>
     );
+  }
+
+  // フォーマット済みレポートがある場合はiframeで表示
+  if (debateData.formattedReport && typeof debateData.formattedReport === "string") {
+    // HTMLコンテンツかどうかをチェック
+    if (
+      debateData.formattedReport.includes("<!DOCTYPE html>") ||
+      debateData.formattedReport.includes("<html")
+    ) {
+      return (
+        <div className="w-full h-[600px] md:h-[800px]">
+          <iframe
+            srcDoc={debateData.formattedReport}
+            className="w-full h-full border-0 rounded-2xl"
+            title="みんなの論点レポート"
+            sandbox="allow-same-origin allow-scripts"
+          />
+        </div>
+      );
+    }
   }
 
   // データが存在するかチェック
