@@ -111,11 +111,6 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   const handleNewChat = async () => {
     // 新しいチャット: チャット履歴をクリアして新しい会話を開始
     // ユーザーの回答が少ない場合は抽出しない（2件未満の場合は抽出しない）
-    const userMessages = messages.filter(
-      (msg) => msg.constructor.name === "UserMessage"
-    );
-    
-    // ユーザーメッセージが2件以上ある場合のみ抽出を試みる（ただし、新しいチャットなので抽出はしない）
     // ここでは単にチャットをクリアするだけ
     clearMessages();
 
