@@ -6,6 +6,7 @@ import {
   MessageType,
   SystemMessage,
   SystemNotification,
+  THINKING_MESSAGE_ID,
   UserMessage,
 } from "../../types";
 
@@ -14,6 +15,8 @@ export interface ThemeDetailChatManagerOptions {
   themeName: string;
   userId: string;
   onNewMessage?: (message: Message) => void;
+  /** 「考え中」メッセージを実際の応答で置き換えるときに呼ぶ */
+  onReplaceMessage?: (messageId: string, content: string) => void;
   onNewExtraction?: (extraction: NewExtractionEvent) => void;
 }
 
@@ -22,6 +25,7 @@ export class ThemeDetailChatManager {
   private themeName: string;
   private messages: Message[] = [];
   private onNewMessage?: (message: Message) => void;
+  private onReplaceMessage?: (messageId: string, content: string) => void;
   private onNewExtraction?: (extraction: NewExtractionEvent) => void;
   private threadId?: string;
   private unsubscribeNewExtraction?: () => void;
@@ -32,6 +36,7 @@ export class ThemeDetailChatManager {
     this.themeId = options.themeId;
     this.themeName = options.themeName;
     this.onNewMessage = options.onNewMessage;
+    this.onReplaceMessage = options.onReplaceMessage;
     this.onNewExtraction = options.onNewExtraction;
     this.userId = options.userId;
 
@@ -85,6 +90,18 @@ export class ThemeDetailChatManager {
   }
 
   private async sendMessageToBackend(userMessage: string): Promise<void> {
+    if (this.onReplaceMessage) {
+      const thinkingMessage = new SystemMessage(
+        "考え中…",
+        new Date(),
+        false,
+        THINKING_MESSAGE_ID,
+        true
+      );
+      this.messages.push(thinkingMessage);
+      this.onNewMessage?.(thinkingMessage);
+    }
+
     try {
       const result = await apiClient.sendMessage(
         this.userId,
@@ -100,10 +117,49 @@ export class ThemeDetailChatManager {
           this.setThreadId(threadId);
         }
 
-        if (response) {
+        if (response && this.onReplaceMessage) {
+          this.onReplaceMessage(THINKING_MESSAGE_ID, response);
+          const lastMsg = this.messages[this.messages.length - 1];
+          if (lastMsg?.id === THINKING_MESSAGE_ID) {
+            lastMsg.content = response;
+            lastMsg.isThinking = false;
+          }
+        } else if (response) {
           const systemResponse = new SystemMessage(response);
           this.messages.push(systemResponse);
           this.onNewMessage?.(systemResponse);
+        }
+      } else {
+        if (this.onReplaceMessage) {
+          this.onReplaceMessage(
+            THINKING_MESSAGE_ID,
+            "メッセージの送信中にエラーが発生しました。"
+          );
+          const lastMsg = this.messages[this.messages.length - 1];
+          if (lastMsg?.id === THINKING_MESSAGE_ID) {
+            lastMsg.content = "メッセージの送信中にエラーが発生しました。";
+            lastMsg.isThinking = false;
+          }
+        } else {
+          const errorMessage = new SystemMessage(
+            "メッセージの送信中にエラーが発生しました。"
+          );
+          this.messages.push(errorMessage);
+          this.onNewMessage?.(errorMessage);
+        }
+        console.error("Error sending message:", result.error);
+      }
+    } catch (error) {
+      console.error("Error in sendMessageToBackend:", error);
+      if (this.onReplaceMessage) {
+        this.onReplaceMessage(
+          THINKING_MESSAGE_ID,
+          "メッセージの送信中にエラーが発生しました。"
+        );
+        const lastMsg = this.messages[this.messages.length - 1];
+        if (lastMsg?.id === THINKING_MESSAGE_ID) {
+          lastMsg.content = "メッセージの送信中にエラーが発生しました。";
+          lastMsg.isThinking = false;
         }
       } else {
         const errorMessage = new SystemMessage(
@@ -111,15 +167,7 @@ export class ThemeDetailChatManager {
         );
         this.messages.push(errorMessage);
         this.onNewMessage?.(errorMessage);
-        console.error("Error sending message:", result.error);
       }
-    } catch (error) {
-      console.error("Error in sendMessageToBackend:", error);
-      const errorMessage = new SystemMessage(
-        "メッセージの送信中にエラーが発生しました。"
-      );
-      this.messages.push(errorMessage);
-      this.onNewMessage?.(errorMessage);
     }
   }
 

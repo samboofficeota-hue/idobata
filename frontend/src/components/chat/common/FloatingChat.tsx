@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { type MessageType } from "../../../types";
 import { FloatingChatButton } from "../mobile/FloatingChatButton";
+import type { AddMessageOptions } from "./ChatProvider";
 import { ChatProvider, useChat } from "./ChatProvider";
 import { ChatSheet } from "./ChatSheet";
 
@@ -16,7 +17,12 @@ interface FloatingChatProps {
 }
 
 export interface FloatingChatRef {
-  addMessage: (content: string, type: MessageType) => void;
+  addMessage: (
+    content: string,
+    type: MessageType,
+    options?: AddMessageOptions
+  ) => void;
+  replaceMessage: (id: string, content: string) => void;
   startStreamingMessage: (content: string, type: MessageType) => string;
   updateStreamingMessage: (id: string, content: string) => void;
   endStreamingMessage: (id: string) => void;
@@ -42,6 +48,7 @@ const FloatingChatInner = forwardRef<FloatingChatRef, FloatingChatProps>(
 
     const {
       addMessage,
+      replaceMessage,
       startStreamingMessage,
       updateStreamingMessage,
       endStreamingMessage,
@@ -75,9 +82,16 @@ const FloatingChatInner = forwardRef<FloatingChatRef, FloatingChatProps>(
     };
 
     useImperativeHandle(ref, () => ({
-      addMessage: (content: string, type: MessageType) => {
-        addMessage(content, type);
+      addMessage: (
+        content: string,
+        type: MessageType,
+        options?: AddMessageOptions
+      ) => {
+        addMessage(content, type, options);
         if (!isOpen) setHasUnread(true);
+      },
+      replaceMessage: (id: string, content: string) => {
+        replaceMessage(id, content);
       },
       startStreamingMessage: (content: string, type: MessageType) => {
         const id = startStreamingMessage(content, type);

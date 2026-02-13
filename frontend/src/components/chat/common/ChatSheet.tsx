@@ -49,7 +49,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     }
   }, [isSending, isOpen, disabled]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputValue.trim() && !isSending) {
       setIsSending(true);
 
@@ -61,21 +61,16 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
         inputRef.current.style.height = "48px";
       }
 
-      if (onSendMessage) {
-        try {
-          onSendMessage(message);
-          setTimeout(() => {
-            setIsSending(false);
-          }, 1000);
-        } catch (error) {
-          console.error("Error sending message:", error);
-          setIsSending(false);
+      try {
+        if (onSendMessage) {
+          await onSendMessage(message);
+        } else {
+          addMessage(message, "user");
         }
-      } else {
-        addMessage(message, "user");
-        setTimeout(() => {
-          setIsSending(false);
-        }, 1000);
+      } catch (error) {
+        console.error("Error sending message:", error);
+      } finally {
+        setIsSending(false);
       }
     }
   };

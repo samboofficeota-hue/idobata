@@ -7,6 +7,7 @@ import {
 } from "react";
 import { apiClient } from "../../services/api/apiClient";
 import { MessageType } from "../../types";
+import type { AddMessageOptions } from "../chat/common/ChatProvider";
 import { FloatingChat, type FloatingChatRef } from "../chat";
 import BreadcrumbView from "../common/BreadcrumbView";
 import OpinionCard from "./OpinionCard";
@@ -55,8 +56,15 @@ const ThemeDetailTemplate = forwardRef<
     );
 
     useImperativeHandle(ref, () => ({
-      addMessage: (content: string, type: MessageType) => {
-        chatRef.current?.addMessage(content, type);
+      addMessage: (
+        content: string,
+        type: MessageType,
+        options?: AddMessageOptions
+      ) => {
+        chatRef.current?.addMessage(content, type, options);
+      },
+      replaceMessage: (id: string, content: string) => {
+        chatRef.current?.replaceMessage(id, content);
       },
       startStreamingMessage: (content: string, type: MessageType) => {
         return chatRef.current?.startStreamingMessage(content, type) || "";

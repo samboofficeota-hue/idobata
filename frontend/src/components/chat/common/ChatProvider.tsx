@@ -3,9 +3,19 @@ import { createContext, useCallback, useContext, useState } from "react";
 import type { Message, MessageType } from "../../../types";
 import { SystemMessage, SystemNotification, UserMessage } from "../../../types";
 
+export interface AddMessageOptions {
+  id?: string;
+  isThinking?: boolean;
+}
+
 interface ChatContextType {
   messages: Message[];
-  addMessage: (content: string, type: MessageType) => void;
+  addMessage: (
+    content: string,
+    type: MessageType,
+    options?: AddMessageOptions
+  ) => void;
+  replaceMessage: (id: string, content: string) => void;
   startStreamingMessage: (content: string, type: MessageType) => string;
   updateStreamingMessage: (id: string, content: string) => void;
   endStreamingMessage: (id: string) => void;
@@ -26,27 +36,91 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     initialSystemNotification,
   ]);
 
-  const addMessage = useCallback((content: string, type: MessageType) => {
-    let newMessage: Message;
+  const addMessage = useCallback(
+    (
+      content: string,
+      type: MessageType,
+      options?: AddMessageOptions
+    ) => {
+      const id = options?.id;
+      const isThinking = options?.isThinking ?? false;
+      let newMessage: Message;
 
-    switch (type) {
-      case "user":
-        newMessage = new UserMessage(content);
-        break;
-      case "system":
-        newMessage = new SystemMessage(content);
-        break;
-      case "system-message":
-        newMessage = new SystemNotification(content);
-        break;
-      default:
-        newMessage = new SystemMessage(content);
-    }
+      switch (type) {
+        case "user":
+          newMessage = new UserMessage(content, new Date(), false, id, isThinking);
+          break;
+        case "system":
+          newMessage = new SystemMessage(
+            content,
+            new Date(),
+            false,
+            id,
+            isThinking
+          );
+          break;
+        case "system-message":
+          newMessage = new SystemNotification(
+            content,
+            new Date(),
+            false,
+            id,
+            isThinking
+          );
+          break;
+        default:
+          newMessage = new SystemMessage(
+            content,
+            new Date(),
+            false,
+            id,
+            isThinking
+          );
+      }
 
+      setMessages((prev) =>
+        [...prev, newMessage].sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+        )
+      );
+    },
+    []
+  );
+
+  const replaceMessage = useCallback((id: string, content: string) => {
     setMessages((prev) =>
-      [...prev, newMessage].sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
-      )
+      prev.map((msg) => {
+        if (msg.id !== id) return msg;
+        const updated = { ...msg, content, isThinking: false };
+        if (msg instanceof SystemMessage) {
+          return new SystemMessage(
+            content,
+            msg.createdAt,
+            msg.isStreaming,
+            msg.id,
+            false
+          );
+        }
+        if (msg instanceof UserMessage) {
+          return new UserMessage(
+            content,
+            msg.createdAt,
+            msg.isStreaming,
+            msg.id,
+            false
+          );
+        }
+        if (msg instanceof SystemNotification) {
+          return new SystemNotification(
+            content,
+            msg.createdAt,
+            msg.isStreaming,
+            msg.id,
+            false
+          );
+        }
+        return updated;
+      })
     );
   }, []);
 
@@ -98,6 +172,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   const value = {
     messages,
     addMessage,
+    replaceMessage,
     startStreamingMessage,
     updateStreamingMessage,
     endStreamingMessage,

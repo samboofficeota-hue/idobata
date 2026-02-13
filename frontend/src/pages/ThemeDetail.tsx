@@ -44,6 +44,9 @@ const ThemeDetail = () => {
         themeName,
         userId: user.id,
         onNewMessage: handleNewMessage,
+        onReplaceMessage: (id, content) => {
+          floatingChatRef.current?.replaceMessage(id, content);
+        },
         onNewExtraction: handleNewExtraction,
       });
 
@@ -64,7 +67,11 @@ const ThemeDetail = () => {
             ? "system"
             : "user";
 
-      floatingChatRef.current.addMessage(message.content, messageType);
+      const options =
+        message.id != null || message.isThinking
+          ? { id: message.id, isThinking: message.isThinking }
+          : undefined;
+      floatingChatRef.current.addMessage(message.content, messageType, options);
     }
   };
 

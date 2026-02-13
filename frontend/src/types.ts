@@ -12,6 +12,8 @@ export interface Message {
   createdAt: Date;
   isStreaming?: boolean;
   id?: string;
+  /** AI応答待ちの「考え中」表示用。true のときローディング表示する */
+  isThinking?: boolean;
 }
 
 export class UserMessage implements Message {
@@ -19,16 +21,19 @@ export class UserMessage implements Message {
   createdAt: Date;
   isStreaming?: boolean;
   id?: string;
+  isThinking?: boolean;
   constructor(
     content: string,
     createdAt: Date = new Date(),
     isStreaming = false,
-    id?: string
+    id?: string,
+    isThinking = false
   ) {
     this.content = content;
     this.createdAt = createdAt;
     this.isStreaming = isStreaming;
     this.id = id;
+    this.isThinking = isThinking;
   }
 }
 
@@ -37,16 +42,19 @@ export class SystemMessage implements Message {
   createdAt: Date;
   isStreaming?: boolean;
   id?: string;
+  isThinking?: boolean;
   constructor(
     content: string,
     createdAt: Date = new Date(),
     isStreaming = false,
-    id?: string
+    id?: string,
+    isThinking = false
   ) {
     this.content = content;
     this.createdAt = createdAt;
     this.isStreaming = isStreaming;
     this.id = id;
+    this.isThinking = isThinking;
   }
 }
 
@@ -55,18 +63,24 @@ export class SystemNotification implements Message {
   createdAt: Date;
   isStreaming?: boolean;
   id?: string;
+  isThinking?: boolean;
   constructor(
     content: string,
     createdAt: Date = new Date(),
     isStreaming = false,
-    id?: string
+    id?: string,
+    isThinking = false
   ) {
     this.content = content;
     this.createdAt = createdAt;
     this.isStreaming = isStreaming;
     this.id = id;
+    this.isThinking = isThinking;
   }
 }
+
+/** 「考え中」メッセージの固定ID。応答到着時にこのIDのメッセージを置き換える */
+export const THINKING_MESSAGE_ID = "thinking";
 
 // 通知関連の型定義
 export interface NotificationType {
