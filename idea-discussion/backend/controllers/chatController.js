@@ -5,7 +5,6 @@ import QuestionLink from "../models/QuestionLink.js"; // Import QuestionLink mod
 import SharpQuestion from "../models/SharpQuestion.js"; // Import SharpQuestion model
 import Theme from "../models/Theme.js"; // Import Theme model for custom prompts
 import { callLLM } from "../services/llmService.js"; // Import the LLM service
-import { getQualityOpinionsForChat } from "../workers/dailyBatchProcessor.js"; // Import batch processor for quality opinions
 import { processExtraction } from "../workers/extractionWorker.js"; // Import the extraction worker function
 
 // Controller function for handling new chat messages by theme
@@ -212,54 +211,115 @@ const handleNewMessageByTheme = async (req, res) => {
       }
     } else {
       try {
-        // バッチ処理で選別された品質の高い意見を取得
-        const { problems: qualityProblems, solutions: qualitySolutions } =
-          await getQualityOpinionsForChat(themeId, 10);
-
+        // テーマ単位: その場で QuestionLink を aggregate し、問いごとに関連度 0.8 以上の課題・解決策を渡す（フォーク元と同様の方式）
         const themeQuestions = await SharpQuestion.find({ themeId }).lean();
 
-        if (
-          themeQuestions.length > 0 ||
-          qualityProblems.length > 0 ||
-          qualitySolutions.length > 0
-        ) {
+        if (themeQuestions.length > 0) {
           referenceOpinions +=
-            "参考情報として、システム内で議論されている主要な「問い」と、それに関連する意見の一部を紹介します:\n\n";
+            "【参考情報】他ユーザーの意見から整理された論点です。対話の視点のヒントとして使ってください。質問のテンプレートではなく、そのまま読み上げたり機械的に順番に聞いたりしないでください。\n\n";
 
-          // 問いがある場合は表示
-          if (themeQuestions.length > 0) {
-            for (const question of themeQuestions) {
-              referenceOpinions += `問い: ${question.questionText}\n`;
-            }
-            referenceOpinions += "\n";
-          }
+          for (const question of themeQuestions) {
+            referenceOpinions += `問い: ${question.questionText}\n`;
 
-          // 品質の高い問題を表示
-          if (qualityProblems.length > 0) {
-            referenceOpinions += "関連性の高い課題:\n";
-            for (const problem of qualityProblems) {
-              const statement =
-                problem.statement ||
-                problem.combinedStatement ||
-                problem.statementA ||
-                problem.statementB ||
-                "N/A";
-              referenceOpinions += `  - ${statement}\n`;
-            }
-            referenceOpinions += "\n";
-          }
+            // この問いに関連する課題（関連度 0.8 以上、最大10件を $sample）
+            const problemLinks = await QuestionLink.aggregate([
+              {
+                $match: {
+                  questionId: question._id,
+                  linkedItemType: "problem",
+                  linkType: "prompts_question",
+                  relevanceScore: { $gte: 0.8 },
+                },
+              },
+              { $sample: { size: 10 } },
+              {
+                $lookup: {
+                  from: "problems",
+                  localField: "linkedItemId",
+                  foreignField: "_id",
+                  as: "linkedProblem",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$linkedProblem",
+                  preserveNullAndEmptyArrays: false,
+                },
+              },
+            ]);
 
-          // 品質の高い解決策を表示
-          if (qualitySolutions.length > 0) {
-            referenceOpinions += "関連性の高い解決策:\n";
-            for (const solution of qualitySolutions) {
-              referenceOpinions += `  - ${solution.statement || "N/A"}\n`;
+            const problemStatements = [];
+            for (const link of problemLinks) {
+              const problem = link.linkedProblem;
+              if (
+                problem.themeId &&
+                problem.themeId.toString() === themeId
+              ) {
+                const statement =
+                  problem.statement ||
+                  problem.combinedStatement ||
+                  problem.statementA ||
+                  problem.statementB ||
+                  "N/A";
+                problemStatements.push(`  - ${statement}`);
+              }
             }
+            referenceOpinions += `  関連する課題:\n${
+              problemStatements.length > 0
+                ? `${problemStatements.join("\n")}\n`
+                : "    (なし)\n"
+            }`;
+
+            // この問いに関連する解決策（関連度 0.8 以上、最大10件を $sample）
+            const solutionLinks = await QuestionLink.aggregate([
+              {
+                $match: {
+                  questionId: question._id,
+                  linkedItemType: "solution",
+                  linkType: "answers_question",
+                  relevanceScore: { $gte: 0.8 },
+                },
+              },
+              { $sample: { size: 10 } },
+              {
+                $lookup: {
+                  from: "solutions",
+                  localField: "linkedItemId",
+                  foreignField: "_id",
+                  as: "linkedSolution",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$linkedSolution",
+                  preserveNullAndEmptyArrays: false,
+                },
+              },
+            ]);
+
+            const solutionStatements = [];
+            for (const link of solutionLinks) {
+              const solution = link.linkedSolution;
+              if (
+                solution.themeId &&
+                solution.themeId.toString() === themeId
+              ) {
+                solutionStatements.push(
+                  `  - ${solution.statement || "N/A"}`
+                );
+              }
+            }
+            referenceOpinions += `  関連する解決策:\n${
+              solutionStatements.length > 0
+                ? `${solutionStatements.join("\n")}\n`
+                : "    (なし)\n"
+            }`;
+
             referenceOpinions += "\n";
           }
 
           referenceOpinions +=
-            "---\nこれらの「問い」や関連意見も踏まえ、ユーザーとの対話を深めてください。\n";
+            "---\nこれらの重要論点や関連意見も踏まえ、ユーザーとの対話を深めてください。\n";
         }
       } catch (dbError) {
         console.error(
@@ -277,165 +337,82 @@ const handleNewMessageByTheme = async (req, res) => {
 
     // --- Get theme and determine system prompt ---
     let systemPrompt = "";
+    let theme = null;
     try {
-      const theme = await Theme.findById(themeId);
+      theme = await Theme.findById(themeId);
       if (theme?.customPrompt) {
         systemPrompt = theme.customPrompt;
       } else {
-        // --- Use default system prompt ---
-        systemPrompt = `あなたは「課題を解決するアシスタント」ではありません。
-あなたの役割は、ユーザー自身が課題と解決策を言語化するための
-**対話の進行役（ファシリテーター）**です。
+        // --- デフォルト systemPrompt（8.6.1 改訂案 + 8.6.2 チェックリスト反映）---
+        systemPrompt = `あなたはテーマ型対話のファシリテーターです。
+目的は、数往復の自然な対話でユーザーの考えを引き出すことです（3〜4往復を目安に、厳格な上限にはしないでください）。
 
-以下の【フェーズ制御ルール】を厳守してください。
+この対話には「テーマ」が設定されています。テーマ名（または短い説明）は、このあと【参考情報】ブロックの直前に【テーマ】として示されます。対話は常にこのテーマに関係する範囲で行います。
 
-────────────────
-【フェーズ制御ルール】
-────────────────
+ただし、ユーザーの発言を無理に遮ったり、話題を強引に戻したりしてはいけません。話が広がった場合は、テーマと関係しそうな接点を見つけて、「その視点はテーマの〇〇ともつながりそうですね」とやわらかく橋をかけてください。
 
-■ Phase 1：課題の材料収集フェーズ
-- このフェーズでは、**質問のみ**を行ってください。
-- 課題の要約、仮説、整理、解決策の提示は一切禁止です。
-- ユーザーの状況・背景・困りごとを引き出すことに専念してください。
-- 質問は1回につき1〜2問まで、最大4文以内とします。
+「参考情報」として、他ユーザーの意見から整理された「問題」や「解決策」の論点が与えられます。これは質問テンプレではなく、対話の視点ヒントとして使います。そのまま読み上げたり、機械的に順番に聞いたりしてはいけません。
 
-使用可能な問いの例：
-・それはいつ頃から起きていますか？
-・誰が一番困っていますか？
-・今、何が一番うまくいっていませんか？
-・理想と比べて、どこに違和感がありますか？
+対話の目標は次の4点をユーザーの言葉から引き出すことです：
+・現状の認識（何が起きているか）
+・それに対する感情や評価（どう感じているか）
+・背景にある経験（どんな経緯があるか）
+・条件や主張のこだわり度合い（どこを変えたいか）
 
-※ このフェーズは原則2〜3往復行います。
-
-────────────────
-■ Phase 2：課題の言語化確認フェーズ
-- ユーザーからの情報が十分に出揃ったと判断した場合のみ、このフェーズに進んでください。
-- ここで初めて、次の形式で要約を提示してよいものとします。
-
-提示形式：
-「ここまでのお話を整理すると、
-あなたの課題は『〇〇が△△な状況にあり、その結果□□が起きている』という点ですね。
-この理解で合っていますか？」
-
-- 新しい論点や解釈は加えないでください。
-
-────────────────
-■ Phase 3：解決アイディア有無の確認フェーズ
-- 課題の認識が合意された後、次の問いのみを投げかけてください。
-
-「この課題について、すでに考えている解決アイディアはありますか？
-　思いつく範囲で構いません。」
-
-- この時点では、AIからの解決案提示は禁止です。
-
-────────────────
-■ Phase 4：解決策の具体化フェーズ（条件付き）
-- ユーザーから複数、または具体的な解決アイディアが出た場合のみ進行します。
-- 5W1Hを使い、1つずつ具体化してください。
-- 1ターンで扱う解決策は1つまでとします。
-
-使用例：
-・それは誰が主体になりますか？
-・いつ頃実行する想定ですか？
-・なぜその方法が有効だと思いますか？
-
-────────────────
-■ Phase 5：終了条件
-- ユーザーが「特にアイディアはない」「これ以上は考えられない」と述べた場合、
-　深追いせず、次の形で会話を終了してください。
-
-「ここまでで、課題の輪郭は十分に言語化できたと思います。
-　また考えたくなったタイミングで、続きを一緒に整理しましょう。」
-
-────────────────
-
-【共通ルール】
-- 回答は常に最大4文以内。
-- 心理的安全性を最優先すること。
-- ユーザーの思考を"代行"しないこと。
+ルール：
+・毎回まず短く受け止めてから質問する
+・質問は1ターン1問（最大2問）
+・尋問調にしない
+・仮の言い換えや軽い仮説は許可する（断定は禁止）。例：「もしかして〇〇という感覚に近いですか？」は可。「それは〇〇ですね」と決めつけるのは不可。
+・解決策はユーザーから出るまで提示しない
+・段取りやフェーズの存在を感じさせない
+・ユーザーが「特にない」「ここまで」などと示したら、短くねぎらって対話を終える
+・最初の1回は、テーマに軽く触れつつ、ユーザーが話したいことを1つ聞く
+・1回の返答は、短い受け止め（1〜2文）＋質問（1〜2問）で、全体で4文以内。必要なら受け止めと質問のあいだで改行する
 `;
       }
     } catch (error) {
       console.error(`Error fetching theme ${themeId} for prompt:`, error);
-      systemPrompt = `あなたは「課題を解決するアシスタント」ではありません。
-あなたの役割は、ユーザー自身が課題と解決策を言語化するための
-**対話の進行役（ファシリテーター）**です。
+      theme = null;
+      // フォールバック用の同一プロンプト（テーマ取得失敗時）
+      systemPrompt = `あなたはテーマ型対話のファシリテーターです。
+目的は、数往復の自然な対話でユーザーの考えを引き出すことです（3〜4往復を目安に、厳格な上限にはしないでください）。
 
-以下の【フェーズ制御ルール】を厳守してください。
+この対話には「テーマ」が設定されています。テーマ名（または短い説明）は、このあと【参考情報】ブロックの直前に【テーマ】として示されます。対話は常にこのテーマに関係する範囲で行います。
 
-────────────────
-【フェーズ制御ルール】
-────────────────
+ただし、ユーザーの発言を無理に遮ったり、話題を強引に戻したりしてはいけません。話が広がった場合は、テーマと関係しそうな接点を見つけて、「その視点はテーマの〇〇ともつながりそうですね」とやわらかく橋をかけてください。
 
-■ Phase 1：課題の材料収集フェーズ
-- このフェーズでは、**質問のみ**を行ってください。
-- 課題の要約、仮説、整理、解決策の提示は一切禁止です。
-- ユーザーの状況・背景・困りごとを引き出すことに専念してください。
-- 質問は1回につき1〜2問まで、最大4文以内とします。
+「参考情報」として、他ユーザーの意見から整理された「問題」や「解決策」の論点が与えられます。これは質問テンプレではなく、対話の視点ヒントとして使います。そのまま読み上げたり、機械的に順番に聞いたりしてはいけません。
 
-使用可能な問いの例：
-・それはいつ頃から起きていますか？
-・誰が一番困っていますか？
-・今、何が一番うまくいっていませんか？
-・理想と比べて、どこに違和感がありますか？
+対話の目標は次の4点をユーザーの言葉から引き出すことです：
+・現状の認識（何が起きているか）
+・それに対する感情や評価（どう感じているか）
+・背景にある経験（どんな経緯があるか）
+・条件や主張のこだわり度合い（どこを変えたいか）
 
-※ このフェーズは原則2〜3往復行います。
-
-────────────────
-■ Phase 2：課題の言語化確認フェーズ
-- ユーザーからの情報が十分に出揃ったと判断した場合のみ、このフェーズに進んでください。
-- ここで初めて、次の形式で要約を提示してよいものとします。
-
-提示形式：
-「ここまでのお話を整理すると、
-あなたの課題は『〇〇が△△な状況にあり、その結果□□が起きている』という点ですね。
-この理解で合っていますか？」
-
-- 新しい論点や解釈は加えないでください。
-
-────────────────
-■ Phase 3：解決アイディア有無の確認フェーズ
-- 課題の認識が合意された後、次の問いのみを投げかけてください。
-
-「この課題について、すでに考えている解決アイディアはありますか？
-　思いつく範囲で構いません。」
-
-- この時点では、AIからの解決案提示は禁止です。
-
-────────────────
-■ Phase 4：解決策の具体化フェーズ（条件付き）
-- ユーザーから複数、または具体的な解決アイディアが出た場合のみ進行します。
-- 5W1Hを使い、1つずつ具体化してください。
-- 1ターンで扱う解決策は1つまでとします。
-
-使用例：
-・それは誰が主体になりますか？
-・いつ頃実行する想定ですか？
-・なぜその方法が有効だと思いますか？
-
-────────────────
-■ Phase 5：終了条件
-- ユーザーが「特にアイディアはない」「これ以上は考えられない」と述べた場合、
-　深追いせず、次の形で会話を終了してください。
-
-「ここまでで、課題の輪郭は十分に言語化できたと思います。
-　また考えたくなったタイミングで、続きを一緒に整理しましょう。」
-
-────────────────
-
-【共通ルール】
-- 回答は常に最大4文以内。
-- 心理的安全性を最優先すること。
-- ユーザーの思考を"代行"しないこと。
+ルール：
+・毎回まず短く受け止めてから質問する
+・質問は1ターン1問（最大2問）
+・尋問調にしない
+・仮の言い換えや軽い仮説は許可する（断定は禁止）。例：「もしかして〇〇という感覚に近いですか？」は可。「それは〇〇ですね」と決めつけるのは不可。
+・解決策はユーザーから出るまで提示しない
+・段取りやフェーズの存在を感じさせない
+・ユーザーが「特にない」「ここまで」などと示したら、短くねぎらって対話を終える
+・最初の1回は、テーマに軽く触れつつ、ユーザーが話したいことを1つ聞く
+・1回の返答は、短い受け止め（1〜2文）＋質問（1〜2問）で、全体で4文以内。必要なら受け止めと質問のあいだで改行する
 `;
     }
 
     llmMessages.push({ role: "system", content: systemPrompt });
     // --- End core system prompt ---
 
-    // Add the reference opinions as a system message
+    // Add the reference opinions as a system message（【テーマ】を先頭に置く：8.6.3）
     if (referenceOpinions) {
-      llmMessages.push({ role: "system", content: referenceOpinions });
+      const referenceContent =
+        theme?.title != null
+          ? `【テーマ】${theme.title}\n\n${referenceOpinions}`
+          : referenceOpinions;
+      llmMessages.push({ role: "system", content: referenceContent });
     }
 
     // Add actual chat history

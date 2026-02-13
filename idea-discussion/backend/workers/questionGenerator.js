@@ -3,6 +3,12 @@ import SharpQuestion from "../models/SharpQuestion.js";
 import { callLLM } from "../services/llmService.js";
 import { linkQuestionToAllItems } from "./linkingWorker.js"; // Import the linking function
 
+/** 重複判定用: 空白の正規化（trim + 連続空白を1つに）。表記ゆれで別問いとみなさないため */
+function normalizeQuestionText(text) {
+  if (typeof text !== "string") return "";
+  return text.trim().replace(/\s+/g, " ");
+}
+
 async function generateSharpQuestions(themeId) {
   console.log(
     `[QuestionGenerator] Starting sharp question generation for theme ${themeId}...`
@@ -74,7 +80,23 @@ Generate 6 question objects in total within the "questions" array.
       `[QuestionGenerator] LLM generated ${generatedQuestionObjects.length} question objects.`
     );
 
-    // 4. Save questions to DB (avoid duplicates)
+    // 4. 既存問い数・正規化済み文言を取得（1テーマ最大10件・重複判定用）
+    const existingQuestions = await SharpQuestion.find({ themeId })
+      .select("questionText")
+      .lean();
+    const existingCount = existingQuestions.length;
+    const normalizedExisting = new Set(
+      existingQuestions.map((q) => normalizeQuestionText(q.questionText))
+    );
+
+    if (existingCount >= 10) {
+      console.log(
+        `[QuestionGenerator] Theme ${themeId} already has ${existingCount} questions (max 10). Skipping insert.`
+      );
+      return;
+    }
+
+    // 5. Save questions to DB (重複なし・最大10件まで)
     let savedCount = 0;
     for (const questionObj of generatedQuestionObjects) {
       const questionText = questionObj.question;
@@ -88,58 +110,59 @@ Generate 6 question objects in total within the "questions" array.
         );
         continue;
       }
-      try {
-        // Use findOneAndUpdate with upsert to avoid duplicates based on questionText and themeId
-        const result = await SharpQuestion.findOneAndUpdate(
-          { questionText: questionText.trim(), themeId }, // Include themeId in query
-          {
-            $setOnInsert: {
-              questionText: questionText.trim(),
-              tagLine: tagLine,
-              tags: tags,
-              themeId,
-              createdAt: new Date(),
-            },
-          }, // Add themeId and createdAt on insert
-          {
-            upsert: true,
-            new: true,
-            setDefaultsOnInsert: true,
-            runValidators: true,
-          } // Create if not exists, return the new doc
-        );
 
-        // Check if it was an upsert (a new document was created)
-        // The result object will contain the _id. If upserted:true is in the result, it's new.
-        // A simpler check might be to compare createdAt with a time just before the loop,
-        // but checking the result object structure or comparing timestamps is more robust.
-        // For simplicity, let's assume if we get a result, we trigger linking.
-        // A more precise check would involve comparing timestamps or checking the upserted flag if available in the result.
-        if (result?._id) {
-          // Trigger linking asynchronously for the new or existing question
-          // Linking all items to this question might be resource-intensive.
-          // Consider triggering only if it's a truly *new* question.
-          // For now, trigger it regardless, as per the simplified approach.
-          console.log(
-            `[QuestionGenerator] Triggering linking for question ID: ${result._id}`
-          );
-          setTimeout(() => linkQuestionToAllItems(result._id.toString()), 0);
-          savedCount++; // Count successfully processed questions
-        } else {
-          console.warn(
-            `[QuestionGenerator] Failed to save or find question: ${questionText}`
-          );
+      const trimmed = questionText.trim();
+      const normalized = normalizeQuestionText(trimmed);
+
+      // 正規化した文言が既存（または今回のバッチで追加済み）と重複する場合は挿入しない
+      if (normalizedExisting.has(normalized)) {
+        console.log(
+          `[QuestionGenerator] Skipping duplicate (normalized): "${normalized.slice(0, 40)}..."`
+        );
+        continue;
+      }
+
+      // 1テーマあたり最大10件：既に10件に達している場合は挿入しない
+      if (existingCount + savedCount >= 10) {
+        console.log(
+          `[QuestionGenerator] Theme ${themeId} reached 10 questions. Skipping remaining.`
+        );
+        continue;
+      }
+
+      try {
+        // 完全一致の既存問いがあれば挿入しない
+        const found = await SharpQuestion.findOne({
+          questionText: trimmed,
+          themeId,
+        });
+        if (found) {
+          continue;
         }
+
+        const created = await SharpQuestion.create({
+          questionText: trimmed,
+          tagLine,
+          tags,
+          themeId,
+        });
+
+        normalizedExisting.add(normalized);
+        savedCount++;
+        console.log(
+          `[QuestionGenerator] Triggering linking for question ID: ${created._id}`
+        );
+        setTimeout(() => linkQuestionToAllItems(created._id.toString()), 0);
       } catch (dbError) {
         console.error(
-          `[QuestionGenerator] Error saving question "${questionText}":`,
+          `[QuestionGenerator] Error saving question "${trimmed}":`,
           dbError
         );
       }
     }
 
     console.log(
-      `[QuestionGenerator] Successfully processed ${savedCount} questions (new or existing).`
+      `[QuestionGenerator] Successfully inserted ${savedCount} new questions for theme ${themeId} (total cap 10).`
     );
     // Linking is now triggered after each question is saved/upserted above.
   } catch (error) {
