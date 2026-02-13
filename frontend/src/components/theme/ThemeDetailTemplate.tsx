@@ -10,7 +10,6 @@ import { MessageType } from "../../types";
 import type { AddMessageOptions } from "../chat/common/ChatProvider";
 import { FloatingChat, type FloatingChatRef } from "../chat";
 import BreadcrumbView from "../common/BreadcrumbView";
-import OpinionCard from "./OpinionCard";
 import KeyQuestionCard from "./KeyQuestionCard";
 import ThemeCard from "./ThemeCard";
 
@@ -29,14 +28,6 @@ interface ThemeDetailTemplateProps {
     issueCount: number;
     solutionCount: number;
   }[];
-  issues: {
-    id: number | string;
-    text: string;
-  }[];
-  solutions: {
-    id: number | string;
-    text: string;
-  }[];
   disabled?: boolean;
   onSendMessage?: (message: string) => void;
 }
@@ -45,10 +36,7 @@ const ThemeDetailTemplate = forwardRef<
   FloatingChatRef,
   ThemeDetailTemplateProps
 >(
-  (
-    { theme, keyQuestions, issues, solutions, disabled = false, onSendMessage },
-    ref
-  ) => {
+  ({ theme, keyQuestions, disabled = false, onSendMessage }, ref) => {
     const chatRef = useRef<FloatingChatRef>(null);
     const [threadId, setThreadId] = useState<string | null>(null);
     const [userId, setUserId] = useState<string>(
@@ -175,42 +163,6 @@ const ThemeDetailTemplate = forwardRef<
                 qid={question.id.toString()}
               />
             ))}
-          </div>
-        </div>
-
-        <div className="mb-12">
-          {/* 課題ブロック */}
-          <div className="mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide mb-2">
-              課題は何か？
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {issues.map((issue) => (
-                <OpinionCard
-                  key={issue.id}
-                  id={issue.id.toString()}
-                  text={issue.text}
-                  type="issue"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* 解決策ブロック */}
-          <div className="mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide mb-2">
-              解決アイディア！
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {solutions.map((solution) => (
-                <OpinionCard
-                  key={solution.id}
-                  id={solution.id.toString()}
-                  text={solution.text}
-                  type="solution"
-                />
-              ))}
-            </div>
           </div>
         </div>
 

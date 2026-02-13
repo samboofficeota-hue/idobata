@@ -6,8 +6,8 @@ import type { Opinion, Question, Theme } from "../types";
 const Top = () => {
   const [topPageData, setTopPageData] = useState<{
     latestThemes: Theme[];
-    latestQuestions: Question[];
-    latestOpinions: Opinion[];
+    latestQuestions?: Question[];
+    latestOpinions?: Opinion[];
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +53,9 @@ const Top = () => {
   }
 
   if (topPageData) {
-    const templateProps = {
-      latestThemes: topPageData.latestThemes || [],
-      latestQuestions: topPageData.latestQuestions || [],
-      latestOpinions: topPageData.latestOpinions || [],
-    };
-
-    return <TopPageTemplate {...templateProps} />;
+    return (
+      <TopPageTemplate latestThemes={topPageData.latestThemes || []} />
+    );
   }
 
   return (

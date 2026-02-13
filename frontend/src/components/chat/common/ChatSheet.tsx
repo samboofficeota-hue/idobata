@@ -156,8 +156,9 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           "あなたの意見を送信しました。ありがとうございます！",
           "system-message"
         );
-        // チャットを閉じる
+        // 送信完了後に履歴をクリアしてから閉じる
         setTimeout(() => {
+          clearMessages();
           onClose();
         }, 1500);
       } else {

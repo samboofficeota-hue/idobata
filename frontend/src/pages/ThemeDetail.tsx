@@ -119,24 +119,15 @@ const ThemeDetail = () => {
           tagLine: q.tagLine ?? "",
           tags: q.tags ?? [],
           voteCount: q.voteCount ?? 0,
-          issueCount: q.issueCount ?? 0, // issueCountを使用
+          issueCount: q.issueCount ?? 0,
           solutionCount: q.solutionCount ?? 0,
-        })) ?? [],
-      issues:
-        themeDetail.issues?.map((issue) => ({
-          id: issue._id ?? "",
-          text: issue.statement ?? "",
-        })) ?? [],
-      solutions:
-        themeDetail.solutions?.map((solution) => ({
-          id: solution._id ?? "",
-          text: solution.statement ?? "",
         })) ?? [],
     };
 
     return (
       <>
-        <div className="md:mr-[50%]">
+        {/* PC: 右側のAIチャット幅(480px)を除いた左側にコンテンツを表示 */}
+        <div className="md:mr-[480px]">
           <ThemeDetailTemplate
             {...templateProps}
             onSendMessage={handleSendMessage}
