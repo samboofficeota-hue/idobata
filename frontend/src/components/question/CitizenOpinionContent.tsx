@@ -10,6 +10,16 @@ interface CitizenOpinionContentProps {
   digestDraft: DigestDraft | null | undefined;
 }
 
+/** Markdown を ## 見出しで分割し、各ブロックの body を返す（見出し行も含む） */
+function splitByH2(markdown: string): string[] {
+  const trimmed = markdown.trim();
+  if (!trimmed) return [];
+
+  // 行頭の ## 見出しの位置で分割（見出し行は各ブロックの先頭に含める）
+  const parts = trimmed.split(/\n(?=##\s+)/);
+  return parts.map((p) => p.trim()).filter(Boolean);
+}
+
 const CitizenOpinionContent = ({
   digestDraft,
 }: CitizenOpinionContentProps) => {
@@ -40,37 +50,35 @@ const CitizenOpinionContent = ({
   }
 
   // Markdownコンテンツを加工
-  // 1. タイトル「市民の意見レポート」を削除
-  // 2. 「問い」セクションを削除
-  // 3. 「概要」を「まとめ」に変更
-  // 4. 「主要な課題」はそのまま表示
   let processedContent = digestDraft.content;
 
-  // 「市民の意見レポート」というタイトル（h1またはh2）を削除
   processedContent = processedContent.replace(
     /^#+\s*市民の意見レポート\s*\n*/gm,
     ""
   );
-
-  // 「問い」セクションを削除（「問い」から次の見出しまで、または文末まで）
-  // より柔軟なパターンで削除
   processedContent = processedContent.replace(
     /^##?\s*問い\s*\n[\s\S]*?(?=\n##?\s|\n\n##?\s|$)/gm,
     ""
   );
-
-  // 「概要」を「まとめ」に変更（h2またはh3の見出し）
   processedContent = processedContent.replace(
     /^(##?\s*)概要(\s*)$/gm,
     "$1まとめ$2"
   );
 
+  const blocks = splitByH2(processedContent);
+
   return (
     <div className="space-y-6">
-      {/* 本文（タイトルは表示しない） */}
-      <div className="text-gray-800 leading-relaxed text-base">
-        <MarkdownRenderer markdown={processedContent} />
-      </div>
+      {blocks.map((body) => (
+        <div
+          key={body.slice(0, 60)}
+          className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-sm"
+        >
+          <div className="text-gray-800 leading-relaxed text-base">
+            <MarkdownRenderer markdown={body} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
