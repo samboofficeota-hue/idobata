@@ -6,6 +6,19 @@ import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import { callLLM } from "../services/llmService.js";
 
+/** 問いの contextSets から代表1件を取得（PolicyDraft と同ロジック） */
+function getRepresentativeContextSet(question) {
+  const sets = question?.contextSets;
+  if (!Array.isArray(sets) || sets.length === 0) return null;
+  for (const s of sets) {
+    const t = (s?.target ?? "").trim();
+    const p = (s?.purpose ?? "").trim();
+    const e = (s?.expectedEffect ?? "").trim();
+    if (t || p || e) return { target: t, purpose: p, expectedEffect: e };
+  }
+  return null;
+}
+
 async function generateDigestDraft(questionId) {
   console.log(
     `[DigestGenerator] Starting digest draft generation for questionId: ${questionId}`
@@ -152,10 +165,26 @@ async function generateDigestDraft(questionId) {
 
 応答は、"title"（文字列、ダイジェスト全体に適したタイトル）と "content"（文字列、Markdownで適切にフォーマットされた内容）のキーを含むJSONオブジェクトのみで行ってください。JSON構造外に他のテキストや説明を含めないでください。`;
 
+    const repCtx =
+      latestPolicyDraft?.representativeContextSet ||
+      getRepresentativeContextSet(question);
+    const hasRepCtx =
+      repCtx &&
+      (repCtx.target || repCtx.purpose || repCtx.expectedEffect);
+    const policyContextBlock = hasRepCtx
+      ? `
+Policy context (who and why — use when summarizing):
+- 対象 (target): ${repCtx.target || "—"}
+- 目的 (purpose): ${repCtx.purpose || "—"}
+- 期待効果 (expected effect): ${repCtx.expectedEffect || "—"}
+`
+      : "";
+
     const userContent = hasPolicyDraft
       ? `Generate a digest for the following:
 
 Question: ${question.questionText}
+${policyContextBlock}
 
 Related Problems (sorted by relevance - higher items are more relevant to the question):
 ${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n") : "- None provided"}
@@ -167,10 +196,11 @@ Policy Report:
 Title: ${latestPolicyDraft.title}
 Content: ${latestPolicyDraft.content}
 
-Please provide the output as a JSON object with "title" and "content" keys. The digest should be much more accessible to general readers than the policy report.`
+Please provide the output as a JSON object with "title" and "content" keys. The digest should be much more accessible to general readers than the policy report.${hasRepCtx ? " Emphasize who this is for and what change is expected where relevant." : ""}`
       : `Generate a digest for the following:
 
 Question: ${question.questionText}
+${policyContextBlock}
 
 Related Problems (sorted by relevance - higher items are more relevant to the question):
 ${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n") : "- None provided"}
@@ -178,7 +208,7 @@ ${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n
 Related Solutions (sorted by relevance - higher items are more relevant to the question):
 ${solutionStatements.length > 0 ? solutionStatements.map((s) => `- ${s}`).join("\n") : "- None provided"}
 
-Please provide the output as a JSON object with "title" and "content" keys. The digest should summarize the collected opinions, problems, and solutions in an accessible way for general readers.`;
+Please provide the output as a JSON object with "title" and "content" keys. The digest should summarize the collected opinions, problems, and solutions in an accessible way for general readers.${hasRepCtx ? " Align the summary with the target, purpose, and expected effect above where relevant." : ""}`;
 
     const messages = [
       {
@@ -213,6 +243,19 @@ Please provide the output as a JSON object with "title" and "content" keys. The 
       `[DigestGenerator] LLM generated digest titled: "${llmResponse.title}"`
     );
 
+    const digestRepCtx =
+      (hasPolicyDraft && latestPolicyDraft?.representativeContextSet) ||
+      getRepresentativeContextSet(question);
+    const representativeContextSet =
+      digestRepCtx &&
+      (digestRepCtx.target || digestRepCtx.purpose || digestRepCtx.expectedEffect)
+        ? {
+            target: digestRepCtx.target || "",
+            purpose: digestRepCtx.purpose || "",
+            expectedEffect: digestRepCtx.expectedEffect || "",
+          }
+        : undefined;
+
     const newDraft = new DigestDraft({
       questionId: questionId,
       policyDraftId: hasPolicyDraft ? latestPolicyDraft._id : null,
@@ -220,6 +263,7 @@ Please provide the output as a JSON object with "title" and "content" keys. The 
       content: llmResponse.content,
       sourceProblemIds: problemIds,
       sourceSolutionIds: solutionIds,
+      representativeContextSet,
       version: 1,
     });
 

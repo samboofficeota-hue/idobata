@@ -3,11 +3,14 @@ import ChatThread from "../models/ChatThread.js";
 import DebateAnalysis from "../models/DebateAnalysis.js";
 import DigestDraft from "../models/DigestDraft.js";
 import Like from "../models/Like.js";
+import PolicyDraft from "../models/PolicyDraft.js";
 import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
+import QuestionVisualReport from "../models/QuestionVisualReport.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
+import ReportExample from "../models/ReportExample.js";
 import { getDebateAnalysis as getDebateAnalysisFromService } from "../services/debateAnalysisGenerator.js";
 import { getVisualReport as getQuestionVisualReport } from "../services/questionVisualReportGenerator.js";
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
@@ -307,6 +310,9 @@ export const getQuestionDetails = async (req, res) => {
             createdAt: digestDraft.createdAt
               ? new Date(digestDraft.createdAt).toISOString()
               : new Date().toISOString(),
+            ...(digestDraft.representativeContextSet && {
+              representativeContextSet: digestDraft.representativeContextSet,
+            }),
           }
         : null,
       visualReport: visualReport ? visualReport.overallAnalysis : null,
@@ -595,6 +601,62 @@ export const getQuestionsByTheme = async (req, res) => {
     console.error(`Error fetching questions for theme ${themeId}:`, error);
     res.status(500).json({
       message: "Error fetching theme questions",
+      error: error.message,
+    });
+  }
+};
+
+// DELETE /api/themes/:themeId/questions - 特定テーマのシャープな問いを一斉削除
+export const deleteAllQuestionsByTheme = async (req, res) => {
+  const { themeId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(themeId)) {
+    return res.status(400).json({ message: "Invalid theme ID format" });
+  }
+
+  try {
+    const questionIds = (
+      await SharpQuestion.find({ themeId }).select("_id").lean()
+    ).map((q) => q._id);
+
+    if (questionIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        deletedCount: 0,
+        message: "No questions to delete for this theme.",
+      });
+    }
+
+    await QuestionLink.deleteMany({ questionId: { $in: questionIds } });
+    await DebateAnalysis.deleteMany({ questionId: { $in: questionIds } });
+    await DigestDraft.deleteMany({ questionId: { $in: questionIds } });
+    await PolicyDraft.deleteMany({ questionId: { $in: questionIds } });
+    await ReportExample.deleteMany({ questionId: { $in: questionIds } });
+    await QuestionVisualReport.deleteMany({ questionId: { $in: questionIds } });
+    await Like.deleteMany({
+      targetType: "question",
+      targetId: { $in: questionIds },
+    });
+    await ChatThread.updateMany(
+      { questionId: { $in: questionIds } },
+      { $set: { questionId: null } }
+    );
+
+    const result = await SharpQuestion.deleteMany({ themeId });
+
+    res.status(200).json({
+      success: true,
+      deletedCount: result.deletedCount,
+      message: `Deleted ${result.deletedCount} sharp question(s) for this theme.`,
+    });
+  } catch (error) {
+    console.error(
+      `Error deleting all questions for theme ${themeId}:`,
+      error
+    );
+    res.status(500).json({
+      success: false,
+      message: "Error deleting questions for theme",
       error: error.message,
     });
   }

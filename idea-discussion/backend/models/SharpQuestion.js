@@ -15,6 +15,17 @@ const sharpQuestionSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // 対象・目的・期待効果のセット（問いごとに複数可）。対話AIの投げかけ情報に活用
+    contextSets: {
+      type: [
+        {
+          target: { type: String, default: "" },       // 対象（誰のために）
+          purpose: { type: String, default: "" },      // 目的（なぜやるか）
+          expectedEffect: { type: String, default: "" }, // 期待効果（やったらどうなるか）
+        },
+      ],
+      default: [],
+    },
     sourceProblemIds: [
       {
         // (任意) この問いの生成に使用された `problems` のIDリスト

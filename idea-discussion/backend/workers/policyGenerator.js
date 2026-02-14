@@ -1,10 +1,25 @@
-import mongoose from "mongoose";
 import PolicyDraft from "../models/PolicyDraft.js";
 import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import { callLLM } from "../services/llmService.js";
+
+/**
+ * SharpQuestion.contextSets から代表的な1件を選ぶ。
+ * 少なくとも1つ非空フィールドがある最初のセットを返す。なければ null。
+ */
+function getRepresentativeContextSet(question) {
+  const sets = question?.contextSets;
+  if (!Array.isArray(sets) || sets.length === 0) return null;
+  for (const s of sets) {
+    const t = (s?.target ?? "").trim();
+    const p = (s?.purpose ?? "").trim();
+    const e = (s?.expectedEffect ?? "").trim();
+    if (t || p || e) return { target: t, purpose: p, expectedEffect: e };
+  }
+  return null;
+}
 
 async function generatePolicyDraft(questionId) {
   console.log(
@@ -70,11 +85,27 @@ async function generatePolicyDraft(questionId) {
     const problemStatements = sortedProblems.map((p) => p.statement);
     const solutionStatements = sortedSolutions.map((s) => s.statement);
 
+    const representativeContext = getRepresentativeContextSet(question);
+    if (representativeContext) {
+      console.log(
+        `[PolicyGenerator] Using representative contextSet: target=${representativeContext.target || "(none)"}, purpose=${representativeContext.purpose || "(none)"}, expectedEffect=${representativeContext.expectedEffect || "(none)"}`
+      );
+    }
+
     console.log(
       `[PolicyGenerator] Found ${problemStatements.length} related problems and ${solutionStatements.length} related solutions, sorted by relevance.`
     );
 
     // 3. Prepare the prompt for LLM
+    const contextBlock = representativeContext
+      ? `
+Policy context (use as reference for who and why):
+- 対象 (target): ${representativeContext.target || "—"}
+- 目的 (purpose): ${representativeContext.purpose || "—"}
+- 期待効果 (expected effect): ${representativeContext.expectedEffect || "—"}
+`
+      : "";
+
     const messages = [
       {
         role: "system",
@@ -108,6 +139,7 @@ Part 2: 解決手段レポート
         role: "user",
         content: `Generate a report for the following question:
 Question: ${question.questionText}
+${contextBlock}
 
 Related Problems (sorted by relevance - higher items are more relevant to the question):
 ${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n") : "- None provided"}
@@ -115,7 +147,7 @@ ${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n
 Related Solutions (sorted by relevance - higher items are more relevant to the question):
 ${solutionStatements.length > 0 ? solutionStatements.map((s) => `- ${s}`).join("\n") : "- None provided"}
 
-Please provide the output as a JSON object with "title" and "content" keys. When considering the problems and solutions, prioritize those listed at the top as they are more relevant to the question.`,
+Please provide the output as a JSON object with "title" and "content" keys. When considering the problems and solutions, prioritize those listed at the top as they are more relevant to the question.${representativeContext ? " Align the policy narrative with the target, purpose, and expected effect above where relevant." : ""}`,
       },
     ];
 
@@ -149,6 +181,7 @@ Please provide the output as a JSON object with "title" and "content" keys. When
       content: llmResponse.content,
       sourceProblemIds: problemIds,
       sourceSolutionIds: solutionIds,
+      representativeContextSet: representativeContext || undefined,
       version: 1,
     });
 

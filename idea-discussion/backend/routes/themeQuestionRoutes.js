@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  deleteAllQuestionsByTheme,
   getDebateAnalysis,
   getQuestionDetails,
   getQuestionsByTheme,
@@ -16,6 +17,7 @@ import {
 const router = express.Router({ mergeParams: true });
 
 router.get("/", getQuestionsByTheme);
+router.delete("/", deleteAllQuestionsByTheme);
 
 router.get("/:questionId/details", getQuestionDetails);
 

@@ -94,7 +94,17 @@ const handleNewMessageByTheme = async (req, res) => {
           if (question.tagLine) {
             referenceOpinions += `概要: ${question.tagLine}\n`;
           }
-          referenceOpinions += "\n";
+          if (question.contextSets && question.contextSets.length > 0) {
+            referenceOpinions += "対象・目的・期待効果（投げかけのヒント）:\n";
+            for (const set of question.contextSets) {
+              const parts = [];
+              if (set.target) parts.push(`対象: ${set.target}`);
+              if (set.purpose) parts.push(`目的: ${set.purpose}`);
+              if (set.expectedEffect) parts.push(`期待効果: ${set.expectedEffect}`);
+              if (parts.length > 0) referenceOpinions += `  - ${parts.join(" / ")}\n`;
+            }
+            referenceOpinions += "\n";
+          }
 
           const problemLinks = await QuestionLink.aggregate([
             {
@@ -221,6 +231,16 @@ const handleNewMessageByTheme = async (req, res) => {
 
           for (const question of themeQuestions) {
             referenceOpinions += `問い: ${question.questionText}\n`;
+            if (question.tagLine) referenceOpinions += `概要: ${question.tagLine}\n`;
+            if (question.contextSets && question.contextSets.length > 0) {
+              for (const set of question.contextSets) {
+                const parts = [];
+                if (set.target) parts.push(`対象: ${set.target}`);
+                if (set.purpose) parts.push(`目的: ${set.purpose}`);
+                if (set.expectedEffect) parts.push(`期待効果: ${set.expectedEffect}`);
+                if (parts.length > 0) referenceOpinions += `  - ${parts.join(" / ")}\n`;
+              }
+            }
 
             // この問いに関連する課題（関連度 0.8 以上、最大10件を $sample）
             const problemLinks = await QuestionLink.aggregate([

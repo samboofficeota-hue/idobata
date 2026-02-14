@@ -6,6 +6,19 @@ import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import { RECOMMENDED_MODELS, callLLM } from "./llmService.js";
 
+/** SharpQuestion.contextSets から代表1件を取得（解釈の枠としてプロンプトに渡す） */
+function getRepresentativeContextSet(question) {
+  const sets = question?.contextSets;
+  if (!Array.isArray(sets) || sets.length === 0) return null;
+  for (const s of sets) {
+    const t = (s?.target ?? "").trim();
+    const p = (s?.purpose ?? "").trim();
+    const e = (s?.expectedEffect ?? "").trim();
+    if (t || p || e) return { target: t, purpose: p, expectedEffect: e };
+  }
+  return null;
+}
+
 export async function getVisualReport(questionId) {
   return QuestionVisualReport.findOne({
     questionId: new mongoose.Types.ObjectId(questionId),
@@ -77,12 +90,26 @@ ${problemStatements.map((statement, index) => `${index + 1}. ${statement}`).join
 ${solutionStatements.map((statement, index) => `${index + 1}. ${statement}`).join("\n")}
 `;
 
+    const representativeContext = getRepresentativeContextSet(question);
+    const contextBlock =
+      representativeContext &&
+      (representativeContext.target ||
+        representativeContext.purpose ||
+        representativeContext.expectedEffect)
+        ? `
+## 解釈の枠（対象・目的・期待効果に沿って視覚化の焦点を合わせること）
+- 対象 (target): ${representativeContext.target || "—"}
+- 目的 (purpose): ${representativeContext.purpose || "—"}
+- 期待効果 (expected effect): ${representativeContext.expectedEffect || "—"}
+`
+        : "";
+
     const visualPrompt = `
 # グラフィックレコーディング風インフォグラフィック変換プロンプト
 
 ## 目的
-  以下の内容を、超一流デザイナーが作成したような、日本語で完璧なグラフィックレコーディング風のHTMLインフォグラフィックに変換してください。情報設計とビジュアルデザインの両面で最高水準を目指します
-  手書き風の図形やアイコンを活用して内容を視覚的に表現します。
+  以下の内容を、超一流デザイナーが作成したような、日本語で完璧なグラフィックレコーディング風のHTMLインフォグラフィックに変換してください。情報設計とビジュアルデザインの両面で最高水準を目指します。
+  手書き風の図形やアイコンを活用して内容を視覚的に表現します。${contextBlock ? " 解釈の枠（対象・目的・期待効果）に沿って一貫したメッセージになるよう表現してください。" : ""}
 ## デザイン仕様
 ### 1. カラースキーム
 
@@ -140,6 +167,7 @@ ${solutionStatements.map((statement, index) => `${index + 1}. ${statement}`).joi
   - 複雑すぎる構造はCSSが壊れる可能性があるため避ける
   - 単に原文のキーワードだけ書いても意味が分からないため、誰にでも伝わるような分かりやすい表現に書き換えて説明する
   - 作成日や出典など不正確な情報は含めない
+${contextBlock}
 
 ## 変換する文章/記事
 ${markdownContent}

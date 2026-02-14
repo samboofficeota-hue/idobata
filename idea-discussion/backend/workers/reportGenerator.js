@@ -6,6 +6,19 @@ import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import { callLLM } from "../services/llmService.js";
 
+/** SharpQuestion.contextSets から代表1件を取得（解釈の枠としてプロンプトに渡す） */
+function getRepresentativeContextSet(question) {
+  const sets = question?.contextSets;
+  if (!Array.isArray(sets) || sets.length === 0) return null;
+  for (const s of sets) {
+    const t = (s?.target ?? "").trim();
+    const p = (s?.purpose ?? "").trim();
+    const e = (s?.expectedEffect ?? "").trim();
+    if (t || p || e) return { target: t, purpose: p, expectedEffect: e };
+  }
+  return null;
+}
+
 async function generateReportExample(questionId) {
   console.log(
     `[ReportGenerator] Starting report example generation for questionId: ${questionId}`
@@ -57,10 +70,24 @@ async function generateReportExample(questionId) {
       `[ReportGenerator] Found ${problemStatements.length} related problems and ${solutionStatements.length} related solutions, sorted by relevance.`
     );
 
+    const representativeContext = getRepresentativeContextSet(question);
+    const contextBlock =
+      representativeContext &&
+      (representativeContext.target ||
+        representativeContext.purpose ||
+        representativeContext.expectedEffect)
+        ? `
+解釈の枠（この問いの対象・目的・期待効果に沿ってレポートを整理してください）:
+- 対象 (target): ${representativeContext.target || "—"}
+- 目的 (purpose): ${representativeContext.purpose || "—"}
+- 期待効果 (expected effect): ${representativeContext.expectedEffect || "—"}
+`
+        : "";
+
     const messages = [
       {
         role: "system",
-        content: `問い「${question.questionText}」について、市民からの意見を通じて特定された問題点とその潜在的な解決策を含むレポートを作成してください。
+        content: `問い「${question.questionText}」について、市民からの意見を通じて特定された問題点とその潜在的な解決策を含むレポートを作成してください。${contextBlock ? " 解釈の枠（対象・目的・期待効果）に沿って一貫した整理をしてください。" : ""}
 
 レポートは、以下の形式で出力してください：
 
@@ -92,6 +119,7 @@ JSON構造外に他のテキストや説明を含めないでください。`,
         role: "user",
         content: `Generate a report example for the following question:
 Question: ${question.questionText}
+${contextBlock}
 
 Related Problems (sorted by relevance - higher items are more relevant to the question):
 ${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n") : "- None provided"}

@@ -480,6 +480,9 @@ const generateThemeDownloadOutput = async (req, res) => {
               title: digestDraft.title,
               content: digestDraft.content,
               createdAt: digestDraft.createdAt,
+              ...(digestDraft.representativeContextSet && {
+                representativeContextSet: digestDraft.representativeContextSet,
+              }),
             }
           : null,
         policyDraft: policyDraft
@@ -487,6 +490,9 @@ const generateThemeDownloadOutput = async (req, res) => {
               title: policyDraft.title,
               content: policyDraft.content,
               createdAt: policyDraft.createdAt,
+              ...(policyDraft.representativeContextSet && {
+                representativeContextSet: policyDraft.representativeContextSet,
+              }),
             }
           : null,
       };

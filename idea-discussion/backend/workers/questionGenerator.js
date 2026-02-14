@@ -1,7 +1,11 @@
 import Problem from "../models/Problem.js";
+import Solution from "../models/Solution.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import { callLLM } from "../services/llmService.js";
 import { linkQuestionToAllItems } from "./linkingWorker.js"; // Import the linking function
+
+const TAGLINE_MAX_LENGTH = 15;
+const QUESTION_MAX_LENGTH = 50;
 
 /** 重複判定用: 空白の正規化（trim + 連続空白を1つに）。表記ゆれで別問いとみなさないため */
 function normalizeQuestionText(text) {
@@ -9,13 +13,26 @@ function normalizeQuestionText(text) {
   return text.trim().replace(/\s+/g, " ");
 }
 
+/** contextSets の要素を正規化（空文字許容） */
+function normalizeContextSet(item) {
+  if (!item || typeof item !== "object") return { target: "", purpose: "", expectedEffect: "" };
+  return {
+    target: typeof item.target === "string" ? item.target.trim() : "",
+    purpose: typeof item.purpose === "string" ? item.purpose.trim() : "",
+    expectedEffect: typeof item.expectedEffect === "string" ? item.expectedEffect.trim() : "",
+  };
+}
+
 async function generateSharpQuestions(themeId) {
   console.log(
     `[QuestionGenerator] Starting sharp question generation for theme ${themeId}...`
   );
   try {
-    // 1. Fetch all problem statements for this theme
-    const problems = await Problem.find({ themeId }, "statement").lean();
+    // 1. Fetch problem and solution statements for this theme
+    const [problems, solutions] = await Promise.all([
+      Problem.find({ themeId }, "statement").lean(),
+      Solution.find({ themeId }, "statement").lean(),
+    ]);
     if (!problems || problems.length === 0) {
       console.log(
         `[QuestionGenerator] No problems found for theme ${themeId} to generate questions from.`
@@ -23,33 +40,41 @@ async function generateSharpQuestions(themeId) {
       return;
     }
     const problemStatements = problems.map((p) => p.statement);
+    const solutionStatements = (solutions || []).map((s) => s.statement);
     console.log(
-      `[QuestionGenerator] Found ${problemStatements.length} problem statements for theme ${themeId}.`
+      `[QuestionGenerator] Found ${problemStatements.length} problems, ${solutionStatements.length} solutions for theme ${themeId}.`
     );
 
     // 2. Prepare prompt for LLM
     const messages = [
       {
         role: "system",
-        content: `You are an AI assistant specialized in synthesizing problem statements into insightful "How Might We..." (HMW) questions based on Design Thinking principles. Your goal is to generate concise, actionable, and thought-provoking questions that capture the essence of the underlying challenges presented in the input problem statements. Consolidate similar problems into broader HMW questions where appropriate.
+        content: `You are an AI assistant that generates "How Might We..." (HMW) style questions for policy discussion, based on Design Thinking. For each question you must provide:
+1. **HMW question** (問い): A short question in Japanese that states the desired future and the gap with reality. Maximum 50 characters. Use simple language (compulsory education level).
+2. **tagLine** (見出し): A catchy headline for the question. Maximum 15 characters.
+3. **contextSets**: An array of one or more sets. Each set has three optional fields (empty string is OK):
+   - **target** (対象): Who is this for? e.g. "若年層", "高齢者", "子育て世帯"
+   - **purpose** (目的): Why do we need to do this? e.g. "貧困層の支援", "防災", "新産業創出"
+   - **expectedEffect** (期待効果): What happens if we do it? e.g. "雇用が安定する", "災害リスクが下がる"
+   The same HMW can have multiple context sets (e.g. different targets or purposes). It is OK to leave some fields empty in a set.
 
-For question 1-3, focus exclusively on describing both the current state ("現状はこう") and the desired state ("それをこうしたい") with high detail. Do NOT suggest or imply any specific means, methods, or solutions in the questions. The questions should keep the problem space open for creative solutions rather than narrowing the range of possible answers.
-For question 4-6, focus on questions in the format 「現状は○○だが、それが○○になるの望ましいだろうか？」. This format is intended to question the validity or desirability of the potential future state itself, especially for points where consensus on the ideal might be lacking.
-
-Generate all questions in Japanese language.
-All generated text ("question", "tagLine", "tags") should use language easily understandable by those who has completed compulsory education in Japan.
-Respond ONLY with a JSON object containing a single key: "questions".
-The value of "questions" should be an array of objects. Each object in the array must contain the following keys:
-1. "question": A string containing the generated question in Japanese (50-100 characters).
-2. "tagLine": A string about 20 characters providing a catchy & easy-to-understand summary of the question.
-3. "tags": An array of 2 strings, each being a short, simple word (2-7 characters) representing categories for the question.
-
-Generate 6 question objects in total within the "questions" array.
-`,
+Generate exactly 6 question objects. Each object must have: "question", "tagLine", "contextSets".
+Output ONLY a JSON object with a single key "questions", whose value is an array of these 6 objects.
+Example shape: { "questions": [ { "question": "...", "tagLine": "...", "contextSets": [ { "target": "...", "purpose": "...", "expectedEffect": "..." } ] }, ... ] }`,
       },
       {
         role: "user",
-        content: `Based on the following problem statements, please generate relevant questions in Japanese using the format "How Might We...":\n\n${problemStatements.join("\n- ")}\n\nFor each question, clearly describe both the current state ("現状はこう") and the desired state ("それをこうしたい") with high detail. Focus exclusively on describing these states without suggesting any specific means, methods, or solutions that could narrow the range of possible answers.\n\nPlease provide the output as a JSON object containing a "questions" array, where each element is an object with "question", "tagLine", and "tags" keys.`,
+        content: `Generate 6 HMW-style questions in Japanese from the following.
+
+【課題】
+${problemStatements.join("\n- ")}
+
+${solutionStatements.length > 0 ? `【解決策（参考）】\n${solutionStatements.join("\n- ")}\n\n` : ""}For each of the 6 questions:
+- "question": In at most 50 characters, state the desired state and the gap with reality (望ましい姿と現実の差を端的に).
+- "tagLine": In at most 15 characters, a clear headline.
+- "contextSets": At least one set per question; multiple sets OK. Each set may have target (対象), purpose (目的), expectedEffect (期待効果). Empty strings are OK.
+
+Respond with a JSON object: { "questions": [ ... ] }`,
       },
     ];
 
@@ -99,9 +124,11 @@ Generate 6 question objects in total within the "questions" array.
     // 5. Save questions to DB (重複なし・最大10件まで)
     let savedCount = 0;
     for (const questionObj of generatedQuestionObjects) {
-      const questionText = questionObj.question;
-      const tagLine = questionObj.tagLine || "";
-      const tags = questionObj.tags || [];
+      let questionText = questionObj.question;
+      let tagLine = (questionObj.tagLine || "").trim();
+      const rawContextSets = Array.isArray(questionObj.contextSets)
+        ? questionObj.contextSets
+        : [];
 
       if (!questionText || typeof questionText !== "string") {
         console.warn(
@@ -111,8 +138,20 @@ Generate 6 question objects in total within the "questions" array.
         continue;
       }
 
-      const trimmed = questionText.trim();
-      const normalized = normalizeQuestionText(trimmed);
+      questionText = questionText.trim();
+      if (questionText.length > QUESTION_MAX_LENGTH) {
+        questionText = questionText.slice(0, QUESTION_MAX_LENGTH);
+      }
+      if (tagLine.length > TAGLINE_MAX_LENGTH) {
+        tagLine = tagLine.slice(0, TAGLINE_MAX_LENGTH);
+      }
+
+      let contextSets = rawContextSets.map(normalizeContextSet);
+      if (contextSets.length === 0) {
+        contextSets = [{ target: "", purpose: "", expectedEffect: "" }];
+      }
+
+      const normalized = normalizeQuestionText(questionText);
 
       // 正規化した文言が既存（または今回のバッチで追加済み）と重複する場合は挿入しない
       if (normalizedExisting.has(normalized)) {
@@ -133,7 +172,7 @@ Generate 6 question objects in total within the "questions" array.
       try {
         // 完全一致の既存問いがあれば挿入しない
         const found = await SharpQuestion.findOne({
-          questionText: trimmed,
+          questionText,
           themeId,
         });
         if (found) {
@@ -141,9 +180,10 @@ Generate 6 question objects in total within the "questions" array.
         }
 
         const created = await SharpQuestion.create({
-          questionText: trimmed,
+          questionText,
           tagLine,
-          tags,
+          tags: questionObj.tags || [],
+          contextSets,
           themeId,
         });
 

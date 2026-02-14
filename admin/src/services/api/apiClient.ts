@@ -261,6 +261,15 @@ export class ApiClient {
     });
   }
 
+  async deleteAllQuestionsByTheme(
+    themeId: string
+  ): Promise<ApiResult<{ deletedCount: number }>> {
+    return this.request<{ deletedCount: number }>(
+      `/themes/${themeId}/questions`,
+      { method: "DELETE" }
+    );
+  }
+
   async generateOpinionSummaries(
     themeId: string
   ): Promise<ApiResult<{ message: string; questionCount: number }>> {

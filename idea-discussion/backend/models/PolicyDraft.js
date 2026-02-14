@@ -32,6 +32,15 @@ const policyDraftSchema = new mongoose.Schema(
         ref: "Solution",
       },
     ],
+    // 問いの contextSets から抽出した代表セット（対象・目的・期待効果）。PolicyDraft 以降のプロンプトで任意利用
+    representativeContextSet: {
+      type: {
+        target: { type: String, default: "" },
+        purpose: { type: String, default: "" },
+        expectedEffect: { type: String, default: "" },
+      },
+      default: null,
+    },
     version: {
       // バージョン番号
       type: Number,

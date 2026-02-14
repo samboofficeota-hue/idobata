@@ -6,6 +6,19 @@ import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import { RECOMMENDED_MODELS, callLLM } from "./llmService.js";
 
+/** SharpQuestion.contextSets から代表1件を取得（解釈の枠としてプロンプトに渡す） */
+function getRepresentativeContextSet(question) {
+  const sets = question?.contextSets;
+  if (!Array.isArray(sets) || sets.length === 0) return null;
+  for (const s of sets) {
+    const t = (s?.target ?? "").trim();
+    const p = (s?.purpose ?? "").trim();
+    const e = (s?.expectedEffect ?? "").trim();
+    if (t || p || e) return { target: t, purpose: p, expectedEffect: e };
+  }
+  return null;
+}
+
 export async function getDebateAnalysis(questionId) {
   return DebateAnalysis.findOne({
     questionId: new mongoose.Types.ObjectId(questionId),
@@ -75,11 +88,25 @@ ${problemStatements.map((statement, index) => `${index + 1}. ${statement}`).join
 ${solutionStatements.map((statement, index) => `${index + 1}. ${statement}`).join("\n")}
 `;
 
+    const representativeContext = getRepresentativeContextSet(question);
+    const contextBlock =
+      representativeContext &&
+      (representativeContext.target ||
+        representativeContext.purpose ||
+        representativeContext.expectedEffect)
+        ? `
+## 解釈の枠（この問いの対象・目的・期待効果に沿って論点を整理してください）
+- 対象 (target): ${representativeContext.target || "—"}
+- 目的 (purpose): ${representativeContext.purpose || "—"}
+- 期待効果 (expected effect): ${representativeContext.expectedEffect || "—"}
+`
+        : "";
+
     const debatePrompt = `
 # 論点分析プロンプト
 
 ## 目的
-以下の課題点と解決策を分析し、主要な論点と対立軸、および合意形成の状況を抽出してください。
+以下の課題点と解決策を分析し、主要な論点と対立軸、および合意形成の状況を抽出してください。${contextBlock ? " 解釈の枠（対象・目的・期待効果）に沿って一貫した整理をしてください。" : ""}
 
 ## 分析内容
 1. 主要な論点と対立軸:
@@ -127,6 +154,7 @@ JSON形式で以下の構造に従って結果を出力してください:
   ]
 }
 \`\`\`
+${contextBlock}
 
 ## 入力テキスト
 ${markdownContent}

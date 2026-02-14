@@ -40,6 +40,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
   );
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [isDeletingAllQuestions, setIsDeletingAllQuestions] = useState(false);
   const [isGeneratingReports, setIsGeneratingReports] = useState<
     Record<string, boolean>
   >({});
@@ -151,6 +152,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
       return;
     }
 
+    setQuestionsError(null);
     setSuccessMessage(
       "シャープな問いの生成を開始しました。しばらくすると問いリストに表示されます。"
     );
@@ -188,6 +190,38 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     };
 
     pollForQuestions();
+  };
+
+  const handleDeleteAllQuestions = async () => {
+    if (!theme?._id || questions.length === 0) return;
+    const count = questions.length;
+    if (
+      !window.confirm(
+        `このテーマのシャープな問いをすべて削除しますか？（${count}件）\n削除すると、問いに関連する論点まとめ・イラストまとめ・市民意見レポートなどのデータも削除されます。`
+      )
+    ) {
+      return;
+    }
+
+    setIsDeletingAllQuestions(true);
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    const result = await apiClient.deleteAllQuestionsByTheme(theme._id);
+
+    if (result.isErr()) {
+      console.error("Failed to delete questions:", result.error);
+      setQuestionsError("シャープな問いの一斉削除に失敗しました。");
+      setIsDeletingAllQuestions(false);
+      return;
+    }
+
+    const deletedCount = result.value.deletedCount ?? count;
+    setQuestions([]);
+    setSuccessMessage(
+      `シャープな問いを${deletedCount}件削除しました。必要に応じて「生成する」から再度生成できます。`
+    );
+    setIsDeletingAllQuestions(false);
   };
 
   const handleGenerateVisualReport = async () => {
@@ -834,45 +868,88 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                   課題データから新しいシャープな問いを生成します
                 </p>
               </div>
-              <button
-                onClick={handleGenerateQuestions}
-                disabled={isGeneratingQuestions}
-                className="btn bg-primary text-primary-foreground px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm whitespace-nowrap hover:bg-primary/90"
-                type="button"
-              >
-                {isGeneratingQuestions ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      aria-label="読み込み中"
-                      role="img"
-                    >
-                      <title>読み込み中</title>
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    生成中...
-                  </span>
-                ) : questions.length === 0 ? (
-                  "生成する"
-                ) : (
-                  "さらに生成する"
-                )}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleGenerateQuestions}
+                  disabled={isGeneratingQuestions || isDeletingAllQuestions}
+                  className="btn bg-primary text-primary-foreground px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm whitespace-nowrap hover:bg-primary/90"
+                  type="button"
+                >
+                  {isGeneratingQuestions ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-label="読み込み中"
+                        role="img"
+                      >
+                        <title>読み込み中</title>
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      生成中...
+                    </span>
+                  ) : questions.length === 0 ? (
+                    "生成する"
+                  ) : (
+                    "さらに生成する"
+                  )}
+                </button>
+                <button
+                  onClick={handleDeleteAllQuestions}
+                  disabled={
+                    questions.length === 0 ||
+                    isGeneratingQuestions ||
+                    isDeletingAllQuestions
+                  }
+                  className="btn bg-destructive text-destructive-foreground px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm whitespace-nowrap hover:bg-destructive/90"
+                  type="button"
+                >
+                  {isDeletingAllQuestions ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-label="削除中"
+                        role="img"
+                      >
+                        <title>削除中</title>
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      削除中...
+                    </span>
+                  ) : (
+                    "一斉削除"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 

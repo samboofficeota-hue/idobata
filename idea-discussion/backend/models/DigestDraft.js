@@ -38,6 +38,15 @@ const digestDraftSchema = new mongoose.Schema(
         ref: "Solution",
       },
     ],
+    // 対象・目的・期待効果（PolicyDraft または問いから引き継ぎ。表示・下流で利用）
+    representativeContextSet: {
+      type: {
+        target: { type: String, default: "" },
+        purpose: { type: String, default: "" },
+        expectedEffect: { type: String, default: "" },
+      },
+      default: null,
+    },
     version: {
       // バージョン番号
       type: Number,
