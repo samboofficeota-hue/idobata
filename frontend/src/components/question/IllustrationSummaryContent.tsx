@@ -5,11 +5,14 @@ interface IllustrationSummaryContentProps {
   questionDetail?: {
     visualReport?: string | null;
   } | null;
+  /** 全部見るで展開時は表示エリアを大きくする */
+  expanded?: boolean;
 }
 
 const IllustrationSummaryContent = ({
   visualReport,
   questionDetail,
+  expanded = false,
 }: IllustrationSummaryContentProps): ReactNode => {
   // HTMLコンテンツかどうかをチェック
   if (visualReport && typeof visualReport === "string") {
@@ -19,7 +22,13 @@ const IllustrationSummaryContent = ({
       visualReport.includes("<html")
     ) {
       return (
-        <div className="w-full h-[600px] md:h-[800px]">
+        <div
+          className={
+            expanded
+              ? "w-full h-[min(80vh,1200px)]"
+              : "w-full h-[600px] md:h-[800px]"
+          }
+        >
           <iframe
             srcDoc={visualReport}
             className="w-full h-full border-0 rounded-2xl"

@@ -1,5 +1,3 @@
-import { Button } from "../ui";
-
 interface ThemePromptSectionProps {
   themeTitle: string;
   themeDescription: string;
@@ -9,9 +7,6 @@ interface ThemePromptSectionProps {
   questionTitle?: string;
   questionDescription?: string;
   questionTags?: string[];
-  /** 管理画面で作成済みの場合、タイトルカード内に「イラストまとめを見る」ボタンを表示 */
-  visualReport?: string | null;
-  onOpenIllustration?: () => void;
 }
 
 const ThemePromptSection = ({
@@ -22,15 +17,7 @@ const ThemePromptSection = ({
   questionTitle,
   questionDescription,
   questionTags = [],
-  visualReport,
-  onOpenIllustration,
 }: ThemePromptSectionProps) => {
-  const hasVisualReport =
-    typeof visualReport === "string" &&
-    visualReport.length > 0 &&
-    !visualReport.includes("<!DOCTYPE html>") &&
-    !visualReport.includes("<html");
-
   return (
     <div className="space-y-6">
       {/* お題の内容をタイトルとして表示 */}
@@ -71,13 +58,6 @@ const ThemePromptSection = ({
                   ))
                 : null}
             </div>
-            {hasVisualReport && onOpenIllustration && (
-              <div className="mt-4">
-                <Button type="button" onClick={onOpenIllustration}>
-                  イラストまとめを見る
-                </Button>
-              </div>
-            )}
           </div>
           <div className="ml-4 text-right">
             <div className="text-sm text-gray-500 mb-1">対話参加人数</div>

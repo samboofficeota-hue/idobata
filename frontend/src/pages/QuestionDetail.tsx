@@ -1,6 +1,7 @@
 import {
   CheckCircle2,
   FileText,
+  ImageIcon,
   Lightbulb,
   MessageSquare,
 } from "lucide-react";
@@ -15,13 +16,7 @@ import IllustrationSummaryContent from "../components/question/IllustrationSumma
 import OtherOpinionCard from "../components/question/OtherOpinionCard";
 import SolutionIdeasContent from "../components/question/SolutionIdeasContent";
 import ThemePromptSection from "../components/question/ThemePromptSection";
-import {
-  DownloadButton,
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "../components/ui";
+import { DownloadButton } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuestionDetail } from "../hooks/useQuestionDetail";
 import { useThemeDetail } from "../hooks/useThemeDetail";
@@ -37,7 +32,7 @@ const QuestionDetail = () => {
   const { user } = useAuth();
   const chatRef = useRef<FloatingChatRef>(null);
   const [isOpinionsExpanded, setIsOpinionsExpanded] = useState(false);
-  const [isIllustrationOpen, setIsIllustrationOpen] = useState(false);
+  const [isIllustrationExpanded, setIsIllustrationExpanded] = useState(false);
   const [chatManager, setChatManager] = useState<QuestionChatManager | null>(
     null
   );
@@ -267,6 +262,10 @@ const QuestionDetail = () => {
   }
 
   if (questionDetail) {
+    const hasVisualReport =
+      typeof questionDetail.visualReport === "string" &&
+      questionDetail.visualReport.trim().length > 0;
+
     const questionData = {
       id: questionDetail?.question?._id ?? "",
       question: questionDetail?.question?.questionText ?? "",
@@ -310,31 +309,16 @@ const QuestionDetail = () => {
                 questionTitle={questionData.tagLine || questionData.question}
                 questionDescription={questionData.question}
                 questionTags={questionData.tags}
-                visualReport={questionDetail?.visualReport ?? null}
-                onOpenIllustration={() => setIsIllustrationOpen(true)}
               />
             </div>
 
             {/* みんなの論点 */}
             <section className="mb-16">
-              <div className="mb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
-                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <SectionHeading title="みんなの論点" className="mb-0 py-0" />
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
                 </div>
-                {questionDetail?.visualReport &&
-                  typeof questionDetail.visualReport === "string" &&
-                  !questionDetail.visualReport.includes("<!DOCTYPE html>") &&
-                  !questionDetail.visualReport.includes("<html") && (
-                    <DownloadButton
-                      downloadType="image"
-                      data={{ imageUrl: questionDetail.visualReport }}
-                    >
-                      イラスト要約をダウンロード
-                    </DownloadButton>
-                  )}
+                <SectionHeading title="みんなの論点" className="mb-0 py-0" />
               </div>
               <div className="rounded-xl border border-border bg-card p-6 md:p-8">
                 <DebatePointsContent debateData={questionDetail?.debateData} />
@@ -460,26 +444,60 @@ const QuestionDetail = () => {
               );
             })()}
             </section>
+
+            {/* イラストまとめ（みんなの意見の次・表示エリアを大きく） */}
+            <section className="mb-16">
+              <div className="mb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <SectionHeading title="イラストまとめ" className="mb-0 py-0" />
+                </div>
+                {questionDetail?.visualReport &&
+                  typeof questionDetail.visualReport === "string" &&
+                  !questionDetail.visualReport.includes("<!DOCTYPE html>") &&
+                  !questionDetail.visualReport.includes("<html") && (
+                    <DownloadButton
+                      downloadType="image"
+                      data={{ imageUrl: questionDetail.visualReport }}
+                    >
+                      イラスト要約をダウンロード
+                    </DownloadButton>
+                  )}
+              </div>
+              <div
+                className={`rounded-xl border border-border bg-card overflow-hidden relative ${
+                  isIllustrationExpanded ? "" : "max-h-[420px]"
+                }`}
+              >
+                <div className="p-6 md:p-8">
+                  <IllustrationSummaryContent
+                    visualReport={questionDetail?.visualReport ?? null}
+                    questionDetail={questionDetail}
+                    expanded={isIllustrationExpanded}
+                  />
+                </div>
+                {hasVisualReport && !isIllustrationExpanded && (
+                  <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                )}
+              </div>
+              {hasVisualReport && (
+                <div className="flex justify-center mt-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsIllustrationExpanded(!isIllustrationExpanded)
+                    }
+                    className="px-6 py-3 text-base font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                  >
+                    {isIllustrationExpanded ? "折りたたむ" : "全部見る"}
+                  </button>
+                </div>
+              )}
+            </section>
           </div>
         </div>
-
-        {/* イラストまとめモーダル */}
-        <Sheet open={isIllustrationOpen} onOpenChange={setIsIllustrationOpen}>
-          <SheetContent
-            side="right"
-            className="w-full sm:max-w-2xl overflow-y-auto"
-          >
-            <SheetHeader>
-              <SheetTitle>イラストまとめ</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4">
-              <IllustrationSummaryContent
-                visualReport={questionDetail?.visualReport ?? null}
-                questionDetail={questionDetail}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
 
         <FloatingChat
           ref={chatRef}
