@@ -250,24 +250,26 @@ const QuestionDetail = () => {
 
     return (
       <>
+        {/* 右側480pxはAIチャット用。コンテンツは左寄せ・読みやすい幅に */}
         <div className="xl:mr-[480px]">
-          <div className="px-6">
-            <BreadcrumbView items={breadcrumbItems} />
-          </div>
-          <div className="px-6 py-8">
-            <ThemePromptSection
-              themeTitle={themeData.title}
-              themeDescription={themeInfo?.theme?.description || ""}
-              participantCount={questionDetail?.participantCount || 0}
-              dialogueCount={questionDetail?.dialogueCount || 0}
-              questionTitle={questionData.tagLine || questionData.question}
-              questionDescription={questionData.question}
-              questionTags={questionData.tags}
-            />
-          </div>
+          <div className="w-full max-w-5xl pl-4 pr-4 md:pl-8 md:pr-8">
+            <div>
+              <BreadcrumbView items={breadcrumbItems} />
+            </div>
+            <div className="py-8">
+              <ThemePromptSection
+                  themeTitle={themeData.title}
+                themeDescription={themeInfo?.theme?.description || ""}
+                participantCount={questionDetail?.participantCount || 0}
+                dialogueCount={questionDetail?.dialogueCount || 0}
+                questionTitle={questionData.tagLine || questionData.question}
+                questionDescription={questionData.question}
+                questionTags={questionData.tags}
+              />
+            </div>
 
-          {/* みんなの論点セクション */}
-          <div className="mb-8 px-6">
+            {/* みんなの論点 */}
+            <div className="mb-8">
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
@@ -289,25 +291,25 @@ const QuestionDetail = () => {
             <div className="bg-gray-100 rounded-xl p-4 md:p-6">
               <DebatePointsContent debateData={questionDetail?.debateData} />
             </div>
-          </div>
+            </div>
 
-          {/* みんなが思う課題の整理セクション */}
-          <div className="mb-12 px-6">
+            {/* みんなのアイディア */}
+            <div className="mb-12">
             <div className="mb-8">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                みんなが思う課題の整理
+                みんなのアイディア
               </h2>
             </div>
             <div className="bg-gray-100 rounded-xl p-6 md:p-8">
               <CitizenOpinionContent digestDraft={questionDetail?.digestDraft} />
             </div>
-          </div>
+            </div>
 
-          {/* みんなから出てきた解決アイディアセクション */}
-          <div className="mb-12 px-6">
+            {/* みんなの解決デザイン */}
+            <div className="mb-12">
             <div className="mb-8">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                みんなから出てきた解決アイディア
+                みんなの解決デザイン
               </h2>
             </div>
             <div className="bg-gray-100 rounded-xl p-6 md:p-8">
@@ -315,10 +317,10 @@ const QuestionDetail = () => {
                 solutionIdeas={questionDetail?.solutionIdeas || []}
               />
             </div>
-          </div>
+            </div>
 
-          {/* みんなの意見セクション */}
-          <div className="mb-8 px-6">
+            {/* みんなの意見 */}
+            <div className="mb-8">
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 md:gap-0">
                 <div className="flex items-center gap-4">
@@ -430,8 +432,8 @@ const QuestionDetail = () => {
                 </>
               );
             })()}
+            </div>
           </div>
-
         </div>
         <FloatingChat
           ref={chatRef}

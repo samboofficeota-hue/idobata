@@ -6,6 +6,7 @@ import SharpQuestion from "../models/SharpQuestion.js"; // Import SharpQuestion 
 import Theme from "../models/Theme.js"; // Import Theme model for custom prompts
 import { callLLM } from "../services/llmService.js"; // Import the LLM service
 import { processExtraction } from "../workers/extractionWorker.js"; // Import the extraction worker function
+import { buildDefaultSystemPrompt } from "./buildChatSystemPrompt.js";
 
 // Controller function for handling new chat messages by theme
 const handleNewMessageByTheme = async (req, res) => {
@@ -332,87 +333,40 @@ const handleNewMessageByTheme = async (req, res) => {
     // --- End Fetch Reference Opinions ---
 
     // --- Call LLM for AI Response ---
-    // Prepare messages for the LLM (ensure correct format)
     const llmMessages = [];
 
-    // --- Get theme and determine system prompt ---
-    let systemPrompt = "";
+    // currentTurn = これから生成する AI 返答が何往復目か（8.6.7）。※この時点で messages には今回の user は含まれるが AI 返答は未追加
+    const assistantCount = chatThread.messages.filter(
+      (m) => m.role === "assistant"
+    ).length;
+    const currentTurn = assistantCount + 1;
+
     let theme = null;
     try {
       theme = await Theme.findById(themeId);
-      if (theme?.customPrompt) {
-        systemPrompt = theme.customPrompt;
-      } else {
-        // --- デフォルト systemPrompt（8.6.1 改訂案 + 8.6.2 チェックリスト反映）---
-        systemPrompt = `あなたはテーマ型対話のファシリテーターです。
-目的は、数往復の自然な対話でユーザーの考えを引き出すことです（3〜4往復を目安に、厳格な上限にはしないでください）。
-
-この対話には「テーマ」が設定されています。テーマ名（または短い説明）は、このあと【参考情報】ブロックの直前に【テーマ】として示されます。対話は常にこのテーマに関係する範囲で行います。
-
-ただし、ユーザーの発言を無理に遮ったり、話題を強引に戻したりしてはいけません。話が広がった場合は、テーマと関係しそうな接点を見つけて、「その視点はテーマの〇〇ともつながりそうですね」とやわらかく橋をかけてください。
-
-「参考情報」として、他ユーザーの意見から整理された「問題」や「解決策」の論点が与えられます。これは質問テンプレではなく、対話の視点ヒントとして使います。そのまま読み上げたり、機械的に順番に聞いたりしてはいけません。
-
-対話の目標は次の4点をユーザーの言葉から引き出すことです：
-・現状の認識（何が起きているか）
-・それに対する感情や評価（どう感じているか）
-・背景にある経験（どんな経緯があるか）
-・条件や主張のこだわり度合い（どこを変えたいか）
-
-ルール：
-・毎回まず短く受け止めてから質問する
-・質問は1ターン1問（最大2問）
-・尋問調にしない
-・仮の言い換えや軽い仮説は許可する（断定は禁止）。例：「もしかして〇〇という感覚に近いですか？」は可。「それは〇〇ですね」と決めつけるのは不可。
-・解決策はユーザーから出るまで提示しない
-・段取りやフェーズの存在を感じさせない
-・ユーザーが「特にない」「ここまで」などと示したら、短くねぎらって対話を終える
-・最初の1回は、テーマに軽く触れつつ、ユーザーが話したいことを1つ聞く
-・1回の返答は、短い受け止め（1〜2文）＋質問（1〜2問）で、全体で4文以内。必要なら受け止めと質問のあいだで改行する
-`;
-      }
     } catch (error) {
       console.error(`Error fetching theme ${themeId} for prompt:`, error);
-      theme = null;
-      // フォールバック用の同一プロンプト（テーマ取得失敗時）
-      systemPrompt = `あなたはテーマ型対話のファシリテーターです。
-目的は、数往復の自然な対話でユーザーの考えを引き出すことです（3〜4往復を目安に、厳格な上限にはしないでください）。
-
-この対話には「テーマ」が設定されています。テーマ名（または短い説明）は、このあと【参考情報】ブロックの直前に【テーマ】として示されます。対話は常にこのテーマに関係する範囲で行います。
-
-ただし、ユーザーの発言を無理に遮ったり、話題を強引に戻したりしてはいけません。話が広がった場合は、テーマと関係しそうな接点を見つけて、「その視点はテーマの〇〇ともつながりそうですね」とやわらかく橋をかけてください。
-
-「参考情報」として、他ユーザーの意見から整理された「問題」や「解決策」の論点が与えられます。これは質問テンプレではなく、対話の視点ヒントとして使います。そのまま読み上げたり、機械的に順番に聞いたりしてはいけません。
-
-対話の目標は次の4点をユーザーの言葉から引き出すことです：
-・現状の認識（何が起きているか）
-・それに対する感情や評価（どう感じているか）
-・背景にある経験（どんな経緯があるか）
-・条件や主張のこだわり度合い（どこを変えたいか）
-
-ルール：
-・毎回まず短く受け止めてから質問する
-・質問は1ターン1問（最大2問）
-・尋問調にしない
-・仮の言い換えや軽い仮説は許可する（断定は禁止）。例：「もしかして〇〇という感覚に近いですか？」は可。「それは〇〇ですね」と決めつけるのは不可。
-・解決策はユーザーから出るまで提示しない
-・段取りやフェーズの存在を感じさせない
-・ユーザーが「特にない」「ここまで」などと示したら、短くねぎらって対話を終える
-・最初の1回は、テーマに軽く触れつつ、ユーザーが話したいことを1つ聞く
-・1回の返答は、短い受け止め（1〜2文）＋質問（1〜2問）で、全体で4文以内。必要なら受け止めと質問のあいだで改行する
-`;
     }
 
-    llmMessages.push({ role: "system", content: systemPrompt });
-    // --- End core system prompt ---
-
-    // Add the reference opinions as a system message（【テーマ】を先頭に置く：8.6.3）
-    if (referenceOpinions) {
-      const referenceContent =
-        theme?.title != null
-          ? `【テーマ】${theme.title}\n\n${referenceOpinions}`
-          : referenceOpinions;
-      llmMessages.push({ role: "system", content: referenceContent });
+    if (theme?.customPrompt) {
+      // カスタムプロンプト: 従来どおり system + 参考情報を別 system で付与
+      llmMessages.push({ role: "system", content: theme.customPrompt });
+      if (referenceOpinions) {
+        const referenceContent =
+          theme?.title != null
+            ? `【テーマ】${theme.title}\n\n${referenceOpinions}`
+            : referenceOpinions;
+        llmMessages.push({ role: "system", content: referenceContent });
+      }
+    } else {
+      // デフォルト: 8.6.6 統合プロンプト（データ仕様 8.6.7 に従い 4 引数を渡す）
+      const systemPrompt = buildDefaultSystemPrompt({
+        themeTitle: theme?.title ?? "",
+        themeDescription: theme?.description ?? "",
+        referenceOpinions,
+        currentTurn,
+      });
+      llmMessages.push({ role: "system", content: systemPrompt });
     }
 
     // Add actual chat history

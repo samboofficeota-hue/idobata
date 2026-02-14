@@ -206,51 +206,51 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           {disabled ? (
             renderDisabledState()
           ) : (
-            <div className="px-4 pb-4 pt-2">
-              <div className="bg-white rounded-2xl border border-gray-400 pb-3">
+            <div className="px-4 pb-4 pt-2 space-y-3">
+              {/* チャット入力ボックス: 入力欄と送信ボタンのみ */}
+              <div className="flex gap-2 items-end bg-white rounded-2xl border border-gray-400 p-2">
                 <textarea
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder="ここに入力（Enterで改行、⌘+Enterで送信）"
-                  className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
+                  className="flex-1 px-3 py-2 bg-white border-0 rounded-xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
                   style={{ height: "48px", overflow: "hidden" }}
                   ref={inputRef}
                 />
-                <div className="flex justify-between items-end px-3">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleSubmitOpinion}
-                      disabled={isExtracting || !threadId || !themeId}
-                    >
-                      {isExtracting ? "送信中..." : "わたしの意見を送る"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleNewChat}
-                    >
-                      新しいチャット
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={handleSendMessage}
-                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg w-10 h-10 flex items-center justify-center text-xl font-bold shadow-sm flex-shrink-0"
-                    disabled={!inputValue.trim() || isSending}
-                  >
-                    {isSending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      "↑"
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleSendMessage}
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg w-10 h-10 flex items-center justify-center text-xl font-bold shadow-sm flex-shrink-0"
+                  disabled={!inputValue.trim() || isSending}
+                >
+                  {isSending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "↑"
+                  )}
+                </Button>
+              </div>
+              {/* 意見送付・新規チャットはボックスの下に独立表示 */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-4 py-2 text-sm font-medium"
+                  onClick={handleSubmitOpinion}
+                  disabled={isExtracting || !threadId || !themeId}
+                >
+                  {isExtracting ? "送信中..." : "わたしの意見を送る"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-4 py-2 text-sm font-medium"
+                  onClick={handleNewChat}
+                >
+                  新しいチャット
+                </Button>
               </div>
             </div>
           )}
@@ -290,51 +290,51 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           {disabled ? (
             renderDisabledState()
           ) : (
-            <div className="px-4 pb-4 pt-2">
-              <div className="bg-white rounded-2xl border border-gray-400 pb-3">
+            <div className="px-4 pb-4 pt-2 space-y-3">
+              {/* チャット入力ボックス: 入力欄と送信ボタンのみ */}
+              <div className="flex gap-2 items-end bg-white rounded-2xl border border-gray-400 p-2">
                 <textarea
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder="ここに入力（Enterで改行、⌘+Enterで送信）"
-                  className="w-full px-4 py-3 bg-white border-0 rounded-2xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
+                  className="flex-1 px-3 py-2 bg-white border-0 rounded-xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
                   style={{ height: "48px", overflow: "hidden" }}
                   ref={inputRef}
                 />
-                <div className="flex justify-between items-end px-3">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleSubmitOpinion}
-                      disabled={isExtracting || !threadId || !themeId}
-                    >
-                      {isExtracting ? "送信中..." : "わたしの意見を送る"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-3 py-1 text-sm h-8 font-medium"
-                      onClick={handleNewChat}
-                    >
-                      新しいチャット
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={handleSendMessage}
-                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg w-10 h-10 flex items-center justify-center text-xl font-bold shadow-sm flex-shrink-0"
-                    disabled={!inputValue.trim() || isSending}
-                  >
-                    {isSending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      "↑"
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleSendMessage}
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg w-10 h-10 flex items-center justify-center text-xl font-bold shadow-sm flex-shrink-0"
+                  disabled={!inputValue.trim() || isSending}
+                >
+                  {isSending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "↑"
+                  )}
+                </Button>
+              </div>
+              {/* 意見送付・新規チャットはボックスの下に独立表示 */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-4 py-2 text-sm font-medium"
+                  onClick={handleSubmitOpinion}
+                  disabled={isExtracting || !threadId || !themeId}
+                >
+                  {isExtracting ? "送信中..." : "わたしの意見を送る"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-4 py-2 text-sm font-medium"
+                  onClick={handleNewChat}
+                >
+                  新しいチャット
+                </Button>
               </div>
             </div>
           )}

@@ -213,22 +213,7 @@ export class ThemeDetailChatManager {
       "[ThemeDetailChatManager] handleNewExtraction called with event:",
       event
     );
-    const { type, data } = event;
-    const notificationContent =
-      type === "problem"
-        ? `「${data.statement}」という課題が登録されました。`
-        : `「${data.statement}」という解決策が登録されました。`;
-
-    console.log(
-      `[ThemeDetailChatManager] Creating notification: ${notificationContent}`
-    );
-    const notification = new SystemNotification(notificationContent);
-    this.messages.push(notification);
-
-    console.log("[ThemeDetailChatManager] Calling onNewMessage callback");
-    this.onNewMessage?.(notification);
-
-    console.log("[ThemeDetailChatManager] Calling onNewExtraction callback");
+    // 抽出完了はバックエンド処理のため、チャット履歴には表示しない（onNewExtraction のみ呼び出し）
     this.onNewExtraction?.(event);
   }
 
