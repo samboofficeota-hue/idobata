@@ -1,5 +1,24 @@
 import { ReactNode } from "react";
 
+/** 埋め込み用HTMLにレスポンシブ幅のスタイルを注入し、水色背景の幅に近づける */
+function injectResponsiveVisualReportStyles(html: string): string {
+  const responsiveStyle = `
+<style id="idobata-visual-report-responsive">
+  html, body { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
+  body * { box-sizing: border-box !important; }
+  /* 375px 等の固定幅をやめ、水色の背景（親）の幅いっぱいに表示 */
+  body > div, body > main, body > section { max-width: 100% !important; width: 100% !important; }
+  [style*="375px"], [style*="width: 375px"] { width: 100% !important; max-width: 100% !important; }
+</style>`;
+  if (html.includes("</head>")) {
+    return html.replace("</head>", `${responsiveStyle}</head>`);
+  }
+  if (html.includes("<body")) {
+    return html.replace(/<body([^>]*)>/, `<body$1>${responsiveStyle}`);
+  }
+  return html;
+}
+
 interface IllustrationSummaryContentProps {
   visualReport?: string | null;
   questionDetail?: {
@@ -21,6 +40,7 @@ const IllustrationSummaryContent = ({
       visualReport.includes("<!DOCTYPE html>") ||
       visualReport.includes("<html")
     ) {
+      const htmlWithResponsive = injectResponsiveVisualReportStyles(visualReport);
       return (
         <div
           className={
@@ -30,7 +50,7 @@ const IllustrationSummaryContent = ({
           }
         >
           <iframe
-            srcDoc={visualReport}
+            srcDoc={htmlWithResponsive}
             className="w-full h-full border-0 rounded-2xl"
             title="イラスト要約"
             sandbox="allow-same-origin allow-scripts"
