@@ -515,10 +515,11 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
   // レポート表示ハンドラー
   const handleViewVisualReport = async (questionId: string) => {
     if (!theme?._id) return;
+    setQuestionsError("");
 
     try {
       const result = await apiClient.getVisualReport(theme._id, questionId);
-      if (result.isOk()) {
+      if (result.isOk() && result.value != null) {
         const question = questions.find((q) => q._id === questionId);
         setReportModal({
           isOpen: true,
@@ -527,20 +528,25 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
           questionText: question?.questionText || "",
         });
       } else {
-        setQuestionsError("レポートが見つかりません。");
+        setQuestionsError(
+          "イラストまとめはまだ生成されていません。「更新する」ボタンで生成できます。"
+        );
       }
     } catch (error) {
       console.error("Failed to get visual report:", error);
-      setQuestionsError("レポートの取得に失敗しました。");
+      setQuestionsError(
+        "イラストまとめの取得に失敗しました。通信エラーやサーバーエラーの可能性があります。"
+      );
     }
   };
 
   const handleViewDebateAnalysis = async (questionId: string) => {
     if (!theme?._id) return;
+    setQuestionsError("");
 
     try {
       const result = await apiClient.getDebateAnalysis(theme._id, questionId);
-      if (result.isOk()) {
+      if (result.isOk() && result.value != null) {
         const question = questions.find((q) => q._id === questionId);
         setReportModal({
           isOpen: true,
@@ -549,49 +555,44 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
           questionText: question?.questionText || "",
         });
       } else {
-        setQuestionsError("レポートが見つかりません。");
+        setQuestionsError(
+          "論点まとめはまだ生成されていません。「更新する」ボタンで生成できます。"
+        );
       }
     } catch (error) {
       console.error("Failed to get debate analysis:", error);
-      setQuestionsError("レポートの取得に失敗しました。");
+      setQuestionsError(
+        "論点まとめの取得に失敗しました。通信エラーやサーバーエラーの可能性があります。"
+      );
     }
   };
 
   const handleViewReport = async (questionId: string) => {
     if (!theme?._id) return;
+    setQuestionsError("");
 
     try {
-      console.log(`[handleViewReport] Fetching digest draft for questionId: ${questionId}, themeId: ${theme._id}`);
       const result = await apiClient.getDigestDraft(theme._id, questionId);
-      console.log(`[handleViewReport] API result:`, result);
-      
+
       if (result.isOk() && result.value.length > 0) {
         const question = questions.find((q) => q._id === questionId);
-        // 最新のDigestDraftを取得
         const latestDigest = result.value[0];
-        console.log(`[handleViewReport] Latest digest:`, latestDigest);
-        
-        const modalState = {
+        setReportModal({
           isOpen: true,
-          type: "report" as const,
+          type: "report",
           data: latestDigest,
           questionText: question?.questionText || "",
-        };
-        console.log(`[handleViewReport] Setting modal state:`, modalState);
-        
-        setReportModal(modalState);
-        
-        // 状態更新後の確認
-        setTimeout(() => {
-          console.log(`[handleViewReport] Modal state after update:`, reportModal);
-        }, 100);
+        });
       } else {
-        console.warn(`[handleViewReport] No digest drafts found. Result:`, result);
-        setQuestionsError("意見まとめが見つかりません。");
+        setQuestionsError(
+          "市民意見レポート（意見まとめ）はまだ生成されていません。「更新する」ボタンで生成できます。"
+        );
       }
     } catch (error) {
       console.error("Failed to get report:", error);
-      setQuestionsError("レポートの取得に失敗しました。");
+      setQuestionsError(
+        "市民意見レポートの取得に失敗しました。通信エラーやサーバーエラーの可能性があります。"
+      );
     }
   };
 

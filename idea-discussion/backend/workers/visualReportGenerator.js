@@ -14,6 +14,7 @@ async function generateVisualReport(questionId) {
       `[VisualReportWorker] Error during visual report generation for ${questionId}:`,
       error
     );
+    throw error;
   }
 }
 

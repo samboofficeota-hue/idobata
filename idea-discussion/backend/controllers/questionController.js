@@ -333,28 +333,19 @@ export const triggerDebateAnalysisGeneration = async (req, res) => {
   }
 
   try {
-    // Check if the question exists (optional but good practice)
     const question = await SharpQuestion.findById(questionId);
     if (!question) {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    // Trigger the generation asynchronously (using setTimeout for simplicity)
-    // In production, use a proper job queue (BullMQ, Agenda, etc.)
-    setTimeout(() => {
-      generateDebateAnalysisTask(questionId).catch((err) => {
-        console.error(
-          `[API Trigger] Error during background debate analysis generation for ${questionId}:`,
-          err
-        );
-      });
-    }, 0);
+    // 生成が完了するまで待つ（一括作成で「レポートを見る」がすぐ使えるようにする）
+    await generateDebateAnalysisTask(questionId);
 
     console.log(
-      `[API Trigger] Debate analysis generation triggered for questionId: ${questionId}`
+      `[API Trigger] Debate analysis generation completed for questionId: ${questionId}`
     );
-    res.status(202).json({
-      message: `Debate analysis generation started for question ${questionId}`,
+    res.status(200).json({
+      message: `論点まとめの生成が完了しました。`,
     });
   } catch (error) {
     console.error(
@@ -377,28 +368,19 @@ export const triggerDigestGeneration = async (req, res) => {
   }
 
   try {
-    // Check if the question exists (optional but good practice)
     const question = await SharpQuestion.findById(questionId);
     if (!question) {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    // Trigger the generation asynchronously (using setTimeout for simplicity)
-    // In production, use a proper job queue (BullMQ, Agenda, etc.)
-    setTimeout(() => {
-      generateDigestDraft(questionId).catch((err) => {
-        console.error(
-          `[API Trigger] Error during background digest generation for ${questionId}:`,
-          err
-        );
-      });
-    }, 0);
+    // 生成が完了するまで待つ（一括作成で「レポートを見る」がすぐ使えるようにする）
+    await generateDigestDraft(questionId);
 
     console.log(
-      `[API Trigger] Digest generation triggered for questionId: ${questionId}`
+      `[API Trigger] Digest generation completed for questionId: ${questionId}`
     );
-    res.status(202).json({
-      message: `Digest draft generation started for question ${questionId}`,
+    res.status(200).json({
+      message: `意見まとめの生成が完了しました。`,
     });
   } catch (error) {
     console.error(
@@ -465,28 +447,19 @@ export const triggerVisualReportGeneration = async (req, res) => {
   }
 
   try {
-    // Check if the question exists
     const question = await SharpQuestion.findById(questionId);
     if (!question) {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    // Trigger the generation asynchronously (using setTimeout for simplicity)
-    // In production, use a proper job queue (BullMQ, Agenda, etc.)
-    setTimeout(() => {
-      generateVisualReport(questionId).catch((err) => {
-        console.error(
-          `[API Trigger] Error during background visual report generation for ${questionId}:`,
-          err
-        );
-      });
-    }, 0);
+    // 生成が完了するまで待つ（一括作成で「レポートを見る」がすぐ使えるようにする）
+    await generateVisualReport(questionId);
 
     console.log(
-      `[API Trigger] Visual report generation triggered for questionId: ${questionId}`
+      `[API Trigger] Visual report generation completed for questionId: ${questionId}`
     );
-    res.status(202).json({
-      message: `Visual report generation started for question ${questionId}`,
+    res.status(200).json({
+      message: `イラストまとめの生成が完了しました。`,
     });
   } catch (error) {
     console.error(
@@ -615,7 +588,10 @@ export const getDebateAnalysis = async (req, res) => {
   }
 
   try {
-    const debateAnalysis = await DebateAnalysis.findOne({ questionId });
+    const questionObjectId = new mongoose.Types.ObjectId(questionId);
+    const debateAnalysis = await DebateAnalysis.findOne({
+      questionId: questionObjectId,
+    });
 
     if (!debateAnalysis) {
       return res.status(404).json({ message: "Debate analysis not found" });
