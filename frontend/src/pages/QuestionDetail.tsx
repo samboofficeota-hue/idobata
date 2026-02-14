@@ -1,27 +1,43 @@
-import { Lightbulb } from "lucide-react";
+import {
+  CheckCircle2,
+  FileText,
+  Lightbulb,
+  MessageSquare,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { FloatingChat, type FloatingChatRef } from "../components/chat";
 import BreadcrumbView from "../components/common/BreadcrumbView";
+import SectionHeading from "../components/common/SectionHeading";
 import CitizenOpinionContent from "../components/question/CitizenOpinionContent";
 import DebatePointsContent from "../components/question/DebatePointsContent";
+import IllustrationSummaryContent from "../components/question/IllustrationSummaryContent";
 import OtherOpinionCard from "../components/question/OtherOpinionCard";
 import SolutionIdeasContent from "../components/question/SolutionIdeasContent";
 import ThemePromptSection from "../components/question/ThemePromptSection";
-import { DownloadButton } from "../components/ui";
+import {
+  DownloadButton,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuestionDetail } from "../hooks/useQuestionDetail";
 import { useThemeDetail } from "../hooks/useThemeDetail";
 import { QuestionChatManager } from "../services/chatManagers/QuestionChatManager";
 import { socketClient } from "../services/socket/socketClient";
 import type { NewExtractionEvent } from "../services/socket/socketClient";
+import { apiClient } from "../services/api/apiClient";
 import { ExtendedExtractionData, MessageType } from "../types";
+import type { PolicyDraft } from "../types";
 
 const QuestionDetail = () => {
   const { themeId, qId } = useParams<{ themeId: string; qId: string }>();
   const { user } = useAuth();
   const chatRef = useRef<FloatingChatRef>(null);
   const [isOpinionsExpanded, setIsOpinionsExpanded] = useState(false);
+  const [isIllustrationOpen, setIsIllustrationOpen] = useState(false);
   const [chatManager, setChatManager] = useState<QuestionChatManager | null>(
     null
   );
@@ -35,7 +51,19 @@ const QuestionDetail = () => {
     issues: Array<{ id: string; text: string; relevance: number }>;
     solutions: Array<{ id: string; text: string; relevance: number }>;
   }>({ issues: [], solutions: [] });
+  const [policyDrafts, setPolicyDrafts] = useState<PolicyDraft[]>([]);
   const { themeDetail: themeInfo } = useThemeDetail(themeId || "");
+
+  // PolicyDraft 一覧取得（解決アイディアカード用）
+  useEffect(() => {
+    if (!themeId || !qId) return;
+    const fetchPolicyDrafts = async () => {
+      const result = await apiClient.getPolicyDraftsByQuestion(themeId, qId);
+      if (result.isOk()) setPolicyDrafts(result.value);
+      else setPolicyDrafts([]);
+    };
+    fetchPolicyDrafts();
+  }, [themeId, qId]);
 
   const isCommentDisabled = themeInfo?.theme?.disableNewComment === true;
 
@@ -203,9 +231,26 @@ const QuestionDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-8">
-          <p>質問の詳細を読み込み中...</p>
+      <div className="xl:mr-[480px]">
+        <div className="w-full max-w-5xl pl-4 pr-4 md:pl-8 md:pr-8">
+          <div className="h-5 w-48 bg-gray-200 rounded animate-pulse mb-6" />
+          <div className="py-8 space-y-8">
+            <div className="h-8 w-3/4 max-w-xl bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+            <div className="bg-gray-100 rounded-xl p-6 md:p-8 space-y-4">
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-20 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-20 w-4/5 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-6 mt-10">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-gray-100 rounded-xl p-6 md:p-8">
+                <div className="h-7 w-40 bg-gray-200 rounded animate-pulse mb-4" />
+                <div className="h-24 w-full bg-gray-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -265,94 +310,76 @@ const QuestionDetail = () => {
                 questionTitle={questionData.tagLine || questionData.question}
                 questionDescription={questionData.question}
                 questionTags={questionData.tags}
+                visualReport={questionDetail?.visualReport ?? null}
+                onOpenIllustration={() => setIsIllustrationOpen(true)}
               />
             </div>
 
             {/* みんなの論点 */}
-            <div className="mb-8">
-            <div className="mb-6">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                  みんなの論点
-                </h2>
-                {questionDetail?.visualReport && 
-                  typeof questionDetail.visualReport === "string" && 
-                  !questionDetail.visualReport.includes("<!DOCTYPE html>") && 
+            <section className="mb-16">
+              <div className="mb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <SectionHeading title="みんなの論点" className="mb-0 py-0" />
+                </div>
+                {questionDetail?.visualReport &&
+                  typeof questionDetail.visualReport === "string" &&
+                  !questionDetail.visualReport.includes("<!DOCTYPE html>") &&
                   !questionDetail.visualReport.includes("<html") && (
-                  <DownloadButton
-                    downloadType="image"
-                    data={{ imageUrl: questionDetail.visualReport }}
-                  >
-                    イラスト要約をダウンロード
-                  </DownloadButton>
-                )}
+                    <DownloadButton
+                      downloadType="image"
+                      data={{ imageUrl: questionDetail.visualReport }}
+                    >
+                      イラスト要約をダウンロード
+                    </DownloadButton>
+                  )}
               </div>
-            </div>
-            <div className="bg-gray-100 rounded-xl p-4 md:p-6">
-              <DebatePointsContent debateData={questionDetail?.debateData} />
-            </div>
-            </div>
+              <div className="rounded-xl border border-border bg-card p-6 md:p-8">
+                <DebatePointsContent debateData={questionDetail?.debateData} />
+              </div>
+            </section>
 
             {/* みんなのアイディア */}
-            <div className="mb-12">
-            <div className="mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                みんなのアイディア
-              </h2>
-            </div>
-            <div className="bg-gray-100 rounded-xl p-6 md:p-8">
-              <CitizenOpinionContent digestDraft={questionDetail?.digestDraft} />
-            </div>
-            </div>
+            <section className="mb-16">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <SectionHeading title="みんなのアイディア" className="mb-0 py-0" />
+              </div>
+              <div className="rounded-xl border border-border bg-card p-6 md:p-8">
+                <CitizenOpinionContent digestDraft={questionDetail?.digestDraft} />
+              </div>
+            </section>
 
             {/* みんなの解決デザイン */}
-            <div className="mb-12">
-            <div className="mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                みんなの解決デザイン
-              </h2>
-            </div>
-            <div className="bg-gray-100 rounded-xl p-6 md:p-8">
-              <SolutionIdeasContent
-                solutionIdeas={questionDetail?.solutionIdeas || []}
-              />
-            </div>
-            </div>
-
-            {/* みんなの意見 */}
-            <div className="mb-8">
-            <div className="mb-6">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 md:gap-0">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
-                    <Lightbulb className="w-8 h-8 text-orange-400 stroke-2" />
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-wide">
-                    みんなの意見
-                  </h2>
+            <section className="mb-16">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                  <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div className="flex justify-end md:justify-start items-center gap-4 flex-wrap">
-                  <div className="flex items-center justify-center gap-1 px-0 py-0">
-                    <span className="text-xs text-blue-500 font-normal leading-8 tracking-wide">
-                      対話参加人数
-                    </span>
-                    <span className="text-xl font-bold text-gray-800 leading-8 tracking-wide">
-                      {questionDetail?.participantCount || 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-center gap-1 px-0 py-0">
-                    <span className="text-xs text-green-500 font-normal leading-8 tracking-wide">
-                      対話数
-                    </span>
-                    <span className="text-xl font-bold text-gray-800 leading-8 tracking-wide">
-                      {opinions.issues.length + opinions.solutions.length}
-                    </span>
-                  </div>
-                </div>
+                <SectionHeading title="みんなの解決デザイン" className="mb-0 py-0" />
               </div>
-            </div>
+              <div className="rounded-xl border border-border bg-card p-6 md:p-8">
+                <SolutionIdeasContent
+                  policyDrafts={policyDrafts}
+                  questionHmw={questionData.tagLine || questionData.question}
+                />
+              </div>
+            </section>
 
-            {(() => {
+            {/* みんなの意見（対話参加人数・対話数は上部の問いカードに表示） */}
+            <section className="mb-16">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                  <Lightbulb className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <SectionHeading title="みんなの意見" className="mb-0 py-0" />
+              </div>
+
+              {(() => {
               // 課題と対策を統合して新しい順に並べる
               const allOpinions = [
                 ...opinions.issues.map((issue, index) => ({
@@ -432,9 +459,28 @@ const QuestionDetail = () => {
                 </>
               );
             })()}
-            </div>
+            </section>
           </div>
         </div>
+
+        {/* イラストまとめモーダル */}
+        <Sheet open={isIllustrationOpen} onOpenChange={setIsIllustrationOpen}>
+          <SheetContent
+            side="right"
+            className="w-full sm:max-w-2xl overflow-y-auto"
+          >
+            <SheetHeader>
+              <SheetTitle>イラストまとめ</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <IllustrationSummaryContent
+                visualReport={questionDetail?.visualReport ?? null}
+                questionDetail={questionDetail}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+
         <FloatingChat
           ref={chatRef}
           onSendMessage={handleSendMessage}

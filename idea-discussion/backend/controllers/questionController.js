@@ -16,7 +16,6 @@ import { getVisualReport as getQuestionVisualReport } from "../services/question
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
 import { generateDigestDraft } from "../workers/digestGenerator.js";
 import { generatePolicyDraft } from "../workers/policyGenerator.js";
-import { generateSolutionIdeas } from "../workers/solutionIdeasGenerator.js";
 import { generateVisualReport } from "../workers/visualReportGenerator.js";
 
 // GET /api/questions - 全ての質問を集計データ付きで取得（統一API）
@@ -181,48 +180,13 @@ export const getQuestionDetails = async (req, res) => {
     const questionObjectId = mongoose.Types.ObjectId.isValid(questionId)
       ? new mongoose.Types.ObjectId(questionId)
       : questionId;
-    
-    console.log(`[getQuestionDetails] DigestDraft lookup for questionId: ${questionId} (converted to: ${questionObjectId})`);
-    
-    // まず、すべてのDigestDraftを確認（デバッグ用）
-    const allDigestDrafts = await DigestDraft.find({}).select('questionId title createdAt').lean();
-    console.log(`[getQuestionDetails] All DigestDrafts in DB:`, allDigestDrafts.map(d => ({
-      _id: d._id,
-      questionId: d.questionId,
-      questionIdType: typeof d.questionId,
-      title: d.title,
-      createdAt: d.createdAt,
-    })));
-    
+
+    // 管理画面で意見まとめが生成されていればその最新1件を返す（表示用）
     const digestDraft = await DigestDraft.findOne({
       questionId: questionObjectId,
     })
       .sort({ createdAt: -1 })
       .lean();
-    
-    console.log(`[getQuestionDetails] Found digestDraft:`, digestDraft ? {
-      _id: digestDraft._id,
-      questionId: digestDraft.questionId,
-      questionIdType: typeof digestDraft.questionId,
-      questionIdString: digestDraft.questionId?.toString(),
-      searchQuestionId: questionObjectId.toString(),
-      title: digestDraft.title,
-      hasContent: !!digestDraft.content,
-      contentLength: digestDraft.content?.length || 0,
-      createdAt: digestDraft.createdAt,
-      createdAtType: typeof digestDraft.createdAt,
-    } : null);
-    
-    // デバッグ: questionIdの一致を確認
-    if (digestDraft) {
-      const draftQuestionIdStr = digestDraft.questionId?.toString();
-      const searchQuestionIdStr = questionObjectId.toString();
-      console.log(`[getQuestionDetails] QuestionId match check:`, {
-        draftQuestionId: draftQuestionIdStr,
-        searchQuestionId: searchQuestionIdStr,
-        match: draftQuestionIdStr === searchQuestionIdStr,
-      });
-    }
 
     const visualReport = await getQuestionVisualReport(questionId);
 
@@ -280,21 +244,6 @@ export const getQuestionDetails = async (req, res) => {
     // 5. 対話数（オピニオンの数）= 関連するProblemとSolutionの総数
     const dialogueCount = relatedProblems.length + relatedSolutions.length;
 
-    // 6. Generate solution ideas from all related solutions (maximum 4)
-    let solutionIdeas = [];
-    try {
-      solutionIdeas = await generateSolutionIdeas(questionId);
-      console.log(
-        `[getQuestionDetails] Generated ${solutionIdeas.length} solution ideas`
-      );
-    } catch (error) {
-      console.error(
-        `[getQuestionDetails] Error generating solution ideas:`,
-        error
-      );
-      // Continue without solution ideas if generation fails
-    }
-
     const responseData = {
       question: {
         ...question.toObject(),
@@ -318,13 +267,8 @@ export const getQuestionDetails = async (req, res) => {
       visualReport: visualReport ? visualReport.overallAnalysis : null,
       participantCount,
       dialogueCount,
-      solutionIdeas: solutionIdeas || [],
+      solutionIdeas: [], // 解決アイディアはPolicyDraftを別取得して表示するためここでは返さない
     };
-
-    // デバッグ: レスポンスデータの確認
-    console.log(`[getQuestionDetails] Response digestDraft:`, responseData.digestDraft);
-    console.log(`[getQuestionDetails] Response digestDraft type:`, typeof responseData.digestDraft);
-    console.log(`[getQuestionDetails] Response digestDraft keys:`, responseData.digestDraft ? Object.keys(responseData.digestDraft) : null);
 
     res.status(200).json(responseData);
   } catch (error) {

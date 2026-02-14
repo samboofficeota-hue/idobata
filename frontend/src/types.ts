@@ -131,6 +131,12 @@ export interface PolicyDraft {
   content: string;
   version?: number;
   createdAt: string;
+  /** 対象・目的・期待効果（問いの contextSets から） */
+  representativeContextSet?: {
+    target?: string;
+    purpose?: string;
+    expectedEffect?: string;
+  } | null;
 }
 
 export interface DigestDraft {

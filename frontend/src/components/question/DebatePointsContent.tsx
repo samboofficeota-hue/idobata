@@ -22,8 +22,8 @@ interface DebatePointsContentProps {
 const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
   if (!debateData) {
     return (
-      <div className="text-gray-500 text-center py-8">
-        論点データを読み込み中...
+      <div className="py-12 text-center text-muted-foreground">
+        <p className="text-base leading-relaxed">論点データを読み込み中...</p>
       </div>
     );
   }
@@ -58,8 +58,13 @@ const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
   // すべてのデータが空の場合
   if (!hasAxes && !hasAgreementPoints && !hasDisagreementPoints) {
     return (
-      <div className="text-gray-500 text-center py-8">
-        論点データがまだ生成されていません。対話が集まると、AIによって論点が自動的に抽出・分析されます。
+      <div className="py-12 text-center text-muted-foreground">
+        <p className="text-base leading-relaxed">
+          論点データがまだ生成されていません。
+        </p>
+        <p className="mt-2 text-sm">
+          対話が集まると、AIによって論点が自動的に抽出・分析されます。
+        </p>
       </div>
     );
   }

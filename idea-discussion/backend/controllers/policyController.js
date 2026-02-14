@@ -4,6 +4,7 @@ import SharpQuestion from "../models/SharpQuestion.js";
 
 export const getPolicyDraftsByTheme = async (req, res) => {
   const { themeId } = req.params;
+  const { questionId: queryQuestionId } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(themeId)) {
     return res.status(400).json({ message: "Invalid theme ID format" });
@@ -13,7 +14,12 @@ export const getPolicyDraftsByTheme = async (req, res) => {
     const questions = await SharpQuestion.find({ themeId });
     const questionIds = questions.map((q) => q._id);
 
-    const drafts = await PolicyDraft.find({ questionId: { $in: questionIds } })
+    const filter = { questionId: { $in: questionIds } };
+    if (queryQuestionId && mongoose.Types.ObjectId.isValid(queryQuestionId)) {
+      filter.questionId = queryQuestionId;
+    }
+
+    const drafts = await PolicyDraft.find(filter)
       .sort({ createdAt: -1 })
       .populate("questionId", "questionText");
 
