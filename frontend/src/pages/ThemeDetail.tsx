@@ -18,6 +18,7 @@ const ThemeDetail = () => {
   const [chatManager, setChatManager] = useState<ThemeDetailChatManager | null>(
     null
   );
+  const [threadId, setThreadId] = useState<string | null>(null);
 
   const {
     themeDetail: apiThemeDetail,
@@ -48,12 +49,14 @@ const ThemeDetail = () => {
           floatingChatRef.current?.replaceMessage(id, content);
         },
         onNewExtraction: handleNewExtraction,
+        onThreadId: setThreadId,
       });
 
       setChatManager(manager);
 
       return () => {
         manager.cleanup();
+        setThreadId(null);
       };
     }
   }, [themeId, isMockMode, themeDetail?.theme?.title, user?.id]);
@@ -132,6 +135,7 @@ const ThemeDetail = () => {
             {...templateProps}
             onSendMessage={handleSendMessage}
             disabled={isCommentDisabled}
+            threadId={threadId}
             ref={floatingChatRef}
           />
         </div>

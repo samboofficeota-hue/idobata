@@ -18,6 +18,8 @@ export interface ThemeDetailChatManagerOptions {
   /** 「考え中」メッセージを実際の応答で置き換えるときに呼ぶ */
   onReplaceMessage?: (messageId: string, content: string) => void;
   onNewExtraction?: (extraction: NewExtractionEvent) => void;
+  /** スレッドIDが確定したとき（履歴読み込み後または初回送信応答後）に呼ぶ */
+  onThreadId?: (threadId: string) => void;
 }
 
 export class ThemeDetailChatManager {
@@ -27,6 +29,7 @@ export class ThemeDetailChatManager {
   private onNewMessage?: (message: Message) => void;
   private onReplaceMessage?: (messageId: string, content: string) => void;
   private onNewExtraction?: (extraction: NewExtractionEvent) => void;
+  private onThreadId?: (threadId: string) => void;
   private threadId?: string;
   private unsubscribeNewExtraction?: () => void;
   private unsubscribeExtractionUpdate?: () => void;
@@ -38,6 +41,7 @@ export class ThemeDetailChatManager {
     this.onNewMessage = options.onNewMessage;
     this.onReplaceMessage = options.onReplaceMessage;
     this.onNewExtraction = options.onNewExtraction;
+    this.onThreadId = options.onThreadId;
     this.userId = options.userId;
 
     this.loadChatHistory().then(() => {
@@ -223,7 +227,12 @@ export class ThemeDetailChatManager {
 
   setThreadId(threadId: string): void {
     this.threadId = threadId;
+    this.onThreadId?.(threadId);
     socketClient.subscribeToThread(threadId);
+  }
+
+  getThreadId(): string | undefined {
+    return this.threadId;
   }
 
   cleanup(): void {
@@ -273,6 +282,7 @@ export class ThemeDetailChatManager {
     const { threadId, messages } = result.value;
 
     this.threadId = threadId;
+    this.onThreadId?.(threadId);
     this.saveThreadIdToStorage();
 
     if (!messages || messages.length === 0) {

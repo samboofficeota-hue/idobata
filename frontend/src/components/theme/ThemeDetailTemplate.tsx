@@ -30,15 +30,18 @@ interface ThemeDetailTemplateProps {
   }[];
   disabled?: boolean;
   onSendMessage?: (message: string) => void;
+  /** 親で管理しているスレッドID（例: ThemeDetail の ChatManager）。未指定時はテンプレート内の送信応答で設定 */
+  threadId?: string | null;
 }
 
 const ThemeDetailTemplate = forwardRef<
   FloatingChatRef,
   ThemeDetailTemplateProps
 >(
-  ({ theme, keyQuestions, disabled = false, onSendMessage }, ref) => {
+  ({ theme, keyQuestions, disabled = false, onSendMessage, threadId: threadIdFromParent }, ref) => {
     const chatRef = useRef<FloatingChatRef>(null);
-    const [threadId, setThreadId] = useState<string | null>(null);
+    const [localThreadId, setLocalThreadId] = useState<string | null>(null);
+    const threadId = threadIdFromParent ?? localThreadId;
     const [userId, setUserId] = useState<string>(
       localStorage.getItem("userId") || crypto.randomUUID()
     );
@@ -99,7 +102,7 @@ const ThemeDetailTemplate = forwardRef<
       chatRef.current?.addMessage(responseData.response, "system");
 
       if (responseData.threadId) {
-        setThreadId(responseData.threadId);
+        setLocalThreadId(responseData.threadId);
       }
 
       if (responseData.userId && responseData.userId !== userId) {
@@ -171,6 +174,7 @@ const ThemeDetailTemplate = forwardRef<
           onSendMessage={handleSendMessageInternal}
           disabled={disabled}
           themeId={theme._id}
+          threadId={threadId}
         />
       </div>
     );
