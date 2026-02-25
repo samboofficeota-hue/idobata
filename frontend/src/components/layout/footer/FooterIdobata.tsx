@@ -4,7 +4,7 @@ import { ProjectDescriptionText } from "../../ui/project-description-text";
 
 const FooterIdobata = () => {
   return (
-    <div className="w-full relative rounded-t-3xl overflow-hidden">
+    <div className="w-full relative z-0 rounded-t-3xl overflow-hidden">
       {/* グラデーション背景 */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#94B9F9] to-[#9CE0E5]" />
       {/* 白い半透明オーバーレイ */}
