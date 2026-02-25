@@ -21,12 +21,12 @@ const ThemeCard = ({
   commentCount,
 }: ThemeCardProps) => {
   return (
-    <Link to={`/themes/${id}`} className="block">
-      <Card className="hover:shadow-md transition-all duration-200 hover:border-primary-700/50">
-        <CardContent className="pt-4">
-          <CardTitle className="text-lg mb-2">{title}</CardTitle>
+    <Link to={`/themes/${id}`} className="block min-w-0">
+      <Card className="hover:shadow-md transition-all duration-200 hover:border-primary-700/50 min-w-0 overflow-hidden">
+        <CardContent className="pt-4 min-w-0">
+          <CardTitle className="text-lg mb-2 break-words">{title}</CardTitle>
           <div className="h-[2px] bg-gray-300 w-full my-2" />
-          <p className="text-base text-muted-foreground mb-4">{description}</p>
+          <p className="text-base text-muted-foreground mb-4 break-words">{description}</p>
         </CardContent>
         <CardFooter className="flex justify-between items-center pt-0">
           <div className="flex text-sm sm:text-base text-muted-foreground">
