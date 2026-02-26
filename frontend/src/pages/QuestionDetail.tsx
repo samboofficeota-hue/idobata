@@ -338,21 +338,7 @@ const QuestionDetail = () => {
               </div>
             </section>
 
-            {/* みんなの解決デザイン */}
-            <section className="mb-16">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
-                  <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <SectionHeading title="みんなの解決デザイン" className="mb-0 py-0" />
-              </div>
-              <div className="rounded-xl border border-border bg-card p-6 md:p-8">
-                <SolutionIdeasContent
-                  policyDrafts={policyDrafts}
-                  questionHmw={questionData.tagLine || questionData.question}
-                />
-              </div>
-            </section>
+            {/* みんなの解決デザイン（PolicyDraft未実装のため非表示） */}
 
             {/* みんなの意見（対話参加人数・対話数は上部の問いカードに表示） */}
             <section className="mb-16">
