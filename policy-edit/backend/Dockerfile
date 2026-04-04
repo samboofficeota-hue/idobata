@@ -43,9 +43,8 @@ ENV MCP_SERVER_PATH=/app/policy-edit/mcp/dist/main.js
 # Set NODE_ENV to production
 ENV NODE_ENV=production
 
-# Copy the private key into the final image
-# IMPORTANT: Ensure the key exists at ./policy-edit/backend/secrets/github-key.pem during build
-COPY ./policy-edit/backend/secrets/github-key.pem /app/secrets/github-key.pem
+# Note: GitHub private key is provided via GITHUB_PRIVATE_KEY environment variable in production.
+# For local Docker builds, mount the key file or set the env var.
 
 # Copy backend package.json (optional, if needed by CMD or runtime)
 COPY ./policy-edit/backend/package.json ./policy-edit/backend/package.json

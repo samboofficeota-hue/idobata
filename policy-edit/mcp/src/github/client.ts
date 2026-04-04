@@ -19,7 +19,15 @@ let installationOctokit: InstallationOctokit | null = null;
 // tokenExpiration is removed as getInstallationOctokit likely handles token refresh.
 
 function getPrivateKey(): string {
-  const keyPath = "/app/secrets/github-key.pem"; // Fixed path inside the container
+  // Prefer environment variable (for Railway and other cloud environments)
+  const keyFromEnv = process.env.GITHUB_PRIVATE_KEY;
+  if (keyFromEnv) {
+    logger.info("Reading private key from GITHUB_PRIVATE_KEY environment variable");
+    return keyFromEnv.replace(/\\n/g, "\n");
+  }
+
+  // Fall back to file (for local development)
+  const keyPath = "/app/secrets/github-key.pem";
   try {
     logger.info(`Reading private key from file: ${keyPath}`);
     return fs.readFileSync(keyPath, "utf8");
@@ -29,7 +37,7 @@ function getPrivateKey(): string {
       "Failed to read private key from file"
     );
     throw new Error(
-      `Could not read GitHub App private key file from ${keyPath}. Ensure the file exists and has correct permissions.`
+      `Could not read GitHub App private key. Set GITHUB_PRIVATE_KEY environment variable or ensure the file exists at ${keyPath}.`
     );
   }
 }
