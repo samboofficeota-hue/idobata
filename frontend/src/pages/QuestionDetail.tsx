@@ -1,5 +1,4 @@
 import {
-  CheckCircle2,
   FileText,
   ImageIcon,
   Lightbulb,
@@ -14,7 +13,6 @@ import CitizenOpinionContent from "../components/question/CitizenOpinionContent"
 import DebatePointsContent from "../components/question/DebatePointsContent";
 import IllustrationSummaryContent from "../components/question/IllustrationSummaryContent";
 import OtherOpinionCard from "../components/question/OtherOpinionCard";
-import SolutionIdeasContent from "../components/question/SolutionIdeasContent";
 import ThemePromptSection from "../components/question/ThemePromptSection";
 import { DownloadButton } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
@@ -46,7 +44,7 @@ const QuestionDetail = () => {
     issues: Array<{ id: string; text: string; relevance: number }>;
     solutions: Array<{ id: string; text: string; relevance: number }>;
   }>({ issues: [], solutions: [] });
-  const [policyDrafts, setPolicyDrafts] = useState<PolicyDraft[]>([]);
+  const [_policyDrafts, setPolicyDrafts] = useState<PolicyDraft[]>([]);
   const { themeDetail: themeInfo } = useThemeDetail(themeId || "");
 
   // PolicyDraft 一覧取得（解決アイディアカード用）
