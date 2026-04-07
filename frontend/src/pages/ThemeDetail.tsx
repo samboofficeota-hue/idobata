@@ -88,6 +88,13 @@ const ThemeDetail = () => {
     }
   };
 
+  const handleNewChat = () => {
+    if (chatManager) {
+      chatManager.resetThread();
+    }
+    setThreadId(null);
+  };
+
   if (!isMockMode && isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 xl:max-w-none">
@@ -134,6 +141,7 @@ const ThemeDetail = () => {
           <ThemeDetailTemplate
             {...templateProps}
             onSendMessage={handleSendMessage}
+            onNewChat={handleNewChat}
             disabled={isCommentDisabled}
             threadId={threadId}
             ref={floatingChatRef}

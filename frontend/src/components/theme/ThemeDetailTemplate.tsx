@@ -30,6 +30,7 @@ interface ThemeDetailTemplateProps {
   }[];
   disabled?: boolean;
   onSendMessage?: (message: string) => void;
+  onNewChat?: () => void;
   /** 親で管理しているスレッドID（例: ThemeDetail の ChatManager）。未指定時はテンプレート内の送信応答で設定 */
   threadId?: string | null;
 }
@@ -38,7 +39,7 @@ const ThemeDetailTemplate = forwardRef<
   FloatingChatRef,
   ThemeDetailTemplateProps
 >(
-  ({ theme, keyQuestions, disabled = false, onSendMessage, threadId: threadIdFromParent }, ref) => {
+  ({ theme, keyQuestions, disabled = false, onSendMessage, onNewChat, threadId: threadIdFromParent }, ref) => {
     const chatRef = useRef<FloatingChatRef>(null);
     const [localThreadId, setLocalThreadId] = useState<string | null>(null);
     const threadId = threadIdFromParent ?? localThreadId;
@@ -172,6 +173,7 @@ const ThemeDetailTemplate = forwardRef<
         <FloatingChat
           ref={chatRef}
           onSendMessage={handleSendMessageInternal}
+          onNewChat={onNewChat}
           disabled={disabled}
           themeId={theme._id}
           threadId={threadId}

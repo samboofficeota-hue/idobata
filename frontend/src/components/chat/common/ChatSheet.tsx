@@ -15,6 +15,7 @@ interface ChatSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSendMessage?: (message: string) => void;
+  onNewChat?: () => void;
   isDesktop?: boolean;
   disabled?: boolean;
   disabledMessage?: string;
@@ -26,6 +27,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   isOpen,
   onClose,
   onSendMessage,
+  onNewChat,
   isDesktop = false,
   disabled = false,
   disabledMessage = "このテーマではコメントが無効化されています",
@@ -104,32 +106,26 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   };
 
   const handleNewChat = async () => {
-    // 新しいチャット: チャット履歴をクリアして新しい会話を開始
-    // ユーザーの回答が少ない場合は抽出しない（2件未満の場合は抽出しない）
-    // ここでは単にチャットをクリアするだけ
+    // スレッドをリセットして新しい会話を開始
+    onNewChat?.();
     clearMessages();
 
     // 初期メッセージを取得して追加
+    const defaultMessage = "こんにちは！このテーマについて、あなたの意見や考えを聞かせてください。";
     if (themeId) {
       try {
         const result = await apiClient.getInitialChatMessage(themeId);
         if (result.isOk()) {
           addMessage(result.value.message, "system");
+        } else {
+          addMessage(defaultMessage, "system");
         }
       } catch (error) {
         console.error("Failed to get initial chat message:", error);
-        // エラー時はデフォルトメッセージを追加
-        addMessage(
-          "こんにちは！このテーマについて、あなたの意見や考えを聞かせてください。",
-          "system"
-        );
+        addMessage(defaultMessage, "system");
       }
     } else {
-      // themeIdがない場合はデフォルトメッセージを追加
-      addMessage(
-        "こんにちは！このテーマについて、あなたの意見や考えを聞かせてください。",
-        "system"
-      );
+      addMessage(defaultMessage, "system");
     }
   };
 

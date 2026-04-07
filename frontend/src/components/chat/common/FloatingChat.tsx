@@ -10,6 +10,7 @@ interface FloatingChatProps {
   onSendMessage?: (message: string) => void;
   onClose?: () => void;
   onOpen?: () => void;
+  onNewChat?: () => void;
   disabled?: boolean;
   disabledMessage?: string;
   themeId?: string | null;
@@ -35,6 +36,7 @@ const FloatingChatInner = forwardRef<FloatingChatRef, FloatingChatProps>(
       onSendMessage,
       onClose,
       onOpen,
+      onNewChat,
       disabled = false,
       disabledMessage = "このテーマではコメントが無効化されています",
       themeId = null,
@@ -129,6 +131,7 @@ const FloatingChatInner = forwardRef<FloatingChatRef, FloatingChatProps>(
               isOpen={isOpen}
               onClose={handleClose}
               onSendMessage={handleSendMessage}
+              onNewChat={onNewChat}
               isDesktop={isDesktop}
               disabled={disabled}
               disabledMessage={disabledMessage}

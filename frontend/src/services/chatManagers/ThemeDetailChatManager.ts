@@ -257,6 +257,10 @@ export class ThemeDetailChatManager {
     this.messages = [];
   }
 
+  resetThread(): void {
+    this.threadId = undefined;
+  }
+
   private saveThreadIdToStorage(): void {
     if (this.threadId) {
       localStorage.setItem(`chat_thread_${this.themeId}`, this.threadId);
