@@ -105,7 +105,7 @@ Respond with a JSON object: { "questions": [ ... ] }`,
       `[QuestionGenerator] LLM generated ${generatedQuestionObjects.length} question objects.`
     );
 
-    // 4. 既存問い数・正規化済み文言を取得（1テーマ最大10件・重複判定用）
+    // 4. 既存問い数・正規化済み文言を取得（1テーマ最大6件・重複判定用）
     const existingQuestions = await SharpQuestion.find({ themeId })
       .select("questionText")
       .lean();
@@ -114,14 +114,14 @@ Respond with a JSON object: { "questions": [ ... ] }`,
       existingQuestions.map((q) => normalizeQuestionText(q.questionText))
     );
 
-    if (existingCount >= 10) {
+    if (existingCount >= 6) {
       console.log(
-        `[QuestionGenerator] Theme ${themeId} already has ${existingCount} questions (max 10). Skipping insert.`
+        `[QuestionGenerator] Theme ${themeId} already has ${existingCount} questions (max 6). Skipping insert.`
       );
       return;
     }
 
-    // 5. Save questions to DB (重複なし・最大10件まで)
+    // 5. Save questions to DB (重複なし・最大6件まで)
     let savedCount = 0;
     for (const questionObj of generatedQuestionObjects) {
       let questionText = questionObj.question;
@@ -161,10 +161,10 @@ Respond with a JSON object: { "questions": [ ... ] }`,
         continue;
       }
 
-      // 1テーマあたり最大10件：既に10件に達している場合は挿入しない
-      if (existingCount + savedCount >= 10) {
+      // 1テーマあたり最大6件：既に6件に達している場合は挿入しない
+      if (existingCount + savedCount >= 6) {
         console.log(
-          `[QuestionGenerator] Theme ${themeId} reached 10 questions. Skipping remaining.`
+          `[QuestionGenerator] Theme ${themeId} reached 6 questions. Skipping remaining.`
         );
         continue;
       }
@@ -202,7 +202,7 @@ Respond with a JSON object: { "questions": [ ... ] }`,
     }
 
     console.log(
-      `[QuestionGenerator] Successfully inserted ${savedCount} new questions for theme ${themeId} (total cap 10).`
+      `[QuestionGenerator] Successfully inserted ${savedCount} new questions for theme ${themeId} (total cap 6).`
     );
     // Linking is now triggered after each question is saved/upserted above.
   } catch (error) {
