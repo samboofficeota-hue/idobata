@@ -15,10 +15,11 @@ const openai = new OpenAI({
  * @param {string} model - The model ID to use (defaults to gpt-5-mini)
  * @returns {string|Object} - Returns parsed JSON object if jsonOutput=true, otherwise string content
  */
-async function callLLM(messages, jsonOutput = false, model = "gpt-5-mini") {
+async function callLLM(messages, jsonOutput = false, model = "gpt-5-mini", extraOptions = {}) {
   const options = {
-    model: model, // Default to gpt-5-mini, but allow override
+    model: model,
     messages: messages,
+    ...extraOptions,
   };
   if (jsonOutput) {
     options.response_format = { type: "json_object" };

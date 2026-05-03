@@ -398,7 +398,7 @@ const handleNewMessageByTheme = async (req, res) => {
     );
 
     // Call the LLM service
-    const aiResponseContent = await callLLM(llmMessages);
+    const aiResponseContent = await callLLM(llmMessages, false, undefined, { max_tokens: 150 });
 
     if (!aiResponseContent) {
       console.error("LLM did not return a response.");
