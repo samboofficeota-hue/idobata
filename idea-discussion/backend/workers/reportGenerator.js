@@ -132,7 +132,7 @@ Please provide the output as a JSON object with "introduction" and "issues" keys
     ];
 
     console.log("[ReportGenerator] Calling LLM to generate report example...");
-    const llmResponse = await callLLM(messages, true, "gpt-5-mini");
+    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6");
 
     if (
       !llmResponse ||

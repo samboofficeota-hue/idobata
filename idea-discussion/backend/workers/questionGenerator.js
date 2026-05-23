@@ -82,7 +82,7 @@ Respond with a JSON object: { "questions": [ ... ] }`,
     console.log("[QuestionGenerator] Calling LLM to generate questions...");
     let llmResponse;
     try {
-      llmResponse = await callLLM(messages, true, "gpt-5-mini"); // Request JSON output with specific model
+      llmResponse = await callLLM(messages, true, "claude-sonnet-4-6"); // Request JSON output with specific model
     } catch (error) {
       console.error("[QuestionGenerator] Error calling LLM:", error.message);
       throw new Error(`LLM call failed: ${error.message}`);

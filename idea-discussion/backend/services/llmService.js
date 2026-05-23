@@ -1,49 +1,64 @@
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 
-// dotenv is loaded in server.js, no need to load it again here.
+dotenv.config({ override: true });
 
-dotenv.config({ override: true }); // Load environment variables from .env file
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-api-key",
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+const DEFAULT_MODEL = "claude-sonnet-4-6";
+const DEFAULT_MAX_TOKENS = 2048;
+
 /**
- * Call an LLM model via OpenAI API
+ * Call an LLM model via Anthropic API
  * @param {Array} messages - Array of message objects with role and content properties
  * @param {boolean} jsonOutput - Whether to request JSON output from the LLM
- * @param {string} model - The model ID to use (defaults to gpt-5-mini)
+ * @param {string} model - The model ID to use (defaults to claude-sonnet-4-6)
+ * @param {Object} extraOptions - Additional API options (e.g. max_tokens)
  * @returns {string|Object} - Returns parsed JSON object if jsonOutput=true, otherwise string content
  */
-async function callLLM(messages, jsonOutput = false, model = "gpt-5-mini", extraOptions = {}) {
-  const options = {
-    model: model,
-    messages: messages,
-    ...extraOptions,
-  };
-  if (jsonOutput) {
-    options.response_format = { type: "json_object" };
-    // Ensure the last message prompts for JSON output explicitly
-    if (messages.length > 0 && messages[messages.length - 1].role === "user") {
-      messages[messages.length - 1].content +=
-        "\n\nPlease respond ONLY in JSON format.";
-    }
-  }
-
-  console.log("Calling LLM with options:", JSON.stringify(options, null, 2)); // Log request details
-
-  // Check API key before making request
-  if (!process.env.OPENAI_API_KEY) {
-    const message =
-      "No valid API key found. Please set OPENAI_API_KEY in your .env file";
+async function callLLM(messages, jsonOutput = false, model = DEFAULT_MODEL, extraOptions = {}) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    const message = "No valid API key found. Please set ANTHROPIC_API_KEY in your environment.";
     console.error(message);
     throw new Error(message);
   }
 
+  // Anthropic requires system messages to be passed separately
+  const systemMessages = messages.filter((m) => m.role === "system");
+  const userAssistantMessages = messages.filter((m) => m.role !== "system");
+
+  const systemPrompt = systemMessages.map((m) => m.content).join("\n");
+
+  if (jsonOutput) {
+    const last = userAssistantMessages[userAssistantMessages.length - 1];
+    if (last && last.role === "user") {
+      last.content += "\n\nPlease respond ONLY in JSON format.";
+    }
+  }
+
+  const options = {
+    model: model || DEFAULT_MODEL,
+    max_tokens: extraOptions.max_tokens ?? DEFAULT_MAX_TOKENS,
+    messages: userAssistantMessages,
+  };
+
+  if (systemPrompt) {
+    options.system = systemPrompt;
+  }
+
+  // Spread remaining extraOptions (excluding max_tokens which is already set)
+  const { max_tokens: _ignored, ...restExtra } = extraOptions;
+  Object.assign(options, restExtra);
+
+  console.log("Calling LLM with options:", JSON.stringify({ ...options, messages: `[${options.messages.length} messages]` }, null, 2));
+
   try {
-    const completion = await openai.chat.completions.create(options);
-    console.log("LLM Response:", JSON.stringify(completion, null, 2)); // Log full response
-    const content = completion.choices[0].message?.content;
+    const response = await anthropic.messages.create(options);
+    console.log("LLM Response:", JSON.stringify(response, null, 2));
+
+    const content = response.content[0]?.text;
 
     if (!content) {
       console.error("LLM returned empty content.");
@@ -54,46 +69,34 @@ async function callLLM(messages, jsonOutput = false, model = "gpt-5-mini", extra
       try {
         let jsonString = content;
 
-        // First attempt: Check for ```json ... ``` blocks
         const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
         if (jsonMatch) {
           jsonString = jsonMatch[1];
-          console.log("Found JSON in ```json``` block");
         } else {
-          // Second attempt: Check for general ``` ... ``` blocks
           const codeBlockMatch = content.match(/```\s*([\s\S]*?)\s*```/);
           if (codeBlockMatch) {
             jsonString = codeBlockMatch[1];
-            console.log("Found JSON in general ``` code block");
           }
         }
 
-        // Try to parse the extracted or raw content
         return JSON.parse(jsonString);
       } catch (e) {
         console.error("Failed to parse LLM JSON response:", content, e);
-        // Return the raw content if JSON parsing fails, maybe it's just text
-        // Or throw a specific error if JSON is strictly required
-        throw new Error(
-          `LLM did not return valid JSON. Raw response: ${content}`
-        );
+        throw new Error(`LLM did not return valid JSON. Raw response: ${content}`);
       }
     }
+
     return content;
   } catch (error) {
-    console.error("Error calling OpenAI:", error);
-    // Implement retry logic if needed
+    console.error("Error calling Anthropic:", error);
     throw error;
   }
 }
 
-// Simple test function
 async function testLLM(model) {
   console.log("Testing LLM connection...");
-  if (!process.env.OPENAI_API_KEY) {
-    console.error(
-      "OPENAI_API_KEY not found in environment variables. Make sure .env is loaded correctly from the project root."
-    );
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("ANTHROPIC_API_KEY not found in environment variables.");
     return;
   }
   try {
@@ -102,7 +105,7 @@ async function testLLM(model) {
       false,
       model
     );
-    console.log(`LLM Test Response (${model || "default model"}):`);
+    console.log(`LLM Test Response (${model || DEFAULT_MODEL}):`);
     console.log(response);
     return response;
   } catch (error) {
@@ -111,9 +114,8 @@ async function testLLM(model) {
   }
 }
 
-// List of available models that work well with OpenAI
 const RECOMMENDED_MODELS = {
-  "gpt-5-mini": "gpt-5-mini",
+  "claude-sonnet-4-6": "claude-sonnet-4-6",
 };
 
 export { callLLM, testLLM, RECOMMENDED_MODELS };

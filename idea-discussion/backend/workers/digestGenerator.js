@@ -222,7 +222,7 @@ Please provide the output as a JSON object with "title" and "content" keys. The 
     ];
 
     console.log("[DigestGenerator] Calling LLM to generate digest draft...");
-    const llmResponse = await callLLM(messages, true, "gpt-5-mini"); // Request JSON output with specific model
+    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6"); // Request JSON output with specific model
 
     if (
       !llmResponse ||

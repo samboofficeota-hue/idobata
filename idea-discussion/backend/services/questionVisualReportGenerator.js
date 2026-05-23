@@ -185,7 +185,7 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: visualPrompt }],
       false,
-      "gpt-5-mini"
+      "claude-sonnet-4-6"
     );
 
     if (!completion) {

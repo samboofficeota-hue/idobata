@@ -168,7 +168,7 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: debatePrompt }],
       true,
-      "gpt-5-mini"
+      "claude-sonnet-4-6"
     );
 
     if (!completion) {
@@ -218,7 +218,7 @@ ${JSON.stringify({
     const formattedReportCompletion = await callLLM(
       [{ role: "user", content: formattedReportPrompt }],
       false, // JSON形式ではなく、HTMLテキストとして取得
-      "gpt-5-mini"
+      "claude-sonnet-4-6"
     );
 
     let formattedReport = null;
