@@ -3,9 +3,13 @@ import Anthropic from "@anthropic-ai/sdk";
 
 dotenv.config({ override: true });
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let _anthropic = null;
+function getClient() {
+  if (!_anthropic) {
+    _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return _anthropic;
+}
 
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 const DEFAULT_MAX_TOKENS = 2048;
@@ -55,7 +59,7 @@ async function callLLM(messages, jsonOutput = false, model = DEFAULT_MODEL, extr
   console.log("Calling LLM with options:", JSON.stringify({ ...options, messages: `[${options.messages.length} messages]` }, null, 2));
 
   try {
-    const response = await anthropic.messages.create(options);
+    const response = await getClient().messages.create(options);
     console.log("LLM Response:", JSON.stringify(response, null, 2));
 
     const content = response.content[0]?.text;
