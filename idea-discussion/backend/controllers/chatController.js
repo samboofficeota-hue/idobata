@@ -454,7 +454,7 @@ const handleNewMessageByTheme = async (req, res) => {
     console.error(`Error handling new message for theme ${themeId}:`, error);
     res
       .status(500)
-      .json({ error: "Internal server error while processing message." });
+      .json({ error: "Internal server error while processing message.", debug: error.message });
   }
 };
 
