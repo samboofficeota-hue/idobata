@@ -34,7 +34,7 @@ function ChatHistory({ messages }: ChatHistoryProps) {
               className={`inline-block py-2 md:py-3 px-3 md:px-4 break-words ${
                 msg instanceof UserMessage
                   ? "bg-neutral-700 text-white shadow-sm rounded-2xl rounded-tr-sm"
-                  : "bg-white border border-neutral-200 text-neutral-800 shadow-sm rounded-2xl rounded-tl-sm"
+                  : "bg-sky-50 border border-sky-200 text-neutral-800 shadow-sm rounded-2xl rounded-tl-sm"
               }`}
             >
               <div className="text-xs md:text-sm whitespace-pre-wrap">
