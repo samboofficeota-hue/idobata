@@ -58,6 +58,14 @@ async function generateSharpQuestions(themeId) {
    - **expectedEffect** (期待効果): What happens if we do it? e.g. "雇用が安定する", "災害リスクが下がる"
    The same HMW can have multiple context sets (e.g. different targets or purposes). It is OK to leave some fields empty in a set.
 
+**問いの立て方（重要）**:
+- 問いに特定の手段・方法・解決策を埋め込まない。「達成したい状態」と「現実との差」で問いを立てる。
+- 【解決策（参考）】は、どんな論点があるかを把握するための参考にとどめ、問いの文面には持ち込まない。
+- ただし、対立・両立の構造（「〜しながら」「〜せずに」といった、譲れない条件や制約）は残してよい。これは論点の核なので落とさない。
+  ✕「どうすれば〔特定の手段〕を実現できるか？」← 手段が前提になっており、他の選択肢が検討できない
+  ○「どうすれば〔守りたい制約〕を保ちながら〔望ましい状態〕にできるか？」
+- 問いの空間を狭めず、多様な解決策を検討できる余地を残すこと。
+
 Generate exactly 6 question objects. Each object must have: "question", "tagLine", "contextSets".
 Output ONLY a JSON object with a single key "questions", whose value is an array of these 6 objects.
 Example shape: { "questions": [ { "question": "...", "tagLine": "...", "contextSets": [ { "target": "...", "purpose": "...", "expectedEffect": "..." } ] }, ... ] }`,
@@ -70,7 +78,7 @@ Example shape: { "questions": [ { "question": "...", "tagLine": "...", "contextS
 ${problemStatements.join("\n- ")}
 
 ${solutionStatements.length > 0 ? `【解決策（参考）】\n${solutionStatements.join("\n- ")}\n\n` : ""}For each of the 6 questions:
-- "question": In at most 50 characters, state the desired state and the gap with reality (望ましい姿と現実の差を端的に).
+- "question": In at most 50 characters, state the desired state and the gap with reality (望ましい姿と現実の差を端的に). 特定の手段・解決策を問いに埋め込まないこと。制約や両立条件は残してよい。
 - "tagLine": In at most 15 characters, a clear headline.
 - "contextSets": At least one set per question; multiple sets OK. Each set may have target (対象), purpose (目的), expectedEffect (期待効果). Empty strings are OK.
 
