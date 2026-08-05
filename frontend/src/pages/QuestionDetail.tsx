@@ -358,7 +358,6 @@ const QuestionDetail = () => {
                   userIconColor: ["red", "blue", "yellow", "green"][
                     index % 4
                   ] as "red" | "blue" | "yellow" | "green",
-                  debatePoint: index % 2 === 0 ? "短期利益" : "長期成長",
                 })),
                 ...opinions.solutions.map((solution, index) => ({
                   id: solution.id,
@@ -368,10 +367,6 @@ const QuestionDetail = () => {
                   userIconColor: ["red", "blue", "yellow", "green"][
                     (index + opinions.issues.length) % 4
                   ] as "red" | "blue" | "yellow" | "green",
-                  debatePoint:
-                    (index + opinions.issues.length) % 2 === 0
-                      ? "短期利益"
-                      : "長期成長",
                 })),
               ];
 
@@ -392,7 +387,6 @@ const QuestionDetail = () => {
                           text={opinion.text}
                           userName={opinion.userName}
                           userIconColor={opinion.userIconColor}
-                          debatePoint={opinion.debatePoint}
                         />
                       ))}
                     </div>

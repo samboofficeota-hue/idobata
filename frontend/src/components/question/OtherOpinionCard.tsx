@@ -30,13 +30,18 @@ const OtherOpinionCard = ({
 
   return (
     <div className="bg-white border border-black/16 rounded-2xl p-5 flex flex-col gap-2.5 relative w-full md:w-[calc(50%-8px)]">
-      <div className="absolute -top-3 left-0">
-        <div className="bg-blue-100 border border-blue-200 text-blue-700 rounded-full px-3 py-0 flex items-center justify-center gap-1">
-          <span className="text-xs font-normal leading-8 tracking-wide">
-            {debatePoint || "論点"}
-          </span>
+      {/* 論点ラベルは実データが渡されたときだけ表示する。
+          値がないときに「論点」等のプレースホルダーを出すと、
+          意見が分類されているかのように誤解される。 */}
+      {debatePoint && (
+        <div className="absolute -top-3 left-0">
+          <div className="bg-blue-100 border border-blue-200 text-blue-700 rounded-full px-3 py-0 flex items-center justify-center gap-1">
+            <span className="text-xs font-normal leading-8 tracking-wide">
+              {debatePoint}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
       <p className="text-base font-normal text-gray-800 leading-8 tracking-wide">
         {text}
       </p>
