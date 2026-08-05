@@ -111,13 +111,13 @@ GitHubリポジトリ: `samboofficeota-hue/idobata`（`main`ブランチ = 本�
   | サービス | リージョン | Replica数 | CPU上限 | メモリ上限 |
   |---|---|---|---|---|
   | idea-discussion/backend（`idobata-backend`） | Southeast Asia（Singapore） | 1 | 8 vCPU | 8 GB |
-  | python-service（`idobata-python-service`） | US West（California） | 1 | 8 vCPU | 8 GB |
-  | MongoDB | US West（California） | 1 | 8 vCPU | 8 GB |
+  | python-service（`idobata-python-service`） | Southeast Asia（Singapore） | 1 | 8 vCPU | 8 GB |
+  | MongoDB | Southeast Asia（Singapore） | 1 | 8 vCPU | 8 GB |
   | Postgres（policy-edit用、未接続） | Southeast Asia（Singapore） | 1 | 8 vCPU | 8 GB |
 
   - 4サービスとも**CPU/メモリの上限は現在契約プランの上限値（8 vCPU/8GB）ぴったり**まで使い切っており、これ以上の垂直スケールはプランのアップグレードなしには不可。
   - 全サービスReplica数は**1**（水平スケールなし）。MongoDB・Postgresは「Volumeがアタッチされているため複数Replica不可」、backend・python-serviceは「マルチリージョンReplicaはPro plan限定」という理由でいずれも単一インスタンス構成。
-  - **リージョンが分裂している点に注意**：backendとPostgresはSingapore、MongoDBとpython-serviceはCalifornia（US West）に配置されている。現状の主要経路（backend ⇄ MongoDB）は太平洋を跨ぐ形になっており、DB接続のレイテンシという観点では最適とは言えない配置。同一プロジェクト内のサービスでも自動的にリージョンが揃うわけではなく、作成時の設定に依存している。
+  - リージョンは4サービスとも**Singaporeに統一済み**（元々MongoDBとpython-serviceはCalifornia〈US West〉に配置されており、backend/Postgresとリージョンが分裂していたが、手動でSingaporeに変更・再デプロイして解消した）。これによりbackend ⇄ MongoDB間の主要経路が太平洋を跨がなくなり、DB接続レイテンシが改善している。
   - つまり、backend/python-serviceそれぞれの処理能力上限は「1台・最大8 vCPU・8GBメモリ」であり、これを超える負荷（同時接続数やLLM呼び出しの滞留によるメモリ増）が来た場合はスケールアウトではなくこの1インスタンス内で捌ききる必要がある構成。
 - アプリケーションコード側で明示されている同時実行の制御は、backendのMongoDB接続プール（`maxPoolSize: 10`）と、AI API呼び出しの一部（`linkingWorker`の`p-limit(10)`、前セクション「AI API（Anthropic / OpenAI）の同時実行・制限に関する留意点」参照）のみ。Express/Socket.IO自体には接続数上限の設定はなく、上記のRailwayインスタンスのリソース上限（8 vCPU/8GB・単一Replica）に依存する。
 - python-serviceのChromaDBはシングルプロセス・パーシステントモードのため、水平スケール（複数インスタンス化）には対応していない構成。

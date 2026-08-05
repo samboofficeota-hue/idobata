@@ -1,4 +1,4 @@
-import { Bot, Loader2 } from "lucide-react";
+import { Bot, Loader2, Lock } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useDraggable } from "../../../hooks/useDraggable";
@@ -10,6 +10,9 @@ import {
 } from "../../ui/chat/chat-sheet";
 import { useChat } from "./ChatProvider";
 import ExtendedChatHistory from "./ExtendedChatHistory";
+
+const CHAT_PASSCODE = "dd";
+const STORAGE_KEY = "idobata-chat-unlocked";
 
 interface ChatSheetProps {
   isOpen: boolean;
@@ -38,6 +41,11 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(
+    () => sessionStorage.getItem(STORAGE_KEY) === "true"
+  );
+  const [passcodeValue, setPasscodeValue] = useState("");
+  const [passcodeError, setPasscodeError] = useState(false);
   const { height } = useDraggable({
     minHeight: 400,
     maxHeight: window.innerHeight * 0.9,
@@ -172,6 +180,59 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     }
   };
 
+  const handlePasscodeSubmit = () => {
+    if (passcodeValue === CHAT_PASSCODE) {
+      sessionStorage.setItem(STORAGE_KEY, "true");
+      setIsUnlocked(true);
+      setPasscodeError(false);
+    } else {
+      setPasscodeError(true);
+      setPasscodeValue("");
+    }
+  };
+
+  const renderPasscodeGate = () => (
+    <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
+      <Lock className="w-10 h-10 text-gray-400" />
+      <p className="text-gray-600 text-center text-sm">
+        AIチャットを利用するには
+        <br />
+        パスコードを入力してください
+      </p>
+      <div className="flex gap-2 w-full max-w-[240px]">
+        <input
+          type="password"
+          value={passcodeValue}
+          onChange={(e) => {
+            setPasscodeValue(e.target.value);
+            setPasscodeError(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handlePasscodeSubmit();
+            }
+          }}
+          placeholder="パスコード"
+          className={`flex-1 px-3 py-2 border rounded-lg text-center text-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+            passcodeError ? "border-red-400" : "border-gray-300"
+          }`}
+          autoFocus
+        />
+        <Button
+          onClick={handlePasscodeSubmit}
+          className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4"
+          disabled={!passcodeValue.trim()}
+        >
+          OK
+        </Button>
+      </div>
+      {passcodeError && (
+        <p className="text-red-500 text-sm">パスコードが違います</p>
+      )}
+    </div>
+  );
+
   const renderDisabledState = () => (
     <div className="p-4 bg-gray-100 text-gray-500 text-center border-t">
       <p className="text-base">{disabledMessage}</p>
@@ -180,6 +241,22 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
 
   // For desktop view, we don't use the sheet component
   if (isDesktop) {
+    if (!isUnlocked) {
+      return (
+        <div className="flex flex-col h-full bg-gradient-to-br from-[#E1EAFB] to-[#E5F5F7]">
+          <div className="flex items-center gap-2 p-3 bg-white border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-center justify-center">
+              <Bot className="w-6 h-6 text-blue-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800">
+              AIチャット対話
+            </h2>
+          </div>
+          {renderPasscodeGate()}
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col h-full bg-gradient-to-br from-[#E1EAFB] to-[#E5F5F7]">
         {/* AI Chat Header - Fixed at top */}
@@ -276,6 +353,10 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           </h2>
         </div>
 
+        {!isUnlocked ? (
+          renderPasscodeGate()
+        ) : (
+        <>
         {/* Chat Messages Area - Scrollable middle section */}
         <div className="flex-1 overflow-auto px-3 py-2 space-y-2">
           <ExtendedChatHistory messages={messages} />
@@ -335,6 +416,8 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
             </div>
           )}
         </div>
+        </>
+        )}
       </ChatSheetContent>
     </BaseChatSheet>
   );
