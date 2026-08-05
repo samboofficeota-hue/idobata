@@ -53,7 +53,9 @@ const IllustrationSummaryContent = ({
             srcDoc={htmlWithResponsive}
             className="w-full h-full border-0 rounded-2xl"
             title="イラスト要約"
-            sandbox="allow-same-origin allow-scripts"
+            // LLM生成HTML（原料は利用者の投稿文）のため allow-scripts は付けない。
+            // レポートはHTML+CSSのみで、JavaScriptは要求していない。
+            sandbox="allow-same-origin"
           />
         </div>
       );
