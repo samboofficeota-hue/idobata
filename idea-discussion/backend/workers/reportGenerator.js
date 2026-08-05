@@ -132,7 +132,10 @@ Please provide the output as a JSON object with "introduction" and "issues" keys
     ];
 
     console.log("[ReportGenerator] Calling LLM to generate report example...");
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6");
+    // 課題リストを「網羅的に」（件数上限なし）各100〜400文字で要求するため、既定の2048では不足しうる
+    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+      max_tokens: 8000,
+    });
 
     if (
       !llmResponse ||

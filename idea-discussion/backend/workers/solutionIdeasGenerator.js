@@ -125,7 +125,9 @@ ${solutionStatements.length > 0 ? solutionStatements.map((s, i) => `${i + 1}. ${
     console.log(
       "[SolutionIdeasGenerator] Calling LLM to generate solution ideas..."
     );
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6"); // Request JSON output
+    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+      max_tokens: 4000,
+    });
 
     if (
       !llmResponse ||

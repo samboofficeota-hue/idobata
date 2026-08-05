@@ -116,7 +116,7 @@ ${solutionStatements.map((statement, index) => `${index + 1}. ${statement}`).joi
 
 2. 合意形成の状況:
    - 合意点: 大多数の意見が一致している点や、広く受け入れられている考え方を特定してください。(3-5項目)
-   - 対立点: 意見が分かれている点や、解決されていない論争点を特定してください。(3-5項目)
+   - 対立点: 意見が分かれている点や、解決されていない論争点を特定してください。(2-5項目。実際に意見が分かれている点のみを挙げ、項目数を満たすために対立を作り出さないこと)
 
 ## 出力形式
 JSON形式で以下の構造に従って結果を出力してください:
@@ -147,10 +147,7 @@ JSON形式で以下の構造に従って結果を出力してください:
   ],
   "disagreementPoints": [
     "対立点1",
-    "対立点2",
-    "対立点3",
-    "対立点4",
-    "対立点5"
+    "対立点2"
   ]
 }
 \`\`\`
@@ -165,10 +162,12 @@ ${markdownContent}
     console.log(
       "[DebateAnalysisGenerator] Calling LLM to generate debate analysis..."
     );
+    // 対立軸3つ + 合意点3-5 + 対立点3-5 の日本語JSONを返すため、既定の2048では不足しうる
     const completion = await callLLM(
       [{ role: "user", content: debatePrompt }],
       true,
-      "claude-sonnet-4-6"
+      "claude-sonnet-4-6",
+      { max_tokens: 4000 }
     );
 
     if (!completion) {
@@ -215,11 +214,25 @@ ${JSON.stringify({
     console.log(
       "[DebateAnalysisGenerator] Calling LLM to generate formatted HTML report..."
     );
-    const formattedReportCompletion = await callLLM(
-      [{ role: "user", content: formattedReportPrompt }],
-      false, // JSON形式ではなく、HTMLテキストとして取得
-      "claude-sonnet-4-6"
-    );
+    // 完全なHTMLドキュメント（CSS込み）を要求するため、既定の2048では確実に足りない。
+    // HTML整形は「あれば表示が綺麗になる」だけのもので、必須ではない
+    // （DebateAnalysis.formattedReport は required: false、
+    //   フロントにも formattedReport なしで論点を描画する経路がある）。
+    // ここで例外を捕まえないと、直前に成功している論点分析まで保存されずに失われる。
+    let formattedReportCompletion = null;
+    try {
+      formattedReportCompletion = await callLLM(
+        [{ role: "user", content: formattedReportPrompt }],
+        false, // JSON形式ではなく、HTMLテキストとして取得
+        "claude-sonnet-4-6",
+        { max_tokens: 16000 }
+      );
+    } catch (formatError) {
+      console.error(
+        `[DebateAnalysisGenerator] Failed to generate formatted HTML report for questionId ${questionId}. Saving the analysis without it.`,
+        formatError
+      );
+    }
 
     let formattedReport = null;
     if (formattedReportCompletion && typeof formattedReportCompletion === "string") {

@@ -74,49 +74,34 @@ Instructions:
 Analyze the **latest user message** (marked with [LATEST USER MESSAGE]) in the Conversation History above.
 Identify and extract the following, ensuring the output is in **Japanese**:
 1.  **New Problems:** If a user message introduces a new problem (an unmet need or challenge), describe it. Provide:
-    *   statement (A concise description of the problem, Japanese)
+    *   statement (課題の記述, Japanese)
 2.  **New Solutions:** If a user message proposes a specific solution or approach, describe it. Provide:
-    *   statement (The core solution, Japanese)
+    *   statement (解決策の記述, Japanese)
 3.  **Updates to Existing Items:** If a user message refines or clarifies an *existing* problem or solution (listed above), provide its ID and the updated Japanese statement.
 
-Guidelines for Effective Problem Statements:
-- 二文構成で記述する：
-  * 一文目：主語を明確にし、「何を」「なぜ」という構造で課題を定義する
-  * 二文目：チャットの文脈や背景情報を補足する
-  * 良い例：「高齢者は、デジタル機器の操作が複雑で理解しづらいため、行政サービスのオンライン化に対応できていない。この問題はユーザーが行政手続きのオンライン化について質問した際に、高齢の親族がシステムを使えずに困っているという具体的な事例を挙げながら説明された課題である。」
-  * 悪い例：「デジタル化への対応が難しい」（主語が不明確で背景情報がない）
-- 現状と理想の状態を明確に記述し、そのギャップを問題として定義する
-  * 良い例：「現在、地域住民は災害情報を入手するのに複数のメディアを確認する必要があるが、理想的には単一の信頼できる情報源から迅速に情報を得られるべきである。この課題は防災アプリの改善について議論している会話の中で、ユーザーが前回の台風時に情報が分散していて混乱したという具体的な経験を共有した際に浮かび上がった。」
-  * 悪い例：「災害情報が不足している」（現状と理想のギャップが不明確で背景情報がない）
-- 具体的な状況と影響を記述し、問題の本質を捉えやすくする
-  * 良い例：「子育て世帯の親は、保育施設の空き状況を確認するために複数の施設に個別に問い合わせる必要があり、就労と育児の両立に大きな時間的負担となっている。この問題は子育て支援サービスについての会話で、ユーザーが先週5つの保育園に個別に電話をかけて空き状況を確認するのに半日かかったという具体的な体験を述べた際に明らかになった。」
-  * 悪い例：「保育施設の情報収集が大変」（具体的な影響が不明確で背景情報がない）
-- 解決策の先走りや抽象的な表現を避ける
-- 感情的な表現や主観的な解釈を排し、客観的な事実に基づいて記述する
-- 問題の範囲を明確にし、多様な視点からの議論を促す表現を心がける
+課題（problem）の書き方:
+- 主語を明確にする。「誰が / 何が、どういう状況で、どう困っているか」が読み取れる形で書く。
+- 現状と、望ましい状態とのギャップがわかるようにする。
+- 発言に含まれていない事実・数値・背景・出所を補わない。書かれている範囲だけで書く。
+- 解決策を先取りしない（解決策は solution 側に分ける）。
+- 話者の感情や価値判断は、事実と区別できる形であれば残してよい（例：「〜を負担に感じている」）。消す必要はない。
 
-Guidelines for Effective Solution Statements:
-- 二文構成で記述する：
-  * 一文目：具体的な行動、機能、そしてそれがもたらす価値を明確に記述する
-  * 二文目：チャットの文脈や背景情報を補足する
-  * 良い例：「高齢者向けに、音声操作機能を搭載した行政サービスアプリを開発することで、デジタル機器の操作が苦手な高齢者でも容易に行政サービスにアクセスできるようになる。この提案は行政サービスのアクセシビリティについて議論していた会話の中で、ユーザーが祖父母がタッチスクリーンの操作に苦労している具体的な状況を説明した後に出された解決策である。」
-  * 悪い例：「アプリを改善する」（具体的な行動と価値が不明確で背景情報がない）
-- 実現可能性や費用対効果といった制約条件も考慮する
-  * 良い例：「既存の防災システムに、地域ごとにカスタマイズ可能なアラート機能を追加することで、低コストで効果的な情報伝達が実現できる。この解決策は災害情報の伝達方法について話し合っていた際に、ユーザーが自治体の限られた予算内で実現可能な方法として具体的に提案したものである。」
-  * 悪い例：「最新技術を使った防災システムを構築する」（実現可能性や費用対効果が考慮されていない）
-- 曖昧な表現や抽象的な概念を避ける
-  * 良い例：「保育施設の空き状況をリアルタイムで確認できるウェブポータルを構築し、検索条件に合わせた施設リストを表示する機能を実装する。この機能は子育て支援アプリの機能について議論していた会話で、ユーザーが実際に経験した保育園探しの苦労を具体的に説明した後に提案されたものである。」
-  * 悪い例：「保育施設の情報を改善する」（何をどう改善するか不明確で背景情報がない）
-- 課題に対する具体的な応答として解決策を提示する
-- 効果、リスク、実装に必要なステップを明確にする
+解決策（solution）の書き方:
+- 「何を、どうするのか」が具体的にわかる形で書く。
+- それによって何が変わるか（狙い・効果）が発言から読み取れる場合は含める。読み取れない場合は推測で補わない。
+- 「〜を改善する」のような言い換えだけで終わらせない。
+
+課題・解決策に共通のルール:
+- **発言の立場（賛成 / 反対 / 条件付き / 留保）を必ず保持する。**「〜には賛成だが〜は懸念している」のような条件付き・両論の立場を、片側だけに単純化しない。
+- 長さの目安：40〜120文字。ただし立場・条件・留保を落とすことになる場合は、この目安を超えてよい。**字数より意図の保持を優先する。**
 
 Rules:
 - Focus *only* on the contributions from the 'user' role marked with [LATEST USER MESSAGE] in the conversation history for identifying *new* problems or solutions.
 - The message marked with [LATEST USER MESSAGE] is the most recent user message that you should analyze.
 - Ensure all generated statements are in **Japanese**.
-- If no new problems/solutions or updates are found, return empty arrays.
-- Refer to existing items by their provided IDs when suggesting updates.
-- **重要**: 情報が不足している場合は、無理に問題や解決策を生成しないでください。良質なstatementを作成するための十分な情報がない場合は、空の配列を返してください。不確かな推測や曖昧な表現は避け、明確に表現できる場合のみ抽出してください。
+- 既存の課題・解決策（上記リスト）と実質的に同じ内容は additions に入れない。表現を補強・修正する場合のみ updates に入れ、その ID を指定する。
+- 1回の抽出で additions は最大5件。
+- 発言が短くても、課題または解決策として明確に読み取れる内容が1つでもあれば抽出する。読み取れる内容がない場合（挨拶・相槌・質問のみなど）は空の配列を返す。推測で補完しない。
 
 Output Format: Respond ONLY in JSON format with the following structure:
 {
@@ -147,52 +132,38 @@ Instructions:
 Analyze the Input Text above.
 Identify and extract the following, ensuring the output is in **Japanese**:
 1.  **Problems:** If the text describes a problem (an unmet need or challenge), describe it. Provide:
-    *   statement (A concise description of the problem, Japanese)
+    *   statement (課題の記述, Japanese)
 2.  **Solutions:** If the text proposes a specific solution or approach, describe it. Provide:
-    *   statement (The core solution, Japanese)
+    *   statement (解決策の記述, Japanese)
 
-Guidelines for Effective Problem Statements:
-- 二文構成で記述する：
-  * 一文目：主語を明確にし、「何を」「なぜ」という構造で課題を定義する
-  * 二文目：コメントの文脈や背景情報を補足する
-  * 良い例：「高齢者は、デジタル機器の操作が複雑で理解しづらいため、行政サービスのオンライン化に対応できていない。この問題は高齢者向けデジタル支援講座の参加者が実際に経験した具体的な困難事例（マイナンバーカード申請時のオンラインフォーム入力での混乱など）を記録したSNS投稿から抽出された課題である。」
-  * 悪い例：「デジタル化への対応が難しい」（主語が不明確で背景情報がない）
-- 現状と理想の状態を明確に記述し、そのギャップを問題として定義する
-  * 良い例：「現在、地域住民は災害情報を入手するのに複数のメディアを確認する必要があるが、理想的には単一の信頼できる情報源から迅速に情報を得られるべきである。この課題は昨年の台風被害後に開催された市民フォーラムで、被災者が情報収集に苦労した具体的な事例（停電時にラジオ、SNS、行政放送を同時に確認する必要があった状況など）を共有した投稿から抽出された。」
-  * 悪い例：「災害情報が不足している」（現状と理想のギャップが不明確で背景情報がない）
-- 具体的な状況と影響を記述し、問題の本質を捉えやすくする
-  * 良い例：「子育て世帯の親は、保育施設の空き状況を確認するために複数の施設に個別に問い合わせる必要があり、就労と育児の両立に大きな時間的負担となっている。この問題は地域の子育て支援フォーラムで、共働き世帯の親が保育園探しのために休暇を取らざるを得なかった具体的な事例や、電話での問い合わせが営業時間内に限られるため仕事中に対応できないといった実体験が共有された投稿から抽出された。」
-  * 悪い例：「保育施設の情報収集が大変」（具体的な影響が不明確で背景情報がない）
-- 解決策の先走りや抽象的な表現を避ける
-- 感情的な表現や主観的な解釈を排し、客観的な事実に基づいて記述する
-- 問題の範囲を明確にし、多様な視点からの議論を促す表現を心がける
+課題（problem）の書き方:
+- 主語を明確にする。「誰が / 何が、どういう状況で、どう困っているか」が読み取れる形で書く。
+- 現状と、望ましい状態とのギャップがわかるようにする。
+- 入力テキストに含まれていない事実・数値・背景・出所（発言者の肩書き、収集された場など）を補わない。書かれている範囲だけで書く。
+- 解決策を先取りしない（解決策は solution 側に分ける）。
+- 書き手の感情や価値判断は、事実と区別できる形であれば残してよい（例：「〜を負担に感じている」）。消す必要はない。
 
-Guidelines for Effective Solution Statements:
-- 二文構成で記述する：
-  * 一文目：具体的な行動、機能、そしてそれがもたらす価値を明確に記述する
-  * 二文目：コメントの文脈や背景情報を補足する
-  * 良い例：「高齢者向けに、音声操作機能を搭載した行政サービスアプリを開発することで、デジタル機器の操作が苦手な高齢者でも容易に行政サービスにアクセスできるようになる。この提案はIT専門家が具体的な解決策として提案した内容から抽出された。」
-  * 悪い例：「アプリを改善する」（具体的な行動と価値が不明確で背景情報がない）
-- 実現可能性や費用対効果といった制約条件も考慮する
-  * 良い例：「既存の防災システムに、地域ごとにカスタマイズ可能なアラート機能を追加することで、低コストで効果的な情報伝達が実現できる。この解決策は市の防災担当者が予算削減の状況下で効率的な防災情報伝達手段を模索していた際に、実際の災害対応経験に基づいて提案した内容から抽出された。」
-  * 悪い例：「最新技術を使った防災システムを構築する」（実現可能性や費用対効果が考慮されていない）
-- 曖昧な表現や抽象的な概念を避ける
-  * 良い例：「保育施設の空き状況をリアルタイムで確認できるウェブポータルを構築し、検索条件に合わせた施設リストを表示する機能を実装する。この機能は地域の子育て支援フォーラムで、複数の親が実際に保育園探しで経験した具体的な困難（営業時間内の電話確認の難しさ、複数施設への問い合わせの手間など）を詳細に記述した投稿から抽出された解決策である。」
-  * 悪い例：「保育施設の情報を改善する」（何をどう改善するか不明確で背景情報がない）
-- 課題に対する具体的な応答として解決策を提示する
-- 効果、リスク、実装に必要なステップを明確にする
+解決策（solution）の書き方:
+- 「何を、どうするのか」が具体的にわかる形で書く。
+- それによって何が変わるか（狙い・効果）がテキストから読み取れる場合は含める。読み取れない場合は推測で補わない。
+- 「〜を改善する」のような言い換えだけで終わらせない。
+
+課題・解決策に共通のルール:
+- **書き手の立場（賛成 / 反対 / 条件付き / 留保）を必ず保持する。**「〜には賛成だが〜は懸念している」のような条件付き・両論の立場を、片側だけに単純化しない。
+- 長さの目安：40〜120文字。ただし立場・条件・留保を落とすことになる場合は、この目安を超えてよい。**字数より意図の保持を優先する。**
 
 Rules:
 - Extract only problems and solutions explicitly mentioned or strongly implied in the text.
 - Ensure all generated statements are in **Japanese**.
-- If no problems or solutions are found, return an empty array for "additions".
-- **重要**: 情報が不足している場合は、無理に問題や解決策を生成しないでください。良質なstatementを作成するための十分な情報がない場合は、空の配列を返してください。不確かな推測や曖昧な表現は避け、明確に表現できる場合のみ抽出してください。
+- 同じ内容を重複して additions に入れない。
+- 1回の抽出で additions は最大5件。
+- テキストが短くても、課題または解決策として明確に読み取れる内容が1つでもあれば抽出する。読み取れる内容がない場合は空の配列を返す。推測で補完しない。
 
 Output Format: Respond ONLY in JSON format with the following structure:
 {
   "additions": [
-    { "type": "problem", "statement": "課題の説明...(課題とコメントの背景の二文構成で記述する)" },
-    { "type": "solution", "statement": "具体的な解決策...(解決策とコメントの背景の二文構成で記述する)" }
+    { "type": "problem", "statement": "課題の説明..." },
+    { "type": "solution", "statement": "具体的な解決策..." }
   ]
 }
 `;
@@ -287,7 +258,10 @@ async function processExtraction(job) {
         existingProblems,
         existingSolutions,
       });
-      llmResponse = await callLLM(extractionPromptMessages, true); // Request JSON
+      // 複数件の課題・解決策をまとめて返しうるため、既定の2048では不足しうる
+      llmResponse = await callLLM(extractionPromptMessages, true, undefined, {
+        max_tokens: 4000,
+      });
 
       if (
         !llmResponse ||
@@ -443,7 +417,10 @@ async function processExtraction(job) {
       const extractionPromptMessages = buildExtractionPrompt(sourceType, {
         content: importItem.content,
       });
-      llmResponse = await callLLM(extractionPromptMessages, true); // Request JSON
+      // 複数件の課題・解決策をまとめて返しうるため、既定の2048では不足しうる
+      llmResponse = await callLLM(extractionPromptMessages, true, undefined, {
+        max_tokens: 4000,
+      });
 
       if (
         !llmResponse ||
@@ -582,7 +559,13 @@ async function processExtraction_OLD(threadId) {
 
         // 2. Build prompt and call LLM
         const extractionPromptMessages = buildExtractionPrompt_OLD(thread.messages, existingProblems, existingSolutions);
-        const llmResponse = await callLLM(extractionPromptMessages, true); // Request JSON output
+        // 複数件の課題・解決策をまとめて返しうるため、既定の2048では不足しうる
+        const llmResponse = await callLLM(
+          extractionPromptMessages,
+          true,
+          undefined,
+          { max_tokens: 4000 }
+        );
 
         if (!llmResponse || typeof llmResponse !== 'object' || (!llmResponse.additions && !llmResponse.updates)) {
             console.warn(`[ExtractionWorker] LLM did not return valid JSON or expected structure for thread ${threadId}. Response:`, llmResponse);

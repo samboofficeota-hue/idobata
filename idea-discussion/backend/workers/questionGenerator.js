@@ -82,7 +82,10 @@ Respond with a JSON object: { "questions": [ ... ] }`,
     console.log("[QuestionGenerator] Calling LLM to generate questions...");
     let llmResponse;
     try {
-      llmResponse = await callLLM(messages, true, "claude-sonnet-4-6"); // Request JSON output with specific model
+      // 6件の問い × contextSets（複数可）を返すため、余裕を持たせる
+      llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+        max_tokens: 4000,
+      });
     } catch (error) {
       console.error("[QuestionGenerator] Error calling LLM:", error.message);
       throw new Error(`LLM call failed: ${error.message}`);
@@ -195,7 +198,7 @@ Respond with a JSON object: { "questions": [ ... ] }`,
         setTimeout(() => linkQuestionToAllItems(created._id.toString()), 0);
       } catch (dbError) {
         console.error(
-          `[QuestionGenerator] Error saving question "${trimmed}":`,
+          `[QuestionGenerator] Error saving question "${questionText}":`,
           dbError
         );
       }

@@ -222,7 +222,10 @@ Please provide the output as a JSON object with "title" and "content" keys. The 
     ];
 
     console.log("[DigestGenerator] Calling LLM to generate digest draft...");
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6"); // Request JSON output with specific model
+    // 政策レポートの約1/3の分量を要求するため、既定の2048では不足する
+    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+      max_tokens: 8000,
+    });
 
     if (
       !llmResponse ||

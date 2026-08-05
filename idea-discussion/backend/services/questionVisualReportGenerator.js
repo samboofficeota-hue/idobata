@@ -182,10 +182,12 @@ ${markdownContent}
     console.log(
       "[VisualReportGenerator] Calling LLM to generate visual report..."
     );
+    // 高さ1440px以上のスタイル付きHTMLドキュメントを要求するため、既定の2048では確実に足りない
     const completion = await callLLM(
       [{ role: "user", content: visualPrompt }],
       false,
-      "claude-sonnet-4-6"
+      "claude-sonnet-4-6",
+      { max_tokens: 16000 }
     );
 
     if (!completion) {

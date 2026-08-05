@@ -398,7 +398,9 @@ const handleNewMessageByTheme = async (req, res) => {
     );
 
     // Call the LLM service
-    const aiResponseContent = await callLLM(llmMessages, false, undefined, { max_tokens: 150 });
+    // 4往復目は要約+締めの案内を返すため、通常ターンより長い出力枠が必要
+    const maxTokens = currentTurn >= 4 ? 400 : 150;
+    const aiResponseContent = await callLLM(llmMessages, false, undefined, { max_tokens: maxTokens });
 
     if (!aiResponseContent) {
       console.error("LLM did not return a response.");

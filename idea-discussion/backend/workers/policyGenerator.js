@@ -153,7 +153,10 @@ Please provide the output as a JSON object with "title" and "content" keys. When
 
     // 4. Call LLM
     console.log("[PolicyGenerator] Calling LLM to generate policy draft...");
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6"); // Request JSON output with specific model
+    // プロンプトが Part1/Part2 で各「約7000文字」を要求するため、既定の2048では全く足りない
+    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+      max_tokens: 16000,
+    });
 
     if (
       !llmResponse ||

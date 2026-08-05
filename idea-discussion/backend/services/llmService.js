@@ -69,6 +69,15 @@ async function callLLM(messages, jsonOutput = false, model = DEFAULT_MODEL, extr
       throw new Error("LLM returned empty content.");
     }
 
+    // 出力が max_tokens で打ち切られた場合を明示的に検知する。
+    // これを見ないと「長すぎて切れた」と「JSONが壊れていた」がログ上で区別できない。
+    if (response.stop_reason === "max_tokens") {
+      console.warn(
+        `[llmService] Output was TRUNCATED by max_tokens (${options.max_tokens}). ` +
+          `Model: ${options.model}. Increase max_tokens for this call site or shorten the requested output.`
+      );
+    }
+
     if (jsonOutput) {
       try {
         let jsonString = content;
