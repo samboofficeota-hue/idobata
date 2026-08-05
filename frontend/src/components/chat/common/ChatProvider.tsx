@@ -91,13 +91,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     setMessages((prev) =>
       prev.map((msg) => {
         if (msg.id !== id) return msg;
-        const updated = { ...msg, content, isThinking: false };
+        // 置換後は id を外す。THINKING_MESSAGE_ID は固定値のため、id を残すと
+        // ターンを重ねるごとに同じ id のメッセージが積み上がり、次の置換が
+        // 過去の回答すべてに当たって同じ内容で上書きされてしまう。
+        const updated = { ...msg, content, isThinking: false, id: undefined };
         if (msg instanceof SystemMessage) {
           return new SystemMessage(
             content,
             msg.createdAt,
             msg.isStreaming,
-            msg.id,
+            undefined,
             false
           );
         }
@@ -106,7 +109,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
             content,
             msg.createdAt,
             msg.isStreaming,
-            msg.id,
+            undefined,
             false
           );
         }
@@ -115,7 +118,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
             content,
             msg.createdAt,
             msg.isStreaming,
-            msg.id,
+            undefined,
             false
           );
         }
