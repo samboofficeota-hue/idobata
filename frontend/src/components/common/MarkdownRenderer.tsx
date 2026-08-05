@@ -18,7 +18,7 @@ export function MarkdownRenderer({
   }
 
   return (
-    <div className={cn("prose prose-neutral max-w-none prose-p:my-0 prose-p:leading-8", className)}>
+    <div className={cn("prose prose-neutral max-w-none", className)}>
       <ReactMarkdown
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         remarkPlugins={[remarkGfm]}
@@ -27,7 +27,7 @@ export function MarkdownRenderer({
             <h1 className="text-2xl font-bold mb-4 font-biz" {...props} />
           ),
           h2: ({ node, ...props }) => (
-            <div className="flex items-center py-2 mb-3">
+            <div className="flex items-center py-2 mb-3 mt-8 first:mt-0">
               <div className="w-1 h-6 bg-primary rounded-full mr-2" />
               <h2
                 className="text-xl font-bold text-foreground font-biz leading-6"
@@ -38,11 +38,20 @@ export function MarkdownRenderer({
           h3: ({ node, ...props }) => (
             <h3 className="text-lg font-semibold mb-2" {...props} />
           ),
+          // 段落はブロック要素として描画する。以前は inline だったため、
+          // 「**課題**：…」「**すること**：…」のように改行で区切られた段落が
+          // すべて1行に連結され、構造が読み取れなくなっていた。
           p: ({ node, ...props }) => (
-            <p className="text-neutral-700 inline" {...props} />
+            <p
+              className="text-foreground/90 leading-8 mb-3 last:mb-0"
+              {...props}
+            />
+          ),
+          strong: ({ node, ...props }) => (
+            <strong className="font-bold text-foreground" {...props} />
           ),
           ul: ({ node, ...props }) => (
-            <ul className="list-disc pl-5 mb-2" {...props} />
+            <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />
           ),
           ol: ({ node, ...props }) => (
             <ol className="list-decimal pl-5 mb-2" {...props} />

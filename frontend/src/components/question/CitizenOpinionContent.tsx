@@ -44,14 +44,32 @@ const CitizenOpinionContent = ({
   // 「## 主要な課題」配下に ### が並ぶと、そのカードだけが極端に長くなり
   // カードの粒度が不揃いになっていた。生成側が見出し・箇条書きで構造を
   // 作っているので、それをそのまま活かす。
+  // 各アイディアは「**課題**：…」「**すること**：…」「**解決されること**：…」
+  // 「**論点**：…」という段落で構成される。段落の先頭にある強調をラベル
+  // （チップ）として見せることで、どの段落が何を述べているかを一目で追える
+  // ようにする。ラベル名をハードコードせず、構造だけで装飾している。
+  const ideaLabelStyles = [
+    "[&_p>strong:first-child]:mb-1",
+    "[&_p>strong:first-child]:mr-2",
+    "[&_p>strong:first-child]:inline-block",
+    "[&_p>strong:first-child]:rounded-md",
+    "[&_p>strong:first-child]:bg-muted",
+    "[&_p>strong:first-child]:px-2",
+    "[&_p>strong:first-child]:py-0.5",
+    "[&_p>strong:first-child]:text-sm",
+    "[&_p>strong:first-child]:font-bold",
+    "[&_p>strong:first-child]:text-muted-foreground",
+  ].join(" ");
+
   return (
-    <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-sm">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">
+    <div className="rounded-xl border border-border bg-card p-5 md:p-8 shadow-sm">
+      <h3 className="text-xl md:text-2xl font-bold text-foreground font-biz mb-6 pb-4 border-b border-border">
         {digestDraft.title}
       </h3>
-      <div className="text-gray-800 leading-relaxed text-base">
-        <MarkdownRenderer markdown={digestDraft.content} />
-      </div>
+      <MarkdownRenderer
+        markdown={digestDraft.content}
+        className={ideaLabelStyles}
+      />
     </div>
   );
 };
