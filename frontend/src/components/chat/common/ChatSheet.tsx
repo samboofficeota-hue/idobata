@@ -99,10 +99,11 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
       nativeEvent: { isComposing?: boolean };
     }
   ) => {
-    // Command+Enter (Mac) or Ctrl+Enter (Windows/Linux) for sending
+    // Shift+Enter で送信する。Mac の ⌘ と Windows の Ctrl で修飾キーが
+    // 分かれないため、案内表記を1つにできる。
     if (
       e.key === "Enter" &&
-      (e.metaKey || e.ctrlKey) &&
+      e.shiftKey &&
       !isSending &&
       !e.isComposing &&
       !e.nativeEvent.isComposing
@@ -110,7 +111,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
       e.preventDefault();
       handleSendMessage();
     }
-    // Enter alone should just create a new line (default behavior)
+    // Enter 単独は改行（デフォルト挙動）
   };
 
   const handleNewChat = async () => {
@@ -286,7 +287,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="ここに入力（Enterで改行、⌘+Enterで送信）"
+                  placeholder="ここに入力（Enterで改行、Shift+Enterで送信）"
                   className="flex-1 px-3 py-2 bg-white border-0 rounded-xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
@@ -374,7 +375,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="ここに入力（Enterで改行、⌘+Enterで送信）"
+                  placeholder="ここに入力（Enterで改行、Shift+Enterで送信）"
                   className="flex-1 px-3 py-2 bg-white border-0 rounded-xl focus:outline-none text-lg resize-none min-h-12 max-h-32 text-gray-700 placeholder-gray-400"
                   disabled={isSending}
                   rows={1}
