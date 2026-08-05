@@ -197,7 +197,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     const count = questions.length;
     if (
       !window.confirm(
-        `このテーマのシャープな問いをすべて削除しますか？（${count}件）\n削除すると、問いに関連する論点まとめ・イラストまとめ・市民意見レポートなどのデータも削除されます。`
+        `このテーマのシャープな問いをすべて削除しますか？（${count}件）\n削除すると、問いに関連する論点まとめ・イラストまとめ・みんなのアイディアなどのデータも削除されます。`
       )
     ) {
       return;
@@ -585,13 +585,13 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
         });
       } else {
         setQuestionsError(
-          "市民意見レポート（意見まとめ）はまだ生成されていません。「更新する」ボタンで生成できます。"
+          "みんなのアイディアはまだ生成されていません。「更新する」ボタンで生成できます。"
         );
       }
     } catch (error) {
       console.error("Failed to get report:", error);
       setQuestionsError(
-        "市民意見レポートの取得に失敗しました。通信エラーやサーバーエラーの可能性があります。"
+        "みんなのアイディアの取得に失敗しました。通信エラーやサーバーエラーの可能性があります。"
       );
     }
   };
@@ -1083,7 +1083,7 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                         className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                       >
                         <div className="flex flex-col space-y-2">
-                          <span>市民意見レポート</span>
+                          <span>みんなのアイディア</span>
                           <div className="flex flex-col space-y-1">
                             <button
                               onClick={() => handleBulkGenerateReports()}

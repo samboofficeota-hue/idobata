@@ -10,16 +10,6 @@ interface CitizenOpinionContentProps {
   digestDraft: DigestDraft | null | undefined;
 }
 
-/** Markdown を ## 見出しで分割し、各ブロックの body を返す（見出し行も含む） */
-function splitByH2(markdown: string): string[] {
-  const trimmed = markdown.trim();
-  if (!trimmed) return [];
-
-  // 行頭の ## 見出しの位置で分割（見出し行は各ブロックの先頭に含める）
-  const parts = trimmed.split(/\n(?=##\s+)/);
-  return parts.map((p) => p.trim()).filter(Boolean);
-}
-
 const CitizenOpinionContent = ({
   digestDraft,
 }: CitizenOpinionContentProps) => {
@@ -27,7 +17,7 @@ const CitizenOpinionContent = ({
     return (
       <div className="py-12 text-center text-muted-foreground">
         <p className="text-base leading-relaxed">
-          市民の意見レポートはまだ生成されていません。
+          みんなのアイディアはまだ生成されていません。
         </p>
         <p className="mt-2 text-sm">
           より多くの意見が集まると表示されるようになります。
@@ -40,7 +30,7 @@ const CitizenOpinionContent = ({
     return (
       <div className="py-12 text-center text-muted-foreground">
         <p className="text-base leading-relaxed">
-          市民の意見レポートはまだ生成されていません。
+          みんなのアイディアはまだ生成されていません。
         </p>
         <p className="mt-2 text-sm">
           より多くの意見が集まると表示されるようになります。
@@ -49,36 +39,19 @@ const CitizenOpinionContent = ({
     );
   }
 
-  // Markdownコンテンツを加工
-  let processedContent = digestDraft.content;
-
-  processedContent = processedContent.replace(
-    /^#+\s*市民の意見レポート\s*\n*/gm,
-    ""
-  );
-  processedContent = processedContent.replace(
-    /^##?\s*問い\s*\n[\s\S]*?(?=\n##?\s|\n\n##?\s|$)/gm,
-    ""
-  );
-  processedContent = processedContent.replace(
-    /^(##?\s*)概要(\s*)$/gm,
-    "$1まとめ$2"
-  );
-
-  const blocks = splitByH2(processedContent);
-
+  // レポート全体を1枚のカードとして表示する。
+  // 以前は ## 見出しごとにカード分割していたが、### 見出しは分割対象外のため
+  // 「## 主要な課題」配下に ### が並ぶと、そのカードだけが極端に長くなり
+  // カードの粒度が不揃いになっていた。生成側が見出し・箇条書きで構造を
+  // 作っているので、それをそのまま活かす。
   return (
-    <div className="space-y-6">
-      {blocks.map((body) => (
-        <div
-          key={body.slice(0, 60)}
-          className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-sm"
-        >
-          <div className="text-gray-800 leading-relaxed text-base">
-            <MarkdownRenderer markdown={body} />
-          </div>
-        </div>
-      ))}
+    <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-sm">
+      <h3 className="text-xl font-bold text-gray-800 mb-4">
+        {digestDraft.title}
+      </h3>
+      <div className="text-gray-800 leading-relaxed text-base">
+        <MarkdownRenderer markdown={digestDraft.content} />
+      </div>
     </div>
   );
 };

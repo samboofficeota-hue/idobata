@@ -335,7 +335,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       case "debate":
         return "論点まとめレポート";
       case "report":
-        return "市民意見レポート";
+        return "みんなのアイディア";
       default:
         return "レポート";
     }

@@ -96,15 +96,31 @@ async function generateDigestDraft(questionId) {
       );
     }
 
+    // 「みんなのアイディア」の構造ルール。PolicyDraftの有無で2つのプロンプトが
+    // 分岐するため、共通部分は定数に切り出して指示の食い違いを防ぐ。
+    const IDEA_STRUCTURE_RULES = `**重要：Markdownコンテンツの構造について**
+    - 全体を「解決アイディア」を軸に構成してください。課題の羅列にしないこと。
+    - 冒頭に「## まとめ」を置き、この問いで何が議論されているかを2〜4文で説明してください。
+    - 続けて、集まった意見から導かれる解決アイディアを3〜6個、それぞれ独立した見出しで並べてください。見出しは「## アイディア：〔短いタイトル〕」の形式にしてください。
+    - 各アイディアには、次の3点をこの順で必ず含めてください（それぞれ1〜3文）：
+      - **課題**：どんな困りごとに応えるものか
+      - **すること**：具体的に何をするのか
+      - **解決されること**：それによって何がどう変わるのか
+    - 各アイディアは、実際に集まった意見に基づいて書いてください。意見に出ていない施策を創作しないこと。
+    - 賛否が分かれているアイディアには「**論点**」を1文添えてください。賛成意見だけを書かないこと。
+    - 全体の長さは1500〜2500文字程度にしてください。
+    - タイトル「市民の意見レポート」や「問い」というセクションは含めないでください。
+    - contentフィールドには、上記の構造に従ったMarkdownコンテンツを記述してください`;
+
     // プロンプトをPolicyDraftの有無に応じて調整
     const systemPrompt = hasPolicyDraft
-      ? `あなたはAIアシスタントです。あなたの任務は、中心的な問い（「私たちはどのようにして...できるか？」）、その問いに関連する問題点と解決策、そして政策ドラフトを分析し、一般市民向けに読みやすく噛み砕いたダイジェストを作成することです。
+      ? `あなたはAIアシスタントです。あなたの任務は、中心的な問い（「私たちはどのようにして...できるか？」）、その問いに関連する問題点と解決策、そして政策ドラフトを分析し、一般市民向けの「みんなのアイディア」を作成することです。これは課題の報告書ではなく、集まった意見から導かれる解決アイディアを紹介するものです。
 
 あなたの出力は、'title'（文字列）と'content'（文字列）のキーを含むJSONオブジェクトにする必要があります。
 
 以下のガイドラインに従ってください：
 
-1. あなたは政策レポートとそのデータを読みこなせる専門家であり、本レポート（digest）はそれを一般人向けに噛み砕くライターである必要があります。政策レポートより平易な表現を使いましょう。
+1. あなたは政策レポートとそのデータを読みこなせる専門家であると同時に、それを一般の人向けに噛み砕いて伝えるライターでもあります。政策レポートより平易な表現を使いましょう。
 
 2. 複雑な概念や専門用語を避け、平易な言葉で説明してください。
 
@@ -116,29 +132,22 @@ async function generateDigestDraft(questionId) {
 
 6. 正確さを保ちながらも、簡潔さを優先してください。
 
-7. 政策提案の背景にある主要な問題や課題を簡潔に説明してください。
+7. 各アイディアには、それがどんな課題に応えるものかを簡潔に添えてください。
 
-8. 専門的な分析や複雑なトレードオフの詳細よりも、政策の目標と期待される成果に焦点を当ててください。
+8. 専門的な分析や複雑なトレードオフの詳細よりも、そのアイディアで何が実現できるかに焦点を当ててください。
 
 9. 重要な用語やコンセプトを説明するための簡単な例や比喩を含めてください。
 
-10. 全体の長さは元の政策レポートの約1/3に抑えてください。
-
-11. **重要：Markdownコンテンツの構造について**
-    - タイトル「市民の意見レポート」を含めないでください
-    - 「問い」というセクションを含めないでください
-    - 「概要」という見出しではなく、「まとめ」という見出しを使用してください（## まとめ）
-    - 「主要な課題」という見出しを使用してください（## 主要な課題）
-    - contentフィールドには、上記の構造に従ったMarkdownコンテンツを記述してください
+10. ${IDEA_STRUCTURE_RULES}
 
 応答は、"title"（文字列、ダイジェスト全体に適したタイトル）と "content"（文字列、Markdownで適切にフォーマットされた内容）のキーを含むJSONオブジェクトのみで行ってください。JSON構造外に他のテキストや説明を含めないでください。`
-      : `あなたはAIアシスタントです。あなたの任務は、中心的な問い（「私たちはどのようにして...できるか？」）と、その問いに関連する問題点と解決策を分析し、一般市民向けに読みやすく噛み砕いたダイジェストを作成することです。
+      : `あなたはAIアシスタントです。あなたの任務は、中心的な問い（「私たちはどのようにして...できるか？」）と、その問いに関連する問題点と解決策を分析し、一般市民向けの「みんなのアイディア」を作成することです。これは課題の報告書ではなく、集まった意見から導かれる解決アイディアを紹介するものです。
 
 あなたの出力は、'title'（文字列）と'content'（文字列）のキーを含むJSONオブジェクトにする必要があります。
 
 以下のガイドラインに従ってください：
 
-1. 集まった意見や課題、解決策を一般市民向けにわかりやすく整理してください。
+1. 集まった意見から解決アイディアを組み立て、一般市民向けにわかりやすく紹介してください。課題の列挙で終わらせないこと。
 
 2. 複雑な概念や専門用語を避け、平易な言葉で説明してください。
 
@@ -150,18 +159,13 @@ async function generateDigestDraft(questionId) {
 
 6. 正確さを保ちながらも、簡潔さを優先してください。
 
-7. 集まった意見の背景にある主要な問題や課題を簡潔に説明してください。
+7. 各アイディアには、それがどんな課題に応えるものかを簡潔に添えてください。
 
-8. 専門的な分析よりも、市民の声と期待される成果に焦点を当ててください。
+8. 専門的な分析よりも、市民の声と、そのアイディアで何が実現できるかに焦点を当ててください。
 
 9. 重要な用語やコンセプトを説明するための簡単な例や比喩を含めてください。
 
-10. **重要：Markdownコンテンツの構造について**
-    - タイトル「市民の意見レポート」を含めないでください
-    - 「問い」というセクションを含めないでください
-    - 「概要」という見出しではなく、「まとめ」という見出しを使用してください（## まとめ）
-    - 「主要な課題」という見出しを使用してください（## 主要な課題）
-    - contentフィールドには、上記の構造に従ったMarkdownコンテンツを記述してください
+10. ${IDEA_STRUCTURE_RULES}
 
 応答は、"title"（文字列、ダイジェスト全体に適したタイトル）と "content"（文字列、Markdownで適切にフォーマットされた内容）のキーを含むJSONオブジェクトのみで行ってください。JSON構造外に他のテキストや説明を含めないでください。`;
 
@@ -196,7 +200,7 @@ Policy Report:
 Title: ${latestPolicyDraft.title}
 Content: ${latestPolicyDraft.content}
 
-Please provide the output as a JSON object with "title" and "content" keys. The digest should be much more accessible to general readers than the policy report.${hasRepCtx ? " Emphasize who this is for and what change is expected where relevant." : ""}`
+Please provide the output as a JSON object with "title" and "content" keys. Structure the content around concrete solution ideas (each with 課題 / すること / 解決されること), not as a list of problems. It should be much more accessible to general readers than the policy report.${hasRepCtx ? " Emphasize who this is for and what change is expected where relevant." : ""}`
       : `Generate a digest for the following:
 
 Question: ${question.questionText}
@@ -208,7 +212,7 @@ ${problemStatements.length > 0 ? problemStatements.map((p) => `- ${p}`).join("\n
 Related Solutions (sorted by relevance - higher items are more relevant to the question):
 ${solutionStatements.length > 0 ? solutionStatements.map((s) => `- ${s}`).join("\n") : "- None provided"}
 
-Please provide the output as a JSON object with "title" and "content" keys. The digest should summarize the collected opinions, problems, and solutions in an accessible way for general readers.${hasRepCtx ? " Align the summary with the target, purpose, and expected effect above where relevant." : ""}`;
+Please provide the output as a JSON object with "title" and "content" keys. Structure the content around concrete solution ideas derived from the collected opinions (each with 課題 / すること / 解決されること), not as a list of problems.${hasRepCtx ? " Align the ideas with the target, purpose, and expected effect above where relevant." : ""}`;
 
     const messages = [
       {
@@ -222,7 +226,7 @@ Please provide the output as a JSON object with "title" and "content" keys. The 
     ];
 
     console.log("[DigestGenerator] Calling LLM to generate digest draft...");
-    // 政策レポートの約1/3の分量を要求するため、既定の2048では不足する
+    // 1500〜2500文字のMarkdownを要求するため、既定の2048では不足する
     const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
       max_tokens: 8000,
     });
