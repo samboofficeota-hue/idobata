@@ -163,11 +163,9 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           "あなたの意見を送信しました。ありがとうございます！",
           "system-message"
         );
-        // 送信完了後に履歴をクリアしてから閉じる
-        setTimeout(() => {
-          clearMessages();
-          onClose();
-        }, 1500);
+        // 送信後もチャットは閉じず、会話内容もそのまま残す。
+        // スマホでもPCと同様に、話していたページ・文脈にとどまれるようにする。
+        // （閉じたい場合はシート外のタップや「新しいチャット」で操作できる）
       } else {
         console.error("Error triggering extraction:", result.error);
         addMessage(
