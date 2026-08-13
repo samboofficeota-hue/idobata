@@ -2,6 +2,7 @@ import { Bot, Loader2, Lock } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useDraggable } from "../../../hooks/useDraggable";
+import { useVisualViewport } from "../../../hooks/useVisualViewport";
 import { apiClient } from "../../../services/api/apiClient";
 import { Button } from "../../ui/button";
 import {
@@ -51,6 +52,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     maxHeight: window.innerHeight * 0.9,
     initialHeight: window.innerHeight * 0.75,
   });
+  const { height: viewportHeight, keyboardHeight } = useVisualViewport();
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -311,7 +313,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-4 py-2 text-sm font-medium"
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0"
                   onClick={handleSubmitOpinion}
                   disabled={isExtracting || !threadId || !themeId}
                 >
@@ -320,7 +322,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-4 py-2 text-sm font-medium"
+                  className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0"
                   onClick={handleNewChat}
                 >
                   新しいチャット
@@ -338,7 +340,12 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     <BaseChatSheet open={isOpen} onOpenChange={onClose}>
       <ChatSheetContent
         className="p-0 h-auto rounded-t-xl overflow-hidden bg-gradient-to-br from-[#E1EAFB] to-[#E5F5F7] flex flex-col"
-        style={{ height: `${height}px` }}
+        style={{
+          // キーボードが開いたときは見えている領域の高さに収め、
+          // 下端をキーボードの上に持ち上げてシートの裏に背景が透けないようにする
+          height: `${Math.min(height, viewportHeight)}px`,
+          bottom: keyboardHeight ? `${keyboardHeight}px` : undefined,
+        }}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           if (!disabled) inputRef.current?.focus();
@@ -399,7 +406,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-4 py-2 text-sm font-medium"
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-500 hover:border-cyan-600 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0"
                   onClick={handleSubmitOpinion}
                   disabled={isExtracting || !threadId || !themeId}
                 >
@@ -408,7 +415,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-4 py-2 text-sm font-medium"
+                  className="text-gray-600 border-gray-300 hover:bg-gray-50 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0"
                   onClick={handleNewChat}
                 >
                   新しいチャット
