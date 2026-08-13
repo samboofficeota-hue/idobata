@@ -1,2 +1,7 @@
 node_modules
 .env
+
+# tsc の出力先（tsconfig.json の outDir）。
+# 実行されるのは常にソース側の server.js（Dockerfile / railway.json とも）なので
+# コミットしない。必要なら npm run build で再生成できる。
+build
