@@ -1,4 +1,4 @@
-Ra#!/usr/bin/env node
+#!/usr/bin/env node
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
