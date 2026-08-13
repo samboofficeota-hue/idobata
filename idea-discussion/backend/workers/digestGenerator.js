@@ -4,7 +4,7 @@ import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
-import { callLLM } from "../services/llmService.js";
+import { DEFAULT_MODEL, callLLM } from "../services/llmService.js";
 
 /** 問いの contextSets から代表1件を取得（PolicyDraft と同ロジック） */
 function getRepresentativeContextSet(question) {
@@ -227,7 +227,7 @@ Please provide the output as a JSON object with "title" and "content" keys. Stru
 
     console.log("[DigestGenerator] Calling LLM to generate digest draft...");
     // 1500〜2500文字のMarkdownを要求するため、既定の2048では不足する
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+    const llmResponse = await callLLM(messages, true, DEFAULT_MODEL, {
       max_tokens: 8000,
     });
 

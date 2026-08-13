@@ -3,7 +3,7 @@ import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
-import { callLLM } from "../services/llmService.js";
+import { DEFAULT_MODEL, callLLM } from "../services/llmService.js";
 
 /**
  * SharpQuestion.contextSets から代表的な1件を選ぶ。
@@ -154,7 +154,7 @@ Please provide the output as a JSON object with "title" and "content" keys. When
     // 4. Call LLM
     console.log("[PolicyGenerator] Calling LLM to generate policy draft...");
     // プロンプトが Part1/Part2 で各「約7000文字」を要求するため、既定の2048では全く足りない
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+    const llmResponse = await callLLM(messages, true, DEFAULT_MODEL, {
       max_tokens: 16000,
     });
 

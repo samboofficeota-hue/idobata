@@ -1,7 +1,7 @@
 import Problem from "../models/Problem.js";
 import Solution from "../models/Solution.js";
 import SharpQuestion from "../models/SharpQuestion.js";
-import { callLLM } from "../services/llmService.js";
+import { DEFAULT_MODEL, callLLM } from "../services/llmService.js";
 import { linkQuestionToAllItems } from "./linkingWorker.js"; // Import the linking function
 
 const TAGLINE_MAX_LENGTH = 15;
@@ -91,7 +91,7 @@ Respond with a JSON object: { "questions": [ ... ] }`,
     let llmResponse;
     try {
       // 6件の問い × contextSets（複数可）を返すため、余裕を持たせる
-      llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+      llmResponse = await callLLM(messages, true, DEFAULT_MODEL, {
         max_tokens: 4000,
       });
     } catch (error) {

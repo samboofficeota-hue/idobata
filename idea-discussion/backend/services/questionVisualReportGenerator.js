@@ -4,7 +4,7 @@ import QuestionLink from "../models/QuestionLink.js";
 import QuestionVisualReport from "../models/QuestionVisualReport.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
-import { RECOMMENDED_MODELS, callLLM } from "./llmService.js";
+import { DEFAULT_MODEL, callLLM } from "./llmService.js";
 
 /** SharpQuestion.contextSets から代表1件を取得（解釈の枠としてプロンプトに渡す） */
 function getRepresentativeContextSet(question) {
@@ -186,7 +186,7 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: visualPrompt }],
       false,
-      "claude-sonnet-4-6",
+      DEFAULT_MODEL,
       { max_tokens: 16000 }
     );
 

@@ -11,6 +11,10 @@ function getClient() {
   return _anthropic;
 }
 
+/**
+ * アプリ全体で使うモデルID。**変更するときはここだけ**を直す。
+ * 呼び出し側は文字列を直書きせず、この定数を import して渡すこと。
+ */
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 const DEFAULT_MAX_TOKENS = 2048;
 
@@ -18,7 +22,7 @@ const DEFAULT_MAX_TOKENS = 2048;
  * Call an LLM model via Anthropic API
  * @param {Array} messages - Array of message objects with role and content properties
  * @param {boolean} jsonOutput - Whether to request JSON output from the LLM
- * @param {string} model - The model ID to use (defaults to claude-sonnet-4-6)
+ * @param {string} model - The model ID to use (defaults to DEFAULT_MODEL)
  * @param {Object} extraOptions - Additional API options (e.g. max_tokens)
  * @returns {string|Object} - Returns parsed JSON object if jsonOutput=true, otherwise string content
  */
@@ -127,8 +131,4 @@ async function testLLM(model) {
   }
 }
 
-const RECOMMENDED_MODELS = {
-  "claude-sonnet-4-6": "claude-sonnet-4-6",
-};
-
-export { callLLM, testLLM, RECOMMENDED_MODELS };
+export { callLLM, testLLM, DEFAULT_MODEL };

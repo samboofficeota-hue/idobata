@@ -4,7 +4,7 @@ import QuestionLink from "../models/QuestionLink.js";
 import ReportExample from "../models/ReportExample.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
-import { callLLM } from "../services/llmService.js";
+import { DEFAULT_MODEL, callLLM } from "../services/llmService.js";
 
 /** SharpQuestion.contextSets から代表1件を取得（解釈の枠としてプロンプトに渡す） */
 function getRepresentativeContextSet(question) {
@@ -133,7 +133,7 @@ Please provide the output as a JSON object with "introduction" and "issues" keys
 
     console.log("[ReportGenerator] Calling LLM to generate report example...");
     // 課題リストを「網羅的に」（件数上限なし）各100〜400文字で要求するため、既定の2048では不足しうる
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+    const llmResponse = await callLLM(messages, true, DEFAULT_MODEL, {
       max_tokens: 8000,
     });
 

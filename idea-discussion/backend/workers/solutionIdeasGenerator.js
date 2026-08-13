@@ -2,7 +2,7 @@ import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
-import { callLLM } from "../services/llmService.js";
+import { DEFAULT_MODEL, callLLM } from "../services/llmService.js";
 
 /**
  * Generate solution ideas from all related solutions for a question
@@ -125,7 +125,7 @@ ${solutionStatements.length > 0 ? solutionStatements.map((s, i) => `${i + 1}. ${
     console.log(
       "[SolutionIdeasGenerator] Calling LLM to generate solution ideas..."
     );
-    const llmResponse = await callLLM(messages, true, "claude-sonnet-4-6", {
+    const llmResponse = await callLLM(messages, true, DEFAULT_MODEL, {
       max_tokens: 4000,
     });
 
