@@ -36,6 +36,8 @@ const QuestionDetail = () => {
   const [isDebateModalOpen, setIsDebateModalOpen] = useState(false);
   const [isIllustrationModalOpen, setIsIllustrationModalOpen] =
     useState(false);
+  const [isDigestModalOpen, setIsDigestModalOpen] = useState(false);
+  const [isDigestExpanded, setIsDigestExpanded] = useState(false);
   const [chatManager, setChatManager] = useState<QuestionChatManager | null>(
     null
   );
@@ -357,9 +359,68 @@ const QuestionDetail = () => {
                 </div>
                 <SectionHeading title="みんなのアイディア" className="mb-0 py-0" />
               </div>
-              <div className="rounded-xl border border-border bg-card p-6 md:p-8">
-                <CitizenOpinionContent digestDraft={questionDetail?.digestDraft} />
-              </div>
+              {(() => {
+                const hasDigest = Boolean(
+                  questionDetail?.digestDraft?.content?.trim()
+                );
+                return (
+                  <>
+                    <div
+                      role={hasDigest ? "button" : undefined}
+                      tabIndex={hasDigest ? 0 : undefined}
+                      onClick={() => hasDigest && setIsDigestModalOpen(true)}
+                      onKeyDown={(e) => {
+                        if (hasDigest && (e.key === "Enter" || e.key === " ")) {
+                          setIsDigestModalOpen(true);
+                        }
+                      }}
+                      className={`group relative rounded-xl border border-border bg-card p-6 overflow-hidden md:p-8 ${
+                        isDigestExpanded ? "" : "max-h-[600px] md:max-h-[800px]"
+                      } ${hasDigest ? "cursor-pointer transition-colors hover:border-primary/50" : ""}`}
+                    >
+                      <div className="pointer-events-none">
+                        <CitizenOpinionContent
+                          digestDraft={questionDetail?.digestDraft}
+                        />
+                      </div>
+                      {hasDigest && (
+                        <>
+                          {!isDigestExpanded && (
+                            <div className="absolute bottom-0 left-0 h-24 w-full rounded-b-xl bg-gradient-to-t from-card to-transparent" />
+                          )}
+                          <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors group-hover:bg-gray-50">
+                            <Maximize2 className="h-4 w-4" />
+                            全画面で見る
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {hasDigest && (
+                      <div className="flex justify-center mt-4">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsDigestExpanded(!isDigestExpanded);
+                          }}
+                          className="px-6 py-3 text-base font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                        >
+                          {isDigestExpanded ? "折りたたむ" : "全部見る"}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+              <FullScreenReportModal
+                open={isDigestModalOpen}
+                onOpenChange={setIsDigestModalOpen}
+                title="みんなのアイディア"
+              >
+                <CitizenOpinionContent
+                  digestDraft={questionDetail?.digestDraft}
+                />
+              </FullScreenReportModal>
             </section>
 
             {/* みんなの解決デザイン（PolicyDraft未実装のため非表示） */}
