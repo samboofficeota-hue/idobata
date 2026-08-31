@@ -2,6 +2,7 @@ import {
   FileText,
   ImageIcon,
   Lightbulb,
+  Maximize2,
   MessageSquare,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -15,6 +16,7 @@ import IllustrationSummaryContent from "../components/question/IllustrationSumma
 import OtherOpinionCard from "../components/question/OtherOpinionCard";
 import ThemePromptSection from "../components/question/ThemePromptSection";
 import { DownloadButton } from "../components/ui";
+import FullScreenReportModal from "../components/ui/base/full-screen-report-modal";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuestionDetail } from "../hooks/useQuestionDetail";
 import { useThemeDetail } from "../hooks/useThemeDetail";
@@ -31,6 +33,9 @@ const QuestionDetail = () => {
   const chatRef = useRef<FloatingChatRef>(null);
   const [isOpinionsExpanded, setIsOpinionsExpanded] = useState(false);
   const [isIllustrationExpanded, setIsIllustrationExpanded] = useState(false);
+  const [isDebateModalOpen, setIsDebateModalOpen] = useState(false);
+  const [isIllustrationModalOpen, setIsIllustrationModalOpen] =
+    useState(false);
   const [chatManager, setChatManager] = useState<QuestionChatManager | null>(
     null
   );
@@ -318,9 +323,30 @@ const QuestionDetail = () => {
                 </div>
                 <SectionHeading title="みんなの論点" className="mb-0 py-0" />
               </div>
-              <div className="rounded-xl border border-border bg-card p-6 md:p-8">
-                <DebatePointsContent debateData={questionDetail?.debateData} />
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsDebateModalOpen(true)}
+                className="group relative block w-full rounded-xl border border-border bg-card p-6 text-left transition-colors hover:border-primary/50 md:p-8"
+              >
+                <div className="pointer-events-none max-h-[600px] overflow-hidden md:max-h-[800px]">
+                  <DebatePointsContent debateData={questionDetail?.debateData} />
+                </div>
+                <div className="absolute bottom-0 left-0 h-24 w-full rounded-b-xl bg-gradient-to-t from-card to-transparent" />
+                <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors group-hover:bg-gray-50">
+                  <Maximize2 className="h-4 w-4" />
+                  全画面で見る
+                </div>
+              </button>
+              <FullScreenReportModal
+                open={isDebateModalOpen}
+                onOpenChange={setIsDebateModalOpen}
+                title="みんなの論点"
+              >
+                <DebatePointsContent
+                  debateData={questionDetail?.debateData}
+                  fullHeight
+                />
+              </FullScreenReportModal>
             </section>
 
             {/* みんなのアイディア */}
@@ -445,9 +471,17 @@ const QuestionDetail = () => {
                   )}
               </div>
               <div
+                role={hasVisualReport ? "button" : undefined}
+                tabIndex={hasVisualReport ? 0 : undefined}
+                onClick={() => hasVisualReport && setIsIllustrationModalOpen(true)}
+                onKeyDown={(e) => {
+                  if (hasVisualReport && (e.key === "Enter" || e.key === " ")) {
+                    setIsIllustrationModalOpen(true);
+                  }
+                }}
                 className={`rounded-xl border border-border bg-card overflow-hidden relative ${
                   isIllustrationExpanded ? "" : "max-h-[420px]"
-                }`}
+                } ${hasVisualReport ? "cursor-pointer transition-colors hover:border-primary/50" : ""}`}
               >
                 <div className="p-6 md:p-8">
                   <IllustrationSummaryContent
@@ -459,20 +493,38 @@ const QuestionDetail = () => {
                 {hasVisualReport && !isIllustrationExpanded && (
                   <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                 )}
+                {hasVisualReport && (
+                  <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm">
+                    <Maximize2 className="h-4 w-4" />
+                    全画面で見る
+                  </div>
+                )}
               </div>
               {hasVisualReport && (
                 <div className="flex justify-center mt-4">
                   <button
                     type="button"
-                    onClick={() =>
-                      setIsIllustrationExpanded(!isIllustrationExpanded)
-                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsIllustrationExpanded(!isIllustrationExpanded);
+                    }}
                     className="px-6 py-3 text-base font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200"
                   >
                     {isIllustrationExpanded ? "折りたたむ" : "全部見る"}
                   </button>
                 </div>
               )}
+              <FullScreenReportModal
+                open={isIllustrationModalOpen}
+                onOpenChange={setIsIllustrationModalOpen}
+                title="イラストまとめ"
+              >
+                <IllustrationSummaryContent
+                  visualReport={questionDetail?.visualReport ?? null}
+                  questionDetail={questionDetail}
+                  fullHeight
+                />
+              </FullScreenReportModal>
             </section>
           </div>
         </div>
