@@ -344,10 +344,7 @@ const QuestionDetail = () => {
                 onOpenChange={setIsDebateModalOpen}
                 title="みんなの論点"
               >
-                <DebatePointsContent
-                  debateData={questionDetail?.debateData}
-                  fullHeight
-                />
+                <DebatePointsContent debateData={questionDetail?.debateData} />
               </FullScreenReportModal>
             </section>
 
@@ -583,7 +580,6 @@ const QuestionDetail = () => {
                 <IllustrationSummaryContent
                   visualReport={questionDetail?.visualReport ?? null}
                   questionDetail={questionDetail}
-                  fullHeight
                 />
               </FullScreenReportModal>
             </section>

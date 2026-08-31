@@ -26,15 +26,12 @@ interface IllustrationSummaryContentProps {
   } | null;
   /** 全部見るで展開時は表示エリアを大きくする */
   expanded?: boolean;
-  /** モーダル表示時など、親要素の高さいっぱいに表示したい場合 */
-  fullHeight?: boolean;
 }
 
 const IllustrationSummaryContent = ({
   visualReport,
   questionDetail,
   expanded = false,
-  fullHeight = false,
 }: IllustrationSummaryContentProps): ReactNode => {
   // HTMLコンテンツかどうかをチェック
   if (visualReport && typeof visualReport === "string") {
@@ -47,11 +44,9 @@ const IllustrationSummaryContent = ({
       return (
         <div
           className={
-            fullHeight
-              ? "w-full h-full"
-              : expanded
-                ? "w-full h-[min(80vh,1200px)]"
-                : "w-full h-[600px] md:h-[800px]"
+            expanded
+              ? "w-full h-[min(80vh,1200px)]"
+              : "w-full h-[600px] md:h-[800px]"
           }
         >
           <iframe

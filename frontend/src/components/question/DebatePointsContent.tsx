@@ -17,14 +17,9 @@ interface DebateData {
 
 interface DebatePointsContentProps {
   debateData: DebateData | null | undefined;
-  /** モーダル表示時など、親要素の高さいっぱいに表示したい場合 */
-  fullHeight?: boolean;
 }
 
-const DebatePointsContent = ({
-  debateData,
-  fullHeight = false,
-}: DebatePointsContentProps) => {
+const DebatePointsContent = ({ debateData }: DebatePointsContentProps) => {
   if (!debateData) {
     return (
       <div className="py-12 text-center text-muted-foreground">
@@ -41,11 +36,7 @@ const DebatePointsContent = ({
       debateData.formattedReport.includes("<html")
     ) {
       return (
-        <div
-          className={
-            fullHeight ? "w-full h-full" : "w-full h-[600px] md:h-[800px]"
-          }
-        >
+        <div className="w-full h-[600px] md:h-[800px]">
           <iframe
             srcDoc={debateData.formattedReport}
             className="w-full h-full border-0 rounded-2xl"

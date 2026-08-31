@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 interface FullScreenReportModalProps {
   open: boolean;
@@ -33,7 +33,17 @@ const FullScreenReportModal = ({
             </Dialog.Close>
           </div>
           <div className="min-h-0 flex-1 overflow-auto p-4 md:p-8">
-            {children}
+            {/*
+              レポート自体（討論分析・イラストまとめ等）はカードの幅を前提に生成されている。
+              モーダルの広い幅に合わせて再レイアウトさせようとすると崩れやすいため、
+              幅はカードと同程度に固定したまま、zoomで125%に拡大するだけにする。
+            */}
+            <div
+              className="mx-auto max-w-[880px]"
+              style={{ zoom: 1.25 } as CSSProperties}
+            >
+              {children}
+            </div>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
