@@ -15,7 +15,7 @@ function getClient() {
  * アプリ全体で使うモデルID。**変更するときはここだけ**を直す。
  * 呼び出し側は文字列を直書きせず、この定数を import して渡すこと。
  */
-const DEFAULT_MODEL = "claude-sonnet-4-6";
+const DEFAULT_MODEL = "claude-sonnet-5";
 const DEFAULT_MAX_TOKENS = 2048;
 
 /**
@@ -66,7 +66,10 @@ async function callLLM(messages, jsonOutput = false, model = DEFAULT_MODEL, extr
     const response = await getClient().messages.create(options);
     console.log("LLM Response:", JSON.stringify(response, null, 2));
 
-    const content = response.content[0]?.text;
+    // adaptive thinking が有効なモデル（Sonnet 5等）では content[0] が thinking ブロックになるため、
+    // 先頭固定ではなく type === "text" のブロックを探す。
+    const textBlock = response.content.find((block) => block.type === "text");
+    const content = textBlock?.text;
 
     if (!content) {
       console.error("LLM returned empty content.");
