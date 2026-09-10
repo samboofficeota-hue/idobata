@@ -41,6 +41,16 @@ const defaultRetryOptions: RetryOptions = {
   },
 };
 
+/**
+ * 対話メッセージの送信用。サーバーエラー（500）では再送しない。
+ * 送信のたびにサーバー側で AI の返答生成と意見抽出が走るため、サーバーが失敗している最中に
+ * 1秒間隔で3回再送すると負荷と費用を4倍にするだけで、同じ理由で失敗しやすい（2026-09-10 の授業で発生）。
+ * サーバーに届いていない通信エラーだけは再送する。
+ */
+const chatSendRetryOptions: Partial<RetryOptions> = {
+  shouldRetry: (error: ApiError) => error.type === ApiErrorType.NETWORK_ERROR,
+};
+
 export class ApiClient {
   private httpClient: HttpClient;
   private retryOptions: RetryOptions;
@@ -255,16 +265,18 @@ export class ApiClient {
   ): Promise<
     HttpResult<{ response: string; threadId: string; userId: string }>
   > {
-    return this.withRetry(() =>
-      this.httpClient.post<{
-        response: string;
-        threadId: string;
-        userId: string;
-      }>(`/themes/${themeId}/chat/messages`, {
-        userId,
-        message,
-        threadId,
-      })
+    return this.withRetry(
+      () =>
+        this.httpClient.post<{
+          response: string;
+          threadId: string;
+          userId: string;
+        }>(`/themes/${themeId}/chat/messages`, {
+          userId,
+          message,
+          threadId,
+        }),
+      chatSendRetryOptions
     );
   }
 
@@ -277,18 +289,20 @@ export class ApiClient {
   ): Promise<
     HttpResult<{ response: string; threadId: string; userId: string }>
   > {
-    return this.withRetry(() =>
-      this.httpClient.post<{
-        response: string;
-        threadId: string;
-        userId: string;
-      }>(`/themes/${themeId}/chat/messages`, {
-        userId,
-        message,
-        threadId,
-        questionId, // Pass questionId as part of the request body
-        context: "question", // Add context to indicate this is a question-specific message
-      })
+    return this.withRetry(
+      () =>
+        this.httpClient.post<{
+          response: string;
+          threadId: string;
+          userId: string;
+        }>(`/themes/${themeId}/chat/messages`, {
+          userId,
+          message,
+          threadId,
+          questionId, // Pass questionId as part of the request body
+          context: "question", // Add context to indicate this is a question-specific message
+        }),
+      chatSendRetryOptions
     );
   }
 
