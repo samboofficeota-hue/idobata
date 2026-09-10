@@ -60,11 +60,17 @@ async function callLLM(messages, jsonOutput = false, model = DEFAULT_MODEL, extr
   const { max_tokens: _ignored, ...restExtra } = extraOptions;
   Object.assign(options, restExtra);
 
-  console.log("Calling LLM with options:", JSON.stringify({ ...options, messages: `[${options.messages.length} messages]` }, null, 2));
+  // ログは1呼び出し1行にする。以前は system プロンプトとレスポンスJSONを丸ごと出していて、
+  // 10人同時でも Railway のログ上限（500行/秒）を超えてログが欠落していた。
+  const callInfo = `model=${options.model} max=${options.max_tokens} msgs=${options.messages.length} thinking=${options.thinking?.type ?? "default"}`;
+  const startedAt = Date.now();
 
   try {
     const response = await getClient().messages.create(options);
-    console.log("LLM Response:", JSON.stringify(response, null, 2));
+    const usage = response.usage ?? {};
+    const thinkingTokens = usage.output_tokens_details?.thinking_tokens ?? 0;
+    const resultInfo = `stop=${response.stop_reason} in=${usage.input_tokens} out=${usage.output_tokens} think=${thinkingTokens} ms=${Date.now() - startedAt}`;
+    console.log(`[llmService] ${callInfo} ${resultInfo}`);
 
     // adaptive thinking が有効なモデル（Sonnet 5等）では content[0] が thinking ブロックになるため、
     // 先頭固定ではなく type === "text" のブロックを探す。
@@ -72,8 +78,9 @@ async function callLLM(messages, jsonOutput = false, model = DEFAULT_MODEL, extr
     const content = textBlock?.text;
 
     if (!content) {
-      console.error("LLM returned empty content.");
-      throw new Error("LLM returned empty content.");
+      throw new Error(
+        `LLM returned empty content. (${callInfo} ${resultInfo})`
+      );
     }
 
     // 出力が max_tokens で打ち切られた場合を明示的に検知する。
@@ -108,7 +115,12 @@ async function callLLM(messages, jsonOutput = false, model = DEFAULT_MODEL, extr
 
     return content;
   } catch (error) {
-    console.error("Error calling Anthropic:", error);
+    // スタックは呼び出し元がログに出すので、ここでは1行にとどめる
+    const status = error.status ? ` status=${error.status}` : "";
+    const firstLine = String(error.message).split("\n")[0].slice(0, 300);
+    console.error(
+      `[llmService] Error calling Anthropic: ${callInfo} ms=${Date.now() - startedAt}${status} ${firstLine}`
+    );
     throw error;
   }
 }
