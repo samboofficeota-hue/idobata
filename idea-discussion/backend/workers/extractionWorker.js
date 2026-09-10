@@ -258,9 +258,10 @@ async function processExtraction(job) {
         existingProblems,
         existingSolutions,
       });
-      // 複数件の課題・解決策をまとめて返しうるため、既定の2048では不足しうる
+      // 複数件の課題・解決策をまとめて返しうる。gpt-5.6-luna（思考なし）の実測は最大335トークン。
+      // OpenAI は max_tokens 分を TPM 上限に先取りで数え、この呼び出しは発言のたびに走るので過大にしない
       llmResponse = await callLLM(extractionPromptMessages, true, undefined, {
-        max_tokens: 4000,
+        max_tokens: 2000,
       });
 
       if (

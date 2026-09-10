@@ -398,15 +398,14 @@ const handleNewMessageByTheme = async (req, res) => {
     );
 
     // Call the LLM service
-    // Sonnet 5 は thinking 省略時に adaptive thinking が既定で ON になり、思考トークンが max_tokens を消費する。
-    // 対話は2-3文の短い返答なので思考を切る。切らないと思考が枠を使い切って text ブロックが空になり 500 になる
-    // （2026-09-10 の授業で3往復目がほぼ全滅した原因）。
+    // 推論モデルは思考トークンが出力上限を消費する。対話は2-3文の短い返答なので思考を切る（reasoning_effort: "none"）。
+    // 切らないと思考が枠を使い切って返答が空になり 500 になる（2026-09-10 の授業で3往復目がほぼ全滅した原因）。
     // 返答の長さはプロンプトの FORMAT で制御しているので、max_tokens は切れないための上限として余裕を持たせる。
     // 4往復目は要約+締めの案内を返すため、通常ターンより長い出力枠が必要
     const maxTokens = currentTurn >= 4 ? 1200 : 600;
     const aiResponseContent = await callLLM(llmMessages, false, undefined, {
       max_tokens: maxTokens,
-      thinking: { type: "disabled" },
+      reasoning_effort: "none",
     });
 
     if (!aiResponseContent) {

@@ -90,7 +90,11 @@ Analyze the relationship and provide the JSON output.`,
       ];
 
       try {
-        const llmResponse = await callLLM(promptMessages, true); // Request JSON output
+        // 返すJSONは実測で最大130トークン程度。OpenAI は max_tokens 分を TPM 上限に先取りで数えるので、
+        // 意見1件×問いの数だけ走るこの呼び出しは上限を実態に合わせて小さくしておく
+        const llmResponse = await callLLM(promptMessages, true, undefined, {
+          max_tokens: 512,
+        });
 
         if (llmResponse?.is_relevant) {
           console.log(
@@ -202,7 +206,10 @@ Analyze the relationship and provide the JSON output.`,
     ];
 
     try {
-      const llmResponse = await callLLM(promptMessages, true); // Request JSON output
+      // 上の linkItemToQuestions と同じ理由で上限を小さくしておく
+      const llmResponse = await callLLM(promptMessages, true, undefined, {
+        max_tokens: 512,
+      });
 
       if (llmResponse?.is_relevant) {
         console.log(

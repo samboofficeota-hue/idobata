@@ -173,10 +173,10 @@ const [
     '"Saved chat thread"',
     '"Error handling new message"',
     // 空の返答は1件で複数行出るので、llmService の1行だけを数える
-    '"Error calling Anthropic" AND "LLM returned empty content"',
+    '"Error calling" AND "LLM returned empty content"',
     '"TRUNCATED"',
-    '"Error calling Anthropic" AND -"LLM returned empty content"',
-    '"status=429" OR "status=529" OR "overloaded"',
+    '"Error calling" AND -"LLM returned empty content"',
+    '"status=429" OR "status=529" OR "status=503" OR "overloaded"',
     '"Messages dropped"',
     CHAT_MAX_TOKENS.map((n) => `"max=${n} msgs"`).join(" OR "),
   ].map((filter) =>
