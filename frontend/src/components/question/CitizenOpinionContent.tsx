@@ -32,7 +32,7 @@ interface Idea {
  * 期待する構造（digestGenerator の IDEA_STRUCTURE_RULES が生成する形）:
  *   ## まとめ
  *   ## アイディア：〔タイトル〕
- *   **課題**：… / **すること**：… / **解決されること**：… / **論点**：…
+ *   **課題**：… / **すること**：… / **解決されること**：… / **論点**：…（行頭の「- 」はあってもよい）
  * 構造が崩れている場合は ideas を空で返し、呼び出し側が素のMarkdown表示に
  * フォールバックする。
  */
@@ -64,7 +64,9 @@ function parseDigest(markdown: string): {
       // アイディア間の区切り線（--- や *** など）は本文に混ぜない
       if (/^\s*([-*_])\1{2,}\s*$/.test(line)) continue;
 
-      const matched = line.match(/^\s*\*\*(.+?)\*\*\s*[：:]?\s*(.*)$/);
+      // 「- **課題**：…」のように行頭に箇条書き記号が付く書き方も受け付ける
+      // （gpt-5.6-luna はこの形で出力する。付けないと項目が読めずカードの中身が空になる）
+      const matched = line.match(/^\s*(?:[-*+]\s+)?\*\*(.+?)\*\*\s*[：:]?\s*(.*)$/);
       if (matched) {
         rows.push({ label: matched[1].trim(), body: matched[2].trim() });
       } else if (rows.length > 0 && line.trim()) {
