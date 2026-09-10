@@ -2,6 +2,16 @@
 
 # 初期管理者ユーザーをリセットして再作成するスクリプト
 
+# ---------------------------------------------------------------------------
+# 2026-09-10: このスクリプトが使っていた /api/auth/reset・/api/auth/admin-users は、
+# 誰でも管理者を作り直せる状態だったため、ログイン必須（admin 権限）に変更した。
+# ログインできなくなったときは、代わりに次を実行する（本番の環境変数を railway run で読む）:
+#   cd idea-discussion/backend && railway run node scripts/resetAdminPassword.mjs <メールアドレス>
+# ---------------------------------------------------------------------------
+echo "このスクリプトは使えなくなりました。代わりに次を実行してください:"
+echo "  cd idea-discussion/backend && railway run node scripts/resetAdminPassword.mjs <メールアドレス>"
+exit 1
+
 BACKEND_URL="https://idobata-backend-production.up.railway.app"
 
 # デフォルト値（必要に応じて変更してください）
