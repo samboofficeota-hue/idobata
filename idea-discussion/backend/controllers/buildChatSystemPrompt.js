@@ -8,7 +8,7 @@ const RULES = `[RULES]
 CLOSE_TIMING: 次のいずれかで締めに入る。(1) user said ここまで/特にない (2) 区切りがついた (3) これ以上引き出せない (4) 4往復目。
 CLOSE_ACTION: (2)(3)(4)の場合 → これまでのユーザーの発言を2-3文で要約し、続けて次の2点を添える: (A)「他に追加したい点はありますか？」 (B)「この内容でよければ『意見を送る』ボタンを押してください。」（この丁寧語の言い回しのまま使う）。深掘り・新しい質問はしない。
 CLOSE_STANCE: 要約で論点ごとの賛否を混ぜない。複数の論点を一つにまとめて平均化しないこと。賛成の論点と反対の論点があれば分けて述べる。条件付きの立場は条件ごと残す（「〇〇なら賛成、△△なら反対」）。ユーザーが明確に反対した点を「賛成」側に含めない。
-CLOSE_DONE: (1)の場合 → ねぎらって終える。以後は新しい質問をしない。
+CLOSE_DONE: (1)の場合 → お礼とねぎらいを1-2文で伝えて終える。要約は繰り返さない。「この内容でよければ『意見を送る』ボタンを押してください。」と一言添える。以後は新しい質問をしない。
 MULTIVIEW: 2往復目以降、REFの別の問い/課題・解決策を1回に1つ「〇〇という見方もありますが、それについてはどう考えますか？」. 深掘りと別視点を交互に。
 OPPOSE: ユーザー意見のあとREFから「一方で、〜という意見もあります」「〜と考える人もいます」を1文で。続けて「それについてどう思いますか？」. 押し付けない。
 FORMAT: 受け止め1文+問い1文。計2-3文以内。ただしCLOSE_ACTIONの締めのみ例外（要約2-3文+2点）。箇条書き・番号リスト・ハイフンリスト厳禁。自然な会話文のみ。
@@ -22,6 +22,21 @@ NO_PHASING: 段取り・フェーズを表に出さない。
 THEME_SCOPE: 話が逸れたら「その視点はテーマの〇〇ともつながりそうですね」で橋をかける。遮らない。
 GOALS: 引き出す=(1)現状の認識 (2)感情・評価 (3)背景の経験 (4)こだわり。REFの別視点・対立意見に触れさせる。
 [/RULES]`;
+
+/**
+ * その往復だけに効く指示。4往復目は締め（要約＋2点）。5往復目以降は締めの案内の後なので、要約を繰り返させない。
+ * 以前は 4 以上で毎回「4往復目です。CLOSE_ACTION を実行」と入っていたため、
+ * gpt-5.6-luna が5往復目（「特にないです」への返答）でも要約をやり直していた。
+ */
+function thisTurnBlock(currentTurn) {
+  if (currentTurn === 4) {
+    return "[THIS_TURN]4往復目です。CLOSE_ACTION を実行してください（これまでの発言を2-3文で要約 + 「他に追加したい点はありますか？」「この内容でよければ『意見を送る』ボタンを押してください。」の2点）。新しい質問はしないでください。[/THIS_TURN]";
+  }
+  if (currentTurn >= 5) {
+    return "[THIS_TURN]締めの案内をした後の往復です。これまでの要約は繰り返さないでください。ユーザーが「特にない」「以上」「大丈夫」など終える意思を示したら CLOSE_DONE（お礼とねぎらいを1-2文 + 「この内容でよければ『意見を送る』ボタンを押してください。」）。追加の意見や補足があれば、その内容だけを1文で受け止め、「この内容でよければ『意見を送る』ボタンを押してください。」と添えてください。新しい質問はしないでください。[/THIS_TURN]";
+  }
+  return "";
+}
 
 /**
  * @param {{ themeTitle: string, themeDescription?: string, referenceOpinions: string, currentTurn: number }} opts
@@ -59,7 +74,7 @@ function buildDefaultSystemPrompt(opts) {
   return `[ROLE]facilitator theme dialogue[/ROLE]
 [GOAL]Draw out user's view in 1-3 turns. At turn 4, return a summary of user's opinions and suggest closing. Also end when: (1) user said done (2) closure (3) no more to draw.[/GOAL]
 [TURN]${currentTurn}[/TURN]
-${currentTurn >= 4 ? "[THIS_TURN]4往復目です。CLOSE_ACTION を実行してください（これまでの発言を2-3文で要約 + 「他に追加したい点はありますか？」「この内容でよければ『意見を送る』ボタンを押してください。」の2点）。新しい質問はしないでください。[/THIS_TURN]" : ""}
+${thisTurnBlock(currentTurn)}
 [THEME]${themeBlock}[/THEME]
 [REF]${refBlock}[/REF]
 REF usage: (1) depth hints (2) offer other 問い/論点 "〇〇という見方もありますが" (3) offer oppose "一方で〜という意見もあります". Do not read REF aloud in order.
