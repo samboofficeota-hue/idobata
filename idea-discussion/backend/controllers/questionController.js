@@ -16,6 +16,7 @@ import { getVisualReport as getQuestionVisualReport } from "../services/question
 import { generateDebateAnalysisTask } from "../workers/debateAnalysisGenerator.js";
 import { generateDigestDraft } from "../workers/digestGenerator.js";
 import { generatePolicyDraft } from "../workers/policyGenerator.js";
+import { generateReportExample } from "../workers/reportGenerator.js";
 import { generateVisualReport } from "../workers/visualReportGenerator.js";
 
 // GET /api/questions - 全ての質問を集計データ付きで取得（統一API）
