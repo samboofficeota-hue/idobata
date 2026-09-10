@@ -18,6 +18,7 @@ interface ThemeDetailTemplateProps {
     _id: string;
     title: string;
     description: string;
+    participantCount?: number;
   };
   keyQuestions: {
     id: number | string;
@@ -141,7 +142,11 @@ const ThemeDetailTemplate = forwardRef<
 
         {/* お題カードセクション */}
         <div className="mb-8">
-          <ThemeCard title={theme.title} description={theme.description} />
+          <ThemeCard
+            title={theme.title}
+            description={theme.description}
+            participantCount={theme.participantCount ?? 0}
+          />
         </div>
 
         <div className="mb-8">

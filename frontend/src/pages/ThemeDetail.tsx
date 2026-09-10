@@ -121,6 +121,7 @@ const ThemeDetail = () => {
         _id: themeDetail.theme?._id ?? "",
         title: themeDetail.theme?.title ?? "",
         description: themeDetail.theme?.description ?? "",
+        participantCount: themeDetail.participantCount ?? 0,
       },
       keyQuestions:
         themeDetail.keyQuestions?.map((q) => ({

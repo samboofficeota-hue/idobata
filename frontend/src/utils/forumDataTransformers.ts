@@ -20,6 +20,7 @@ export const transformThemeToLatestTheme = (theme: Theme) => ({
   slug: theme.slug,
   keyQuestionCount: theme.keyQuestionCount || 0,
   commentCount: theme.commentCount || 0,
+  participantCount: theme.participantCount || 0,
 });
 
 // 質問をQuestionsTable用の形式に変換

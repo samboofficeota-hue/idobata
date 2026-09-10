@@ -8,7 +8,7 @@ interface ThemeCardProps {
   title: string;
   description?: string;
   keyQuestionCount?: number;
-  commentCount?: number;
+  participantCount?: number;
   problemCount?: number;
   solutionCount?: number;
 }
@@ -18,7 +18,7 @@ const ThemeCard = ({
   title,
   description,
   keyQuestionCount,
-  commentCount,
+  participantCount,
 }: ThemeCardProps) => {
   return (
     <Link to={`/themes/${id}`} className="block min-w-0">
@@ -36,10 +36,10 @@ const ThemeCard = ({
                 重要論点：{keyQuestionCount}件
               </span>
             )}
-            {commentCount !== undefined && commentCount > 0 && (
+            {participantCount !== undefined && participantCount > 0 && (
               <span className="flex items-center">
                 <Users className="h-4 w-4 mr-1 text-primary" />
-                いどばた参加者: {commentCount}人
+                いどばた参加者: {participantCount}人
               </span>
             )}
           </div>

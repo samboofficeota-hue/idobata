@@ -5,6 +5,7 @@ import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
+import { countParticipantsByTheme } from "../utils/themeParticipants.js";
 import { getUser } from "./userController.js";
 
 /**
@@ -163,6 +164,8 @@ export const getTopPageData = async (req, res) => {
       };
     });
 
+    const participantCounts = await countParticipantsByTheme(activeThemeIds);
+
     const enhancedThemes = await Promise.all(
       themes.map(async (theme) => {
         const keyQuestionCount = await SharpQuestion.countDocuments({
@@ -180,6 +183,7 @@ export const getTopPageData = async (req, res) => {
           slug: theme.slug,
           keyQuestionCount,
           commentCount,
+          participantCount: participantCounts.get(theme._id.toString()) || 0,
         };
       })
     );

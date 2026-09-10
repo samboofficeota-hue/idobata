@@ -10,6 +10,7 @@ export interface TopPageTemplateProps {
     slug: string;
     keyQuestionCount?: number;
     commentCount?: number;
+    participantCount?: number;
   }[];
 }
 
@@ -41,7 +42,7 @@ const TopPageTemplate = ({ latestThemes = [] }: TopPageTemplateProps) => {
                 title={theme.title}
                 description={theme.description || ""}
                 keyQuestionCount={theme.keyQuestionCount || 0}
-                commentCount={theme.commentCount || 0}
+                participantCount={theme.participantCount || 0}
               />
             ))}
           </div>

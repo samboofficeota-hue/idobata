@@ -171,6 +171,8 @@ export interface Theme {
   slug: string;
   keyQuestionCount?: number;
   commentCount?: number;
+  /** 1回以上発言した人数（ブラウザ単位） */
+  participantCount?: number;
   disableNewComment?: boolean;
 }
 

@@ -12,6 +12,8 @@ export interface ThemeDetailResponse {
   })[];
   issues: Problem[];
   solutions: Solution[];
+  /** 1回以上発言した人数（ブラウザ単位）。シャープな問いの有無に関係なく返る */
+  participantCount?: number;
 }
 
 export function useThemeDetail(themeId: string) {

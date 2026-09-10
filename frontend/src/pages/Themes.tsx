@@ -56,7 +56,7 @@ const Themes = () => {
                 title={theme.title}
                 description={theme.description || ""}
                 keyQuestionCount={theme.keyQuestionCount || 0}
-                commentCount={theme.commentCount || 0}
+                participantCount={theme.participantCount || 0}
               />
             ))}
           </div>

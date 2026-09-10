@@ -6,11 +6,16 @@ import QuestionLink from "../models/QuestionLink.js";
 import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
+import { countParticipantsByTheme } from "../utils/themeParticipants.js";
 
 export const getAllThemes = async (req, res) => {
   try {
     // 基本的なテーマ情報を取得
     const themes = await Theme.find({ isActive: true }).sort({ createdAt: -1 });
+
+    const participantCounts = await countParticipantsByTheme(
+      themes.map((theme) => theme._id)
+    );
 
     // 拡張されたテーマ情報を格納する配列
     const enhancedThemes = [];
@@ -35,6 +40,7 @@ export const getAllThemes = async (req, res) => {
         slug: theme.slug,
         keyQuestionCount,
         commentCount,
+        participantCount: participantCounts.get(theme._id.toString()) || 0,
         isActive: theme.isActive,
         createdAt: theme.createdAt,
         updatedAt: theme.updatedAt,
@@ -272,6 +278,10 @@ export const getThemeDetail = async (req, res) => {
     // 解決策を取得
     const solutions = await Solution.find({ themeId });
 
+    // 対話参加人数（1回以上発言した人数）。シャープな問いの有無に関係なく数えられる
+    const participantCounts = await countParticipantsByTheme([theme._id]);
+    const participantCount = participantCounts.get(theme._id.toString()) || 0;
+
     // 各キークエスチョンに関連する課題と解決策の数を計算
     const keyQuestionsWithCounts = await Promise.all(
       keyQuestions.map(async (question) => {
@@ -312,6 +322,7 @@ export const getThemeDetail = async (req, res) => {
       keyQuestions: keyQuestionsWithCounts,
       issues,
       solutions,
+      participantCount,
     });
   } catch (error) {
     console.error("Error fetching theme detail:", error);
