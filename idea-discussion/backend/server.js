@@ -259,20 +259,30 @@ app.get("/api/health", (req, res) => {
 // 処理対象: 管理画面でアクティブ設定（isActive: true）されているテーマのみ
 // 非アクティブなテーマは自動的にスキップされる
 const BATCH_SCHEDULE = process.env.BATCH_SCHEDULE || "0 2 * * *"; // デフォルト: 毎日2時
+// Railway のコンテナは UTC なので、タイムゾーンを指定しないと「2時」が日本時間の11時になる。
+// 2026-09-10 まではそうなっていて、午前の授業中に問いの自動生成と大量の紐付けが走りうる状態だった。
+const BATCH_TIMEZONE = process.env.BATCH_TIMEZONE || "Asia/Tokyo";
 
-cron.schedule(BATCH_SCHEDULE, async () => {
-  console.log(
-    `[Scheduler] Daily batch processing triggered at ${new Date().toISOString()}`
-  );
-  try {
-    await runDailyBatch();
-  } catch (error) {
-    console.error("[Scheduler] Error in scheduled daily batch processing:", error);
-  }
-});
+cron.schedule(
+  BATCH_SCHEDULE,
+  async () => {
+    console.log(
+      `[Scheduler] Daily batch processing triggered at ${new Date().toISOString()}`
+    );
+    try {
+      await runDailyBatch();
+    } catch (error) {
+      console.error(
+        "[Scheduler] Error in scheduled daily batch processing:",
+        error
+      );
+    }
+  },
+  { timezone: BATCH_TIMEZONE }
+);
 
 console.log(
-  `[Scheduler] Daily batch processing scheduled with cron: ${BATCH_SCHEDULE}`
+  `[Scheduler] Daily batch processing scheduled with cron: ${BATCH_SCHEDULE} (${BATCH_TIMEZONE})`
 );
 
 // --- Start Server ---
