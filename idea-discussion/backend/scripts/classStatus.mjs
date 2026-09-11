@@ -27,6 +27,11 @@ const BACKEND_DIR = path.resolve(
 const HEALTH_URL =
   "https://idobata-backend-production.up.railway.app/api/health";
 const CHAT_MAX_TOKENS = [600, 1200];
+// 推定費用の計算に使う公式価格（USD / 100万トークン、2026-09時点）。モデルを変えたらここも足す
+const PRICES = {
+  "gpt-5.6-luna": { input: 0.2, cached: 0.02, output: 1.2 },
+  "claude-sonnet-5": { input: 2, cached: 0.2, output: 10 },
+};
 const LOG_LIMIT = 5000;
 
 const since = process.argv[2] || "30m";
@@ -168,6 +173,7 @@ const [
   rateLimited,
   dropped,
   chatCalls,
+  allCalls,
 ] = await Promise.all(
   [
     '"Saved chat thread"',
@@ -179,6 +185,7 @@ const [
     '"status=429" OR "status=529" OR "status=503" OR "overloaded"',
     '"Messages dropped"',
     CHAT_MAX_TOKENS.map((n) => `"max=${n} msgs"`).join(" OR "),
+    '"[llmService] model="',
   ].map((filter) =>
     deployments.length
       ? railwayLogs(deployments, filter)
@@ -197,6 +204,33 @@ console.log(
       ? `   AI応答時間 中央値 ${(percentile(ms, 0.5) / 1000).toFixed(1)}秒・95% ${(percentile(ms, 0.95) / 1000).toFixed(1)}秒・最大 ${(ms[ms.length - 1] / 1000).toFixed(1)}秒`
       : ""
   }`
+);
+// 期間内に使われたモデルと、ログの usage から計算した推定費用（授業中にモデルが何で動いているかを確かめるため）
+const byModel = new Map();
+for (const line of allCalls || []) {
+  const m = /model=(\S+) .*? in=(\d+)(?: cached=(\d+))? out=(\d+)/.exec(line);
+  if (!m) continue;
+  const g = byModel.get(m[1]) || { calls: 0, input: 0, cached: 0, output: 0 };
+  g.calls++;
+  g.input += Number(m[2]);
+  g.cached += Number(m[3] || 0);
+  g.output += Number(m[4]);
+  byModel.set(m[1], g);
+}
+const modelText = [...byModel]
+  .map(([model, g]) => {
+    const p = PRICES[model];
+    const cost = p
+      ? ((g.input - g.cached) * p.input +
+          g.cached * p.cached +
+          g.output * p.output) /
+        1e6
+      : null;
+    return `${model} ${g.calls}回（入力 ${(g.input / 1e6).toFixed(2)}M・出力 ${(g.output / 1e6).toFixed(2)}M${cost === null ? "" : `、推定 $${cost.toFixed(2)}`}）`;
+  })
+  .join(" / ");
+console.log(
+  `[モデル]   ${allCalls === null ? "取得失敗" : modelText || "期間内の呼び出しなし"}${allCalls?.capped ? "（ログ上限に達したため一部のみ）" : ""}`
 );
 console.log(
   `[エラー]   空の返答 ${countText(empty)} / 文末切れ ${countText(truncated)} / その他のLLMエラー ${countText(apiErrors)} / レート制限・過負荷 ${countText(rateLimited)}`
@@ -223,6 +257,7 @@ if (
     rateLimited,
     dropped,
     chatCalls,
+    allCalls,
   ].includes(null)
 )
   warnings.push(
