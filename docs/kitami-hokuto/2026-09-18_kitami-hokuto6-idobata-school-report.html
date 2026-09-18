@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>北見北斗高校 いどばた 授業レポート</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+:root{
+  --purple:#7A2A8E; --purple-deep:#5E2270;
+  --magenta:#E4007F; --magenta-deep:#C60070; --magenta-tint:#FBE3F0;
+  --green:#2E9E52; --green-deep:#1F7F40;
+  --yellow:#FFF100;
+  --ink:#2c2730; --ink-soft:#524b57; --ink-mid:#7a7580; --ink-faint:#9AA0A6;
+  --paper:#FFFFFF; --paper-soft:#FAF8FB; --line:#E7E3EA; --line-soft:#F0ECF3;
+  --backdrop:#efeaf1;
+  /* フラワーロゴ6弁＝6クラスの色 */
+  --c1:#1D6FB7; --c2:#39A935; --c3:#EF8A00; --c4:#E4007F; --c5:#CE2027; --c6:#B98900;
+  --font-jp:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic Medium","YuGothic",sans-serif;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font-jp);color:var(--ink);background:var(--backdrop);
+  -webkit-font-smoothing:antialiased;line-height:1.8;font-size:17px;
+}
+.wrap{max-width:860px;margin:0 auto;padding:36px 20px 80px;}
+.paper{background:var(--paper);border-radius:20px;overflow:hidden;
+  box-shadow:0 30px 70px -40px rgba(60,20,80,.5);}
+.pad{padding:52px 60px;}
+
+h1,h2,h3,h4,p,ul,ol,li,table{margin:0;padding:0;}
+ul,ol{list-style:none;}
+strong{font-weight:700;}
+.hl{background:linear-gradient(transparent 58%,var(--yellow) 58%);padding:0 .08em;font-weight:700;}
+.em{color:var(--magenta-deep);font-weight:700;}
+
+/* ---- ヘッダー ---- */
+.hero{background:var(--purple);color:#fff;padding:44px 60px 40px;position:relative;}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+  background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5),var(--c6));}
+.hero .eyebrow{font-size:15px;letter-spacing:.1em;opacity:.85;font-weight:500;margin-bottom:12px;}
+.hero h1{font-size:33px;font-weight:900;line-height:1.4;letter-spacing:.01em;}
+.hero .sub{font-size:19px;font-weight:500;margin-top:12px;opacity:.95;line-height:1.6;}
+.hero .meta{font-size:13px;opacity:.8;margin-top:18px;}
+
+/* ---- 数字ストリップ ---- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:6px 0 8px;}
+.stat{background:var(--paper-soft);border:1px solid var(--line);border-radius:14px;
+  padding:16px 12px;text-align:center;}
+.stat .n{font-size:30px;font-weight:900;color:var(--purple);line-height:1.1;font-variant-numeric:tabular-nums;}
+.stat .l{font-size:12.5px;color:var(--ink-mid);margin-top:6px;line-height:1.4;}
+
+/* ---- セクション ---- */
+section{margin-top:44px;}
+.kicker{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.04em;
+  color:#fff;background:var(--magenta);border-radius:999px;padding:4px 14px;margin-bottom:14px;}
+.kicker.forwho{background:var(--purple);}
+h2{font-size:25px;font-weight:900;line-height:1.4;color:var(--ink);}
+h2 .thin{font-weight:500;color:var(--ink-mid);font-size:18px;}
+.lead{font-size:17px;color:var(--ink-soft);margin-top:12px;line-height:1.85;}
+
+/* ---- 論点一覧テーブル ---- */
+.rontenlist{margin-top:20px;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+.rontenlist .r{display:grid;grid-template-columns:40px 1fr auto;gap:14px;align-items:center;
+  padding:14px 18px;border-bottom:1px solid var(--line-soft);}
+.rontenlist .r:last-child{border-bottom:none;}
+.rontenlist .r:nth-child(odd){background:var(--paper-soft);}
+.rontenlist .no{width:30px;height:30px;border-radius:50%;background:var(--purple);color:#fff;
+  font-weight:900;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.rontenlist .name{font-weight:700;color:var(--ink);}
+.rontenlist .q{font-size:14px;color:var(--ink-mid);margin-top:2px;line-height:1.5;}
+.rontenlist .cnt{font-size:12.5px;color:var(--ink-faint);white-space:nowrap;font-variant-numeric:tabular-nums;}
+
+/* ---- 称賛カード（生徒へ） ---- */
+.finds{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px;}
+.find{border:1px solid var(--magenta-tint);background:linear-gradient(180deg,#fff, #fdf5f9);
+  border-radius:16px;padding:22px 24px;}
+.find .cap{font-size:13px;color:var(--ink-mid);font-weight:500;}
+.find .cap b{color:var(--magenta-deep);}
+.find .punch{font-size:18px;font-weight:900;color:var(--ink);margin:8px 0 12px;line-height:1.5;}
+.find .voice{font-size:14px;color:var(--ink-soft);background:#fff;border-left:3px solid var(--magenta);
+  border-radius:0 8px 8px 0;padding:9px 13px;margin-top:8px;line-height:1.65;}
+
+/* ---- クラスカード ---- */
+.classcard{border:1px solid var(--line);border-radius:16px;padding:0;margin-top:18px;overflow:hidden;}
+.classcard .head{display:flex;align-items:center;gap:14px;padding:16px 22px;color:#fff;}
+.classcard .badge{font-size:20px;font-weight:900;line-height:1;}
+.classcard .theme{font-size:16px;font-weight:700;line-height:1.4;}
+.classcard .body{padding:18px 24px 22px;}
+.classcard .nums{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.classcard .chip{font-size:13px;font-weight:700;border-radius:999px;padding:4px 12px;
+  background:var(--paper-soft);border:1px solid var(--line);color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+.classcard .row{margin-top:12px;}
+.classcard .rl{font-size:12.5px;font-weight:700;color:var(--ink-mid);letter-spacing:.02em;margin-bottom:4px;}
+.classcard .rt{font-size:15px;color:var(--ink-soft);line-height:1.7;}
+/* 6つの論点の関わりストリップ */
+.classcard{--accent:var(--purple);}
+.r9{display:grid;gap:6px;margin-top:8px;}
+.r9i{display:flex;align-items:center;gap:11px;padding:8px 13px;border:1px solid var(--line-soft);
+  border-radius:9px;background:#fff;}
+.r9i .r9n{flex:none;width:23px;height:23px;border-radius:50%;background:var(--line);color:var(--ink-mid);
+  font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+.r9i .r9m{font-size:14.5px;color:var(--ink-mid);font-weight:500;}
+.r9i .r9t{margin-left:auto;font-size:11.5px;font-weight:700;color:#fff;background:var(--accent);
+  border-radius:999px;padding:3px 11px;white-space:nowrap;}
+.r9i.on{background:var(--paper-soft);border-color:var(--accent);border-left:4px solid var(--accent);}
+.r9i.on .r9n{background:var(--accent);color:#fff;}
+.r9i.on .r9m{color:var(--ink);font-weight:700;}
+
+/* ---- 問いリスト ---- */
+.qbox{margin-top:20px;}
+.qgroup{margin-top:16px;}
+.qgroup .gh{font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.qgroup .gh .dot{width:11px;height:11px;border-radius:3px;}
+.qlist{display:grid;gap:8px;}
+.qlist li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:14.5px;color:var(--ink-soft);
+  line-height:1.6;align-items:start;}
+.qlist li .qn{font-weight:900;color:var(--ink-mid);font-variant-numeric:tabular-nums;text-align:right;}
+
+/* ---- 汎用囲み ---- */
+.callout{border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin-top:18px;background:var(--paper-soft);}
+.callout h3{font-size:17px;font-weight:900;color:var(--ink);margin-bottom:8px;}
+.bullets{display:grid;gap:9px;margin-top:8px;}
+.bullets li{padding-left:1.3em;position:relative;font-size:15px;color:var(--ink-soft);line-height:1.7;}
+.bullets li::before{content:"";position:absolute;left:2px;top:.7em;width:6px;height:6px;border-radius:50%;background:var(--magenta);}
+
+.stopped{margin-top:18px;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+.stopped .s{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:14px 18px;border-bottom:1px solid var(--line-soft);}
+.stopped .s:last-child{border-bottom:none;}
+.stopped .s:nth-child(odd){background:var(--paper-soft);}
+.stopped .sn{font-weight:700;color:var(--ink);font-size:14.5px;}
+.stopped .sd{font-size:14px;color:var(--ink-soft);line-height:1.65;}
+
+/* ---- クロージング ---- */
+.closing{background:var(--purple);color:#fff;border-radius:18px;padding:34px 40px;margin-top:44px;text-align:center;}
+.closing .big{font-size:23px;font-weight:900;line-height:1.55;}
+.closing .small{font-size:15px;opacity:.9;margin-top:12px;line-height:1.7;}
+
+/* ---- 付録 ---- */
+.appendix{margin-top:44px;padding-top:26px;border-top:1px solid var(--line);}
+.appendix h3{font-size:16px;font-weight:700;color:var(--ink-mid);}
+.appendix p, .appendix li{font-size:13.5px;color:var(--ink-mid);line-height:1.75;}
+.appendix ul{margin-top:8px;display:grid;gap:5px;}
+.appendix li{padding-left:1.2em;position:relative;}
+.appendix li::before{content:"–";position:absolute;left:0;color:var(--ink-faint);}
+
+.foot{text-align:center;font-size:12px;color:var(--ink-faint);margin-top:30px;line-height:1.7;}
+
+/* ---- レスポンシブ ---- */
+@media (max-width:680px){
+  .pad{padding:34px 22px;} .hero{padding:32px 24px 28px;}
+  .hero h1{font-size:26px;} .stats{grid-template-columns:repeat(2,1fr);}
+  .finds{grid-template-columns:1fr;} .stopped .s{grid-template-columns:1fr;gap:4px;}
+  .rontenlist .r{grid-template-columns:32px 1fr;} .rontenlist .cnt{grid-column:2;padding-left:0;}
+}
+
+/* ---- 印刷（A4・改ページ最適化） ---- */
+@media print{
+  /* A4・上下左右の余白をページ側で確保（＝ヘッダー/フッターの重なり回避） */
+  @page{ size:A4 portrait; margin:12mm 13mm; }
+
+  html,body{background:#fff;}
+  body{font-size:10.5pt;line-height:1.68;}
+  .wrap{max-width:none;margin:0;padding:0;}
+  .paper{box-shadow:none;border-radius:0;}
+  .pad{padding:0;}
+
+  /* ヘッダー帯は角丸ブロックとして最初のページ頭に */
+  .hero{border-radius:10px;padding:16px 22px 15px;margin-bottom:7mm;}
+  .hero h1{font-size:21pt;} .hero .sub{font-size:12pt;} .hero .eyebrow{font-size:9.5pt;}
+
+  /* ★改ページ：主要セクションは必ずページの先頭から始める */
+  section{ margin-top:0; page-break-before:always; break-before:page; }
+  /* 先頭のリード＋数字＋論点一覧だけはヘッダーと同じページに続ける */
+  section:first-of-type{ page-break-before:avoid; break-before:avoid; }
+  .appendix{ page-break-before:always; break-before:page; }
+
+  /* 見出しの直後で切れない／かたまりは途中で割らない */
+  h2,h3,.kicker{ page-break-after:avoid; break-after:avoid; }
+  .find,.callout,.stopped,.closing,.qgroup,.stats,.rontenlist .r,.stat{
+    page-break-inside:avoid; break-inside:avoid;
+  }
+  /* ★1クラス＝1ページ：各クラスカードのあとで必ず改ページ（最後の1枚を除く） */
+  .classcard{ page-break-inside:avoid; break-inside:avoid;
+    page-break-after:always; break-after:page; }
+  .classcard:last-of-type{ page-break-after:auto; break-after:auto; }
+  /* リストの行が1行だけ次ページに落ちる「未亡人/孤児」を抑える */
+  li,p{ orphans:3; widows:3; }
+
+  /* 背景色・帯の色を印刷にも出す */
+  .hero,.hero::after,.closing,.find,.stat,.classcard .head,.kicker,
+  .rontenlist .no,.qgroup .gh .dot,.callout,.stopped .s:nth-child(odd),.rontenlist .r:nth-child(odd){
+    -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="paper">
+
+  <!-- ヘッダー -->
+  <div class="hero">
+    <p class="eyebrow">北見北斗高校 2年生 ／ いどばた 授業レポート</p>
+    <h1>897の声が、6つの論点になった。</h1>
+    <p class="sub">クラスごとの声と、次に考えたいこと ― 先生と生徒のための振り返り</p>
+    <p class="meta">2026年9月 ／ 株式会社 EngageWorks</p>
+  </div>
+
+  <div class="pad">
+
+    <!-- リード + 数字 -->
+    <section style="margin-top:0;">
+      <p class="lead" style="margin-top:0;">
+        2年生6クラスが「いどばた」で北見市の未来を話し合いました。ひとりが意見を一度出して終わり、ではありません。
+        <strong>課題を出し、解決策を出し、AIや他の人の反論を受けて考え直す</strong>。その積み重ねが、下の数字です。
+        6クラスの課題・解決策をクラスの区別なくひとつのプールにまとめ、そこから改めて<strong>6つの論点（シャープな問い）</strong>を立て直しました。
+      </p>
+      <div class="stats">
+        <div class="stat"><div class="n">897</div><div class="l">集まった声<br>（課題437・解決策460）</div></div>
+        <div class="stat"><div class="n">737</div><div class="l">対話スレッド</div></div>
+        <div class="stat"><div class="n">2,442</div><div class="l">やりとりの回数</div></div>
+        <div class="stat"><div class="n">6</div><div class="l">立った論点</div></div>
+      </div>
+    </section>
+
+    <!-- 6つの論点 -->
+    <section>
+      <span class="kicker">全体像</span>
+      <h2>みんなの声から立った、6つの論点</h2>
+      <p class="lead">クラスのテーマは違っても、話の中身は大きく重なっていました。プール全体から立て直した問いがこの6つです。</p>
+      <div class="rontenlist">
+        <div class="r"><div class="no">1</div><div><div class="name">放課後の居場所</div><div class="q">どうすればお金をかけずに、若者が放課後に遊び・学べる場所を持てるか？</div></div><div class="cnt">課題135 / 解決策180</div></div>
+        <div class="r"><div class="no">2</div><div><div class="name">車がなくても動ける</div><div class="q">どうすれば車がなくても誰もが必要な場所へ行き来できるまちになるか？</div></div><div class="cnt">課題67 / 解決策57</div></div>
+        <div class="r"><div class="no">3</div><div><div class="name">守りながら立て直す</div><div class="q">どうすれば暮らしに必要なサービスを守りながら市の財政を立て直せるか？</div></div><div class="cnt">課題92 / 解決策81</div></div>
+        <div class="r"><div class="no">4</div><div><div class="name">駅前と商店街の再生</div><div class="q">どうすれば郊外の暮らしを守りながら、駅前と商店街に賑わいを取り戻せるか？</div></div><div class="cnt">課題113 / 解決策126</div></div>
+        <div class="r"><div class="no">5</div><div><div class="name">北見で働き続ける</div><div class="q">どうすれば若者が進学や就職のあとも北見で働き、暮らし続けたいと思えるか？</div></div><div class="cnt">課題106 / 解決策153</div></div>
+        <div class="r"><div class="no">6</div><div><div class="name">若者の声が届く</div><div class="q">どうすれば若者の声が、実際のまちづくりに届き反映されるまちになるか？</div></div><div class="cnt">課題21 / 解決策20</div></div>
+      </div>
+    </section>
+
+    <!-- 生徒へ：予想を超えた -->
+    <section>
+      <span class="kicker">生徒のみなさんへ</span>
+      <h2>大人の予想を、いくつも超えました。</h2>
+      <p class="lead">授業を始める前、私たちはいくつかの仮説を持っていました。結果は、そのどれとも違いました。</p>
+      <div class="finds">
+        <div class="find">
+          <p class="cap"><b>仮説①</b>　高校生に財政の話は難しいだろう</p>
+          <p class="punch">→ ちがった。<span class="hl">削る側の提案が、生徒から出た。</span></p>
+          <div class="voice">「中央図書館以外の利用者が少ない分館が多く、廃止を含む抜本的な見直しが必要だと感じている」</div>
+          <div class="voice">「現在の市役所を売却し、より小さい市役所にして規模を縮小する」</div>
+        </div>
+        <div class="find">
+          <p class="cap"><b>仮説②</b>　若者は自分たちの要望を言うだけだろう</p>
+          <p class="punch">→ ちがった。<span class="hl">自分が使わない人のために考えた声が17件。</span></p>
+          <div class="voice">「高齢者が、買い物や通院をする際に便利に利用できるバス交通が十分でない」</div>
+          <div class="voice">「公園の遊具は日射が強いと熱くなり、子どもが遊びにくくなるため、対策が必要である」</div>
+        </div>
+        <div class="find">
+          <p class="cap"><b>そして</b>　トレードオフを、自分で引き受けている</p>
+          <p class="punch">「やりたい」だけでなく、<span class="hl">その代償まで自分で言葉にした。</span></p>
+          <div class="voice">「子どもの利用者が少ない段階で娯楽施設を増やすと、維持費がかかる一方で利益を見込みにくく、運営が負担になる」</div>
+          <div class="voice">「人が集まる場所を一箇所に集約すると、周辺地域が衰退する懸念がある」</div>
+        </div>
+        <div class="find">
+          <p class="cap"><b>さらに</b>　若者優遇に、若者がブレーキ</p>
+          <p class="punch">自分たちへの施策に、<span class="hl">自分でブレーキをかけている。</span></p>
+          <div class="voice">「若者向けの施策に偏りすぎると、高齢者が過ごしにくいまちになってしまう懸念がある」</div>
+          <div class="voice">「一律削減は、子育て・福祉・医療・除雪・公共交通などのサービスを損なうおそれがある」</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- クラスごとの声 -->
+    <section>
+      <span class="kicker">クラスごとの声</span>
+      <h2>クラスごとに、担った論点が違う</h2>
+      <p class="lead" style="margin-top:8px;">クラスのテーマが違えば、6つの論点の中で強く担った場所も違います。1クラス＝1ページで、<strong>テーマ</strong>と、<strong>そのクラスが6つの論点のどこを担ったか</strong>をまとめました。</p>
+
+      <div class="classcard" style="--accent:var(--c1);">
+        <div class="head" style="background:var(--accent);"><span class="badge">2年1組</span><span class="theme">地域活性化に向けた公共施設と商業施設の再構築</span></div>
+        <div class="body">
+          <div class="nums"><span class="chip">課題 86</span><span class="chip">解決策 106</span><span class="chip">slug: kitami-0905</span></div>
+          <div class="row"><div class="rl">6つの論点の中で、このクラスが担ったところ</div>
+            <div class="r9">
+              <div class="r9i on"><span class="r9n">1</span><span class="r9m">放課後の居場所</span><span class="r9t">主に担当 ・ 課題36</span></div>
+              <div class="r9i"><span class="r9n">2</span><span class="r9m">車がなくても動ける</span></div>
+              <div class="r9i"><span class="r9n">3</span><span class="r9m">守りながら立て直す</span></div>
+              <div class="r9i on"><span class="r9n">4</span><span class="r9m">駅前と商店街の再生</span><span class="r9t">主に担当 ・ 課題27</span></div>
+              <div class="r9i"><span class="r9n">5</span><span class="r9m">北見で働き続ける</span></div>
+              <div class="r9i"><span class="r9n">6</span><span class="r9m">若者の声が届く</span></div>
+            </div>
+          </div>
+          <div class="row"><div class="rl">具体的に、こんなことを話しました</div>
+            <ul class="bullets" style="margin-top:6px;">
+              <li>放課後に過ごせる場所がカラオケ・イオンなどに偏り、<strong>体を動かせて、天候に左右されず、一か所で複数のことができる</strong>場所が足りない。</li>
+              <li>パラボや空き店舗・空き家を、遊び場や無料の自習室に<strong>転用できないか</strong>（新しくつくるか、今ある場所を使い回すか）。</li>
+              <li>駅前と郊外（イオン・万代）の賑わいの落差。シャッター・空き店舗・老朽化した建物が、まちの印象を下げている。</li>
+              <li>施設を中心部に<strong>集約</strong>してコストを下げるか、留辺蘂など周辺を取り残さないよう<strong>分散</strong>を保つか。</li>
+            </ul>
+          </div>
+          <div class="row"><div class="rl">このクラスならでは</div><div class="rt">「どんな施設を、どこに、どう作り直すか」という<strong>まちの器の設計</strong>を、いちばん具体的に描いたクラスです。</div></div>
+        </div>
+      </div>
+
+      <div class="classcard" style="--accent:var(--c2);">
+        <div class="head" style="background:var(--accent);"><span class="badge">2年2組</span><span class="theme">若者定住促進のための地域活性化戦略</span></div>
+        <div class="body">
+          <div class="nums"><span class="chip">課題 63</span><span class="chip">解決策 74</span><span class="chip">slug: kitami-0902</span></div>
+          <div class="row"><div class="rl">6つの論点の中で、このクラスが担ったところ</div>
+            <div class="r9">
+              <div class="r9i"><span class="r9n">1</span><span class="r9m">放課後の居場所</span></div>
+              <div class="r9i on"><span class="r9n">2</span><span class="r9m">車がなくても動ける</span><span class="r9t">強く関わった</span></div>
+              <div class="r9i"><span class="r9n">3</span><span class="r9m">守りながら立て直す</span></div>
+              <div class="r9i on"><span class="r9n">4</span><span class="r9m">駅前と商店街の再生</span><span class="r9t">強く関わった</span></div>
+              <div class="r9i on"><span class="r9n">5</span><span class="r9m">北見で働き続ける</span><span class="r9t">強く関わった</span></div>
+              <div class="r9i"><span class="r9n">6</span><span class="r9m">若者の声が届く</span></div>
+            </div>
+          </div>
+          <div class="row"><div class="rl">具体的に、こんなことを話しました</div>
+            <ul class="bullets" style="margin-top:6px;">
+              <li>バス運賃の<strong>270円への値上げ、乗り継ぐと500円を超える負担</strong>が、高校生や周辺町の住民の「住み続ける理由」を奪う。</li>
+              <li>財政難を理由にした値上げ・減便への疑問。<strong>運賃を下げるのか、本数を守るのか</strong>。</li>
+              <li>玉ねぎ・ハッカ・赤いサイロといった特産を、どう<strong>ブランド化して知名度を上げる</strong>か。</li>
+              <li>駅前に賑わいを取り戻す一方で、駅前だけでなく<strong>町外れにも店を広げる</strong>という視点。</li>
+            </ul>
+          </div>
+          <div class="row"><div class="rl">このクラスならでは</div><div class="rt">「定住」を理想論でなく、<strong>運賃の実額や特産の知名度といった手ざわりのある条件</strong>から考えたクラスです。</div></div>
+        </div>
+      </div>
+
+      <div class="classcard" style="--accent:var(--c3);">
+        <div class="head" style="background:var(--accent);"><span class="badge">2年3組</span><span class="theme">地元企業の魅力向上と若者の雇用創出戦略</span></div>
+        <div class="body">
+          <div class="nums"><span class="chip">課題 49</span><span class="chip">解決策 51</span><span class="chip">slug: kitami-0903</span></div>
+          <div class="row"><div class="rl">6つの論点の中で、このクラスが担ったところ</div>
+            <div class="r9">
+              <div class="r9i"><span class="r9n">1</span><span class="r9m">放課後の居場所</span></div>
+              <div class="r9i"><span class="r9n">2</span><span class="r9m">車がなくても動ける</span></div>
+              <div class="r9i"><span class="r9n">3</span><span class="r9m">守りながら立て直す</span></div>
+              <div class="r9i"><span class="r9n">4</span><span class="r9m">駅前と商店街の再生</span></div>
+              <div class="r9i on"><span class="r9n">5</span><span class="r9m">北見で働き続ける</span><span class="r9t">主に担当 ・ 課題41</span></div>
+              <div class="r9i"><span class="r9n">6</span><span class="r9m">若者の声が届く</span></div>
+            </div>
+          </div>
+          <div class="row"><div class="rl">具体的に、こんなことを話しました</div>
+            <ul class="bullets" style="margin-top:6px;">
+              <li>企業数と職種が少なく給料も低いため、<strong>希望する仕事や転職先の選択肢が見つけにくい</strong>。</li>
+              <li>地元企業の存在や、<strong>仕事の中身・やりがいが若者に知られていない</strong>（SNSや職場見学で伝える）。</li>
+              <li>賃金・福利厚生・働き方を改善して<strong>地元企業を磨く</strong>か、都市圏の人気企業・IT・理系の企業を<strong>誘致する</strong>か。</li>
+              <li>「給料だけでなく、楽しめることがないと地元で働きたいと思えない」＝<strong>働く場と居場所はセット</strong>。</li>
+            </ul>
+          </div>
+          <div class="row"><div class="rl">このクラスならでは</div><div class="rt">求人の数だけでなく、<strong>仕事の“知られ方”と働きがい</strong>にまで踏み込んで、雇用を考えたクラスです。</div></div>
+        </div>
+      </div>
+
+      <div class="classcard" style="--accent:var(--c4);">
+        <div class="head" style="background:var(--accent);"><span class="badge">2年4組</span><span class="theme">若者の意見を反映したまちづくりの推進</span></div>
+        <div class="body">
+          <div class="nums"><span class="chip">課題 89</span><span class="chip">解決策 88</span><span class="chip">slug: kitami-0901</span></div>
+          <div class="row"><div class="rl">6つの論点の中で、このクラスが担ったところ</div>
+            <div class="r9">
+              <div class="r9i"><span class="r9n">1</span><span class="r9m">放課後の居場所</span></div>
+              <div class="r9i"><span class="r9n">2</span><span class="r9m">車がなくても動ける</span></div>
+              <div class="r9i"><span class="r9n">3</span><span class="r9m">守りながら立て直す</span></div>
+              <div class="r9i on"><span class="r9n">4</span><span class="r9m">駅前と商店街の再生</span><span class="r9t">関わった</span></div>
+              <div class="r9i"><span class="r9n">5</span><span class="r9m">北見で働き続ける</span></div>
+              <div class="r9i on"><span class="r9n">6</span><span class="r9m">若者の声が届く</span><span class="r9t">主に担当 ・ 課題17/21</span></div>
+            </div>
+          </div>
+          <div class="row"><div class="rl">具体的に、こんなことを話しました</div>
+            <ul class="bullets" style="margin-top:6px;">
+              <li>意見を出しても反映された実感がなく、<strong>「何をしても変わらない」</strong>と感じている。</li>
+              <li>集めるだけでなく、<strong>実際のまちづくりに反映するところまで</strong>が必要。資金や大人の協力も要る。</li>
+              <li>学校を通して集めるか、SNSなど<strong>普段使う場所</strong>で集めるか。若者自身が企画・運営の<strong>担い手</strong>になるか。</li>
+              <li><strong>「意見を出すときに個人が特定される不安」</strong>という、声を届けるうえで見落とされがちな論点にも踏み込んだ。</li>
+            </ul>
+          </div>
+          <div class="row"><div class="rl">このクラスならでは</div><div class="rt">中身の議論だけでなく、<strong>その声をどう届け、どう守るか</strong>という「仕組み」に踏み込んだクラスです。</div></div>
+        </div>
+      </div>
+
+      <div class="classcard" style="--accent:var(--c5);">
+        <div class="head" style="background:var(--accent);"><span class="badge">2年5組</span><span class="theme">若者を惹きつける北見市の魅力創出と地域活性化</span></div>
+        <div class="body">
+          <div class="nums"><span class="chip">課題 56</span><span class="chip">解決策 43</span><span class="chip">slug: kitami-0906</span></div>
+          <div class="row"><div class="rl">6つの論点の中で、このクラスが担ったところ</div>
+            <div class="r9">
+              <div class="r9i on"><span class="r9n">1</span><span class="r9m">放課後の居場所</span><span class="r9t">強く関わった</span></div>
+              <div class="r9i"><span class="r9n">2</span><span class="r9m">車がなくても動ける</span></div>
+              <div class="r9i"><span class="r9n">3</span><span class="r9m">守りながら立て直す</span></div>
+              <div class="r9i"><span class="r9n">4</span><span class="r9m">駅前と商店街の再生</span></div>
+              <div class="r9i on"><span class="r9n">5</span><span class="r9m">北見で働き続ける</span><span class="r9t">強く関わった</span></div>
+              <div class="r9i"><span class="r9n">6</span><span class="r9m">若者の声が届く</span></div>
+            </div>
+          </div>
+          <div class="row"><div class="rl">具体的に、こんなことを話しました</div>
+            <ul class="bullets" style="margin-top:6px;">
+              <li>進学で北見を離れた若者がそのまま戻らない流れが、<strong>人口と地域経済の縮小</strong>につながっている。</li>
+              <li>大学の学部の幅が狭く、<strong>北見で学び続けたい分野を見つけにくい</strong>。</li>
+              <li>玉ねぎ・ハッカ・焼肉・自然はあるが、<strong>「北見でなければならない理由」につながっていない</strong>。</li>
+              <li>「遊び場がないから若者が出ていく」＝<strong>居場所の不足を、流出の理由</strong>として捉えた。</li>
+            </ul>
+          </div>
+          <div class="row"><div class="rl">このクラスならでは</div><div class="rt">「なぜ北見を選ぶのか」という<strong>まちの魅力の根っこ</strong>に向き合い、流出の連鎖を見つめたクラスです。</div></div>
+        </div>
+      </div>
+
+      <div class="classcard" style="--accent:var(--c6);">
+        <div class="head" style="background:var(--accent);"><span class="badge">2年6組</span><span class="theme">住みやすさ向上のための財政健全化と公共サービスの充実</span></div>
+        <div class="body">
+          <div class="nums"><span class="chip">課題 94</span><span class="chip">解決策 98</span><span class="chip">slug: kitami-0904</span></div>
+          <div class="row"><div class="rl">6つの論点の中で、このクラスが担ったところ</div>
+            <div class="r9">
+              <div class="r9i"><span class="r9n">1</span><span class="r9m">放課後の居場所</span></div>
+              <div class="r9i"><span class="r9n">2</span><span class="r9m">車がなくても動ける</span></div>
+              <div class="r9i on"><span class="r9n">3</span><span class="r9m">守りながら立て直す</span><span class="r9t">主に担当 ・ 課題38</span></div>
+              <div class="r9i"><span class="r9n">4</span><span class="r9m">駅前と商店街の再生</span></div>
+              <div class="r9i"><span class="r9n">5</span><span class="r9m">北見で働き続ける</span></div>
+              <div class="r9i"><span class="r9n">6</span><span class="r9m">若者の声が届く</span></div>
+            </div>
+          </div>
+          <div class="row"><div class="rl">具体的に、こんなことを話しました</div>
+            <ul class="bullets" style="margin-top:6px;">
+              <li>支出削減だけでは財政は好転しない。<strong>収入を増やす取り組み</strong>（6次産業化・ふるさと納税・企業誘致・集客）が必要。</li>
+              <li>図書館の分館、市役所の規模、野球場、公民館など、<strong>需要の少ない施設から具体的に見直す</strong>案。</li>
+              <li>除雪・医療・子育て・公共交通など<strong>生活に直結する分野を一律に削ることには強い反対</strong>（選んで削る）。</li>
+              <li>何をいくら削り、その結果<strong>何を守れたのか</strong>。お金の流れの<strong>見える化</strong>を求める。</li>
+            </ul>
+          </div>
+          <div class="row"><div class="rl">このクラスならでは</div><div class="rt">「削る」を避けずに引き受けたうえで、<strong>守る一線と、収入を増やす道</strong>まで具体的に示したクラスです。</div></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 次に考えたいこと -->
+    <section>
+      <span class="kicker forwho">先生と生徒へ</span>
+      <h2>次に考えたいこと <span class="thin">― 授業のつづきの材料</span></h2>
+      <p class="lead">議論が止まった場所は、能力が足りない場所ではなく、<strong>情報や「場」が足りない場所</strong>でした。ここが、次の探究の入口になります。</p>
+
+      <div class="qbox">
+        <h3 style="font-size:18px;font-weight:900;margin-bottom:4px;">生徒が22回「分からない」と言った</h3>
+        <p style="font-size:15px;color:var(--ink-soft);line-height:1.7;">そのまま探究の問いになります。半分は市役所が答えを持っていて、半分は自分たちで調べられます。</p>
+
+        <div class="qgroup">
+          <div class="gh"><span class="dot" style="background:var(--purple);"></span>市役所が答えを持っている問い（＝市に聞きに行ける）</div>
+          <ul class="qlist">
+            <li><span class="qn">1</span><span>図書館の開館時間を減らすことが、どんな仕組みで財政健全化につながるのか</span></li>
+            <li><span class="qn">2</span><span>市が最も多くのお金を、どこに使っているのか</span></li>
+            <li><span class="qn">3</span><span>北見が財政難に陥っている理由は何か</span></li>
+            <li><span class="qn">4</span><span>市の財政は、現状のままあと何年維持できるのか</span></li>
+            <li><span class="qn">5</span><span>何をいくら削り、その結果どのサービスを維持・充実できたのか</span></li>
+            <li><span class="qn">6</span><span>地域経済を回すと、市の税収や財源は実際に増えるのか</span></li>
+            <li><span class="qn">7</span><span>地域経済の活性化は、税収増にどの程度つながるのか</span></li>
+            <li><span class="qn">8</span><span>体育館・チェーン店・汽車やバスの便数を増やせない理由は何か</span></li>
+            <li><span class="qn">9</span><span>北見は、観光客・商業利用者・居住者のどの層を主なターゲットにする街か</span></li>
+            <li><span class="qn">10</span><span>若者を増やすために、人気チェーン店を誘致できるのか</span></li>
+            <li><span class="qn">11</span><span>若者の意見を、まちづくりに具体的に反映する方法は何か</span></li>
+          </ul>
+        </div>
+
+        <div class="qgroup">
+          <div class="gh"><span class="dot" style="background:var(--green);"></span>自分たちで調べ・確かめられる問い（＝探究のテーマになる）</div>
+          <ul class="qlist">
+            <li><span class="qn">12</span><span>北見が経済的に貧しい理由は何か</span></li>
+            <li><span class="qn">13</span><span>夕張市は、経済回復のためにどんな政策を実施したのか</span></li>
+            <li><span class="qn">14</span><span>外から人を呼び、宿泊・飲食・買い物で大きな収益を生めるイベントは何か</span></li>
+            <li><span class="qn">15</span><span>いまの北見に、どんな施設・サービス・魅力があるのか</span></li>
+            <li><span class="qn">16</span><span>人が住む街を選ぶとき、どんな基準を重視しているのか</span></li>
+            <li><span class="qn">17</span><span>商店街に、普段から利用したいと思える店がどれだけあるのか</span></li>
+            <li><span class="qn">18</span><span>古い建物を壊すとき、解体にどれくらい費用がかかるのか</span></li>
+            <li><span class="qn">19</span><span>人口流出を減らす方法は何か</span></li>
+            <li><span class="qn">20</span><span>玉ねぎは、いまからブランド化して流行させられるのか</span></li>
+            <li><span class="qn">21</span><span>玉ねぎや赤いサイロを、どうすればもっと広く有名にできるのか</span></li>
+            <li><span class="qn">22</span><span>観光客と地元の若者、両方に地域の魅力を感じてもらう方法は何か</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h3>まだ「解決策」が出ていない、4つのテーマ</h3>
+        <p style="font-size:14.5px;color:var(--ink-mid);">課題としては挙がったのに、解決策がほとんど出ていない領域です。次の授業で投げかける価値があります。</p>
+        <ul class="bullets">
+          <li><strong>治安・迷惑行為</strong>（駅前や中心街の治安イメージを含む。解決策は「治安を改善する」「利用者登録制度」の2件ほどで止まっている）</li>
+          <li><strong>夏の暑さと冬の制約</strong>（解決策は冷暖房や室内施設、遊具の日射対策どまり）</li>
+          <li><strong>高齢者のデジタル対応</strong>（課題も解決策も、ごくわずか）</li>
+          <li><strong>意見を出すときに個人が特定される不安</strong>（4組から提起。まだ解決策が出ていない）</li>
+        </ul>
+      </div>
+
+      <div style="margin-top:24px;">
+        <h3 style="font-size:18px;font-weight:900;">6つの論点は、いまここで止まっている</h3>
+        <p style="font-size:15px;color:var(--ink-soft);line-height:1.7;margin-top:4px;">「なぜ止まったか」が分かれば、次に対話を再開する切り口になります。</p>
+        <div class="stopped">
+          <div class="s"><div class="sn">1 放課後の居場所</div><div class="sd">遊び場を先に整えるか、経済を立て直してからかが噛み合ったまま。治安への対応は解決策が2件ほどで止まっている。</div></div>
+          <div class="s"><div class="sn">2 車がなくても動ける</div><div class="sd">「便数を増やせない理由が分からない」＝制約条件が共有されていない。交通が先か、行き先が先かも決まっていない。</div></div>
+          <div class="s"><div class="sn">3 守りながら立て直す</div><div class="sd">財政難の理由や、何を削り何を守れたのかが説明されておらず、市の情報を待って止まっている。</div></div>
+          <div class="s"><div class="sn">4 駅前と商店街の再生</div><div class="sd">中心部への集約と周辺の衰退、チェーン誘致と地元の個人店が正面衝突。市がどの層を狙うかも示されていない。</div></div>
+          <div class="s"><div class="sn">5 北見で働き続ける</div><div class="sd">進学と就職、企業誘致と地元企業のどちらが先かで両論。地元企業の仕事の中身が、若者に届いていない。</div></div>
+          <div class="s"><div class="sn">6 若者の声が届く</div><div class="sd">意見を出しても反映された実感がなく「何をしても変わらない」と感じている。声を届ける仕組みそのものが見えていない。</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- クロージング -->
+    <div class="closing">
+      <p class="big">あなたたちの897の声は、<br>ここで終わりません。</p>
+      <p class="small">この6つの論点は、北見市役所にも「市は何ができますか？」という問いとして届けられます。<br>そして次の授業では、あなたたち自身が「分からない」と言ったことを、一つずつ確かめにいけます。</p>
+    </div>
+
+    <!-- 付録 -->
+    <div class="appendix">
+      <h3>付録：この分析は、どうやってつくられたか</h3>
+      <p>この振り返りは、授業で使ったシステム「いどばた」の本番データ（読み取りのみ）をもとに、システムと同じ手順を当てて作成しています。数字や論点は、みなさんが実際に入力した声から出ています。</p>
+      <ul>
+        <li>シャープな問いの生成・意見の紐づけ・論点まとめは、システム実装と同じプロンプトを適用（<code>questionGenerator.js</code> / <code>linkingWorker.js</code> / <code>debateAnalysisGenerator.js</code>）。</li>
+        <li>ひとつの意見が複数の論点に紐づくことがあるため、論点ごとの合計は課題437・解決策460より多くなります（システムと同じ挙動）。</li>
+        <li>各クラスが授業中に立てた6つの問い（計36問）は使わず、6クラスの声をひとつのプールに統合して6つの論点を立て直しています。</li>
+        <li>守った制約：論点は6つ、問いは50字以内。数を満たすために対立を作り出していません。</li>
+      </ul>
+    </div>
+
+    <p class="foot">北見北斗高校 2年生 いどばた 授業レポート ／ 株式会社 EngageWorks ／ 2026年9月</p>
+
+  </div><!-- /pad -->
+</div><!-- /paper -->
+</div><!-- /wrap -->
+</body>
+</html>
