@@ -28,7 +28,6 @@ const KouchouReportDetail = () => {
     const topClusters = result.clusters
       .filter((c) => c.level === 1)
       .sort((a, b) => b.value - a.value);
-    const colorIndexByClusterId = new Map(topClusters.map((c, i) => [c.id, i]));
 
     const childrenByParent = new Map<string, KouchouCluster[]>();
     for (const c of result.clusters) {
@@ -51,7 +50,6 @@ const KouchouReportDetail = () => {
 
     return {
       topClusters,
-      colorIndexByClusterId,
       childrenByParent,
       samplesByCluster,
     };
@@ -110,11 +108,11 @@ const KouchouReportDetail = () => {
               <SectionHeading title="意見の分布" className="mb-4" />
               <ClusterScatter
                 arguments={result.arguments}
-                colorIndexByClusterId={view.colorIndexByClusterId}
+                clusters={view.topClusters}
                 selectedClusterId={selectedClusterId}
               />
               <p className="text-sm text-muted-foreground mt-2">
-                点の1つ1つが意見です。近くにある意見ほど内容が似ています。グループを選ぶと強調表示されます。
+                点の1つ1つが意見です。近くにある意見ほど内容が似ています。点にカーソルを合わせる（スマホではタップする）と意見の本文が表示されます。グループを選ぶと強調表示されます。
               </p>
               <ul className="mt-4 flex flex-wrap gap-2">
                 {view.topClusters.map((c, i) => (
