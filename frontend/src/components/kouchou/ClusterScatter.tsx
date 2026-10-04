@@ -1,96 +1,130 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { cn } from "../../lib/utils";
 import type {
   KouchouArgument,
   KouchouCluster,
 } from "../../services/kouchou/types";
-import { clusterColor } from "./clusterColors";
+import { MUTED_POINT_COLOR, textColorOn } from "./clusterColors";
+import { chartHeightForWidth, convexHull } from "./kouchouChartUtils";
 
 interface ClusterScatterProps {
   arguments: KouchouArgument[];
-  // 第1階層の意見グループ（並び順がそのまま色のインデックスになる）
+  // 色分けする意見グループ（「全体」は第1階層、「濃い意見」は最も細かい階層の一部）
   clusters: KouchouCluster[];
+  colorByClusterId: Map<string, string>;
   selectedClusterId: string | null;
+  // 検索に一致した意見のID。null なら絞り込みなし
+  matchedArgumentIds: Set<string> | null;
+  showLabels: boolean;
+  // 意見グループの範囲に薄い背景色を付ける
+  showHulls?: boolean;
+  // 全画面表示では親要素の高さいっぱいに広げる
+  fillHeight?: boolean;
 }
 
 type Point = {
   arg: KouchouArgument;
   cx: number;
   cy: number;
-  clusterId: string;
+  cluster: KouchouCluster | null;
+  muted: boolean;
 };
 
-const VIEW_SIZE = 1000;
-const PADDING = 20;
-// ポインタからこの距離（viewBox座標）以内にある最も近い点を「選択中の意見」とする
-const HOVER_RADIUS = 18;
-
-const toPercent = (v: number) => `${(v / VIEW_SIZE) * 100}%`;
+const PADDING = 24;
+const POINT_RADIUS = 5;
+// ポインタからこの距離（px）以内にある最も近い点を「選択中の意見」とする
+const HOVER_RADIUS = 16;
+// ラベルの最大幅（md:max-w-[240px]）の半分
+const LABEL_HALF_WIDTH = 120;
 
 // 広聴AIの散布図（意見の分布）をSVGで描画する
 // kouchou-aiのclientはPlotly.jsを使っているが、いどばた側ではバンドルを軽くするため素のSVGで描く
 const ClusterScatter = ({
   arguments: args,
   clusters,
+  colorByClusterId,
   selectedClusterId,
+  matchedArgumentIds,
+  showLabels,
+  showHulls = false,
+  fillHeight = false,
 }: ClusterScatterProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const [hovered, setHovered] = useState<Point | null>(null);
-  const [showLabels, setShowLabels] = useState(true);
 
-  const colorIndexByClusterId = useMemo(
-    () => new Map(clusters.map((c, i) => [c.id, i])),
-    [clusters]
-  );
-  const labelByClusterId = useMemo(
-    () => new Map(clusters.map((c) => [c.id, c.label])),
-    [clusters]
-  );
+  // SVGの座標を実際の表示サイズ（px）に合わせ、点の大きさが画面幅で変わらないようにする
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const width = el.clientWidth;
+      const height = fillHeight ? el.clientHeight : chartHeightForWidth(width);
+      setSize({ width, height });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [fillHeight]);
 
   const points = useMemo<Point[]>(() => {
-    if (args.length === 0) return [];
+    const { width, height } = size;
+    if (args.length === 0 || width === 0) return [];
     const xs = args.map((a) => a.x);
     const ys = args.map((a) => a.y);
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
     const minY = Math.min(...ys);
     const maxY = Math.max(...ys);
-    const scale =
-      (VIEW_SIZE - PADDING * 2) /
-      Math.max(maxX - minX, maxY - minY, Number.EPSILON);
-    return args.map((a) => ({
-      arg: a,
-      cx: PADDING + (a.x - minX) * scale,
-      // SVGはy軸が下向きなので反転する
-      cy: VIEW_SIZE - PADDING - (a.y - minY) * scale,
-      clusterId: a.cluster_ids[1] ?? "",
-    }));
-  }, [args]);
+    const sx = (width - PADDING * 2) / Math.max(maxX - minX, Number.EPSILON);
+    const sy = (height - PADDING * 2) / Math.max(maxY - minY, Number.EPSILON);
+    const clusterById = new Map(clusters.map((c) => [c.id, c]));
+    return args.map((a) => {
+      const clusterId = a.cluster_ids.find((id) => clusterById.has(id));
+      const cluster = clusterId ? (clusterById.get(clusterId) ?? null) : null;
+      return {
+        arg: a,
+        cx: PADDING + (a.x - minX) * sx,
+        // SVGはy軸が下向きなので反転する
+        cy: height - PADDING - (a.y - minY) * sy,
+        cluster,
+        muted:
+          cluster === null ||
+          (matchedArgumentIds !== null && !matchedArgumentIds.has(a.arg_id)),
+      };
+    });
+  }, [args, clusters, size, matchedArgumentIds]);
 
   // 各グループのラベルは、所属する点の重心に置く（kouchou-ai本体と同じ方式）
   const labels = useMemo(() => {
     const sums = new Map<string, { x: number; y: number; n: number }>();
     for (const p of points) {
-      const s = sums.get(p.clusterId) ?? { x: 0, y: 0, n: 0 };
+      if (!p.cluster) continue;
+      const s = sums.get(p.cluster.id) ?? { x: 0, y: 0, n: 0 };
       s.x += p.cx;
       s.y += p.cy;
       s.n += 1;
-      sums.set(p.clusterId, s);
+      sums.set(p.cluster.id, s);
     }
-    return clusters.flatMap((c, i) => {
+    return clusters.flatMap((c) => {
       const s = sums.get(c.id);
       if (!s) return [];
-      return [
-        { id: c.id, label: c.label, index: i, x: s.x / s.n, y: s.y / s.n },
-      ];
+      // 端に近いラベルが細く折り返されないよう、中心を内側に寄せる
+      const margin = Math.min(LABEL_HALF_WIDTH, size.width / 2);
+      const x = Math.min(Math.max(s.x / s.n, margin), size.width - margin);
+      const y = Math.min(Math.max(s.y / s.n, 20), size.height - 20);
+      return [{ cluster: c, x, y }];
     });
-  }, [points, clusters]);
+  }, [points, clusters, size]);
 
-  const isDimmed = (clusterId: string) =>
-    selectedClusterId !== null && selectedClusterId !== clusterId;
+  const isDimmed = (p: Point) =>
+    selectedClusterId !== null &&
+    !p.arg.cluster_ids.includes(selectedClusterId);
 
-  // 約1万個の点それぞれにイベントを付けると重いため、SVG全体で受けて最寄りの点を探す
+  // 点が多いと1つずつイベントを付けるのは重いため、SVG全体で受けて最寄りの点を探す
   const handlePointer = (event: PointerEvent<SVGSVGElement>) => {
     const svg = svgRef.current;
     const ctm = svg?.getScreenCTM();
@@ -101,7 +135,7 @@ const ClusterScatter = ({
     let nearest: Point | null = null;
     let nearestDist = HOVER_RADIUS * HOVER_RADIUS;
     for (const p of points) {
-      if (isDimmed(p.clusterId)) continue;
+      if (p.muted || isDimmed(p)) continue;
       const d = (p.cx - pt.x) ** 2 + (p.cy - pt.y) ** 2;
       if (d < nearestDist) {
         nearest = p;
@@ -111,23 +145,47 @@ const ClusterScatter = ({
     setHovered(nearest);
   };
 
-  return (
-    <div>
-      <label className="mb-2 flex w-fit items-center gap-2 text-sm cursor-pointer">
-        <input
-          type="checkbox"
-          checked={showLabels}
-          onChange={(e) => setShowLabels(e.target.checked)}
-          className="h-4 w-4 accent-primary-700"
-        />
-        グループ名を表示
-      </label>
+  const toLeft = (x: number) => `${(x / Math.max(size.width, 1)) * 100}%`;
+  const toTop = (y: number) => `${(y / Math.max(size.height, 1)) * 100}%`;
+  const colorOf = (p: Point) =>
+    p.muted || !p.cluster
+      ? MUTED_POINT_COLOR
+      : (colorByClusterId.get(p.cluster.id) ?? MUTED_POINT_COLOR);
 
-      <div className="relative">
+  // 対象外（灰色）の点を先に描き、色付きの点が上に来るようにする
+  // 各グループを囲む多角形（点が3つ未満のグループは描かない）
+  const hulls = useMemo(() => {
+    if (!showHulls) return [];
+    return clusters.flatMap((c) => {
+      const members = points
+        .filter((p) => p.cluster?.id === c.id)
+        .map((p): [number, number] => [p.cx, p.cy]);
+      if (members.length < 3) return [];
+      const hull = convexHull(members);
+      if (hull.length < 3) return [];
+      return [
+        { cluster: c, path: hull.map(([x, y]) => `${x},${y}`).join(" ") },
+      ];
+    });
+  }, [showHulls, clusters, points]);
+
+  const orderedPoints = useMemo(
+    () => [...points.filter((p) => p.muted), ...points.filter((p) => !p.muted)],
+    [points]
+  );
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn("relative w-full", fillHeight && "h-full")}
+    >
+      {size.width > 0 && (
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
-          className="block w-full h-auto rounded-[16px] border-2 border-primary-700 bg-white touch-pan-y"
+          width={size.width}
+          height={size.height}
+          viewBox={`0 0 ${size.width} ${size.height}`}
+          className="block bg-white touch-pan-y"
           role="img"
           aria-label="意見の分布図"
           onPointerMove={handlePointer}
@@ -137,84 +195,100 @@ const ClusterScatter = ({
             if (e.pointerType === "mouse") setHovered(null);
           }}
         >
-          {points.map((p) => (
+          {hulls.map((h) => {
+            const color =
+              colorByClusterId.get(h.cluster.id) ?? MUTED_POINT_COLOR;
+            const dimmed =
+              selectedClusterId !== null && selectedClusterId !== h.cluster.id;
+            return (
+              <polygon
+                key={h.cluster.id}
+                points={h.path}
+                fill={color}
+                fillOpacity={dimmed ? 0.05 : 0.2}
+                stroke={color}
+                strokeOpacity={dimmed ? 0.2 : 1}
+                strokeWidth={1.5}
+                strokeLinejoin="round"
+                className="transition-opacity"
+              />
+            );
+          })}
+          {orderedPoints.map((p) => (
             <circle
               key={p.arg.arg_id}
               cx={p.cx}
               cy={p.cy}
-              r={4}
-              className={cn(
-                clusterColor(colorIndexByClusterId.get(p.clusterId) ?? 0).fill,
-                "transition-opacity"
-              )}
-              opacity={isDimmed(p.clusterId) ? 0.08 : 0.75}
+              r={POINT_RADIUS}
+              fill={colorOf(p)}
+              className="transition-opacity"
+              opacity={p.muted ? 0.5 : isDimmed(p) ? 0.12 : 0.9}
             />
           ))}
           {hovered && (
             <circle
               cx={hovered.cx}
               cy={hovered.cy}
-              r={9}
-              className="fill-none stroke-primary-950"
+              r={POINT_RADIUS + 4}
+              fill="none"
+              stroke={colorOf(hovered)}
               strokeWidth={3}
             />
           )}
         </svg>
+      )}
 
-        {showLabels &&
-          labels.map((l) => (
-            <div
-              key={l.id}
-              className={cn(
-                "pointer-events-none absolute flex max-w-[40%] -translate-x-1/2 -translate-y-1/2 items-start gap-1 rounded-md border border-secondary-200 bg-white/90 px-2 py-1 text-[10px] font-bold leading-snug shadow-sm md:text-xs transition-opacity",
-                isDimmed(l.id) && "opacity-30"
-              )}
-              style={{ left: toPercent(l.x), top: toPercent(l.y) }}
-            >
-              <span
-                className={cn(
-                  "mt-1 h-2 w-2 shrink-0 rounded-full",
-                  clusterColor(l.index).bg
-                )}
-              />
-              <span className="line-clamp-2">{l.label}</span>
-            </div>
-          ))}
-
-        {hovered && (
+      {showLabels &&
+        labels.map((l) => (
           <div
-            role="tooltip"
-            // スマホでは地図の幅が狭く吹き出しがはみ出すため、地図の下に表示する
+            key={l.cluster.id}
             className={cn(
-              "pointer-events-none mt-2 rounded-lg border-2 border-primary-700 bg-white p-3 shadow-md md:absolute md:z-10 md:mt-0 md:w-64 md:max-w-[80%]",
-              hovered.cx > VIEW_SIZE / 2
-                ? "md:-translate-x-full md:-ml-3"
-                : "md:ml-3",
-              hovered.cy > VIEW_SIZE / 2
-                ? "md:-translate-y-full md:-mt-3"
-                : "md:mt-3"
+              "pointer-events-none absolute w-max max-w-[40%] md:max-w-[240px] -translate-x-1/2 -translate-y-1/2 rounded px-2 py-1 text-[11px] font-bold leading-snug shadow-sm md:text-sm transition-opacity",
+              selectedClusterId !== null &&
+                selectedClusterId !== l.cluster.id &&
+                selectedClusterId !== l.cluster.parent &&
+                "opacity-30"
             )}
-            style={{ left: toPercent(hovered.cx), top: toPercent(hovered.cy) }}
+            style={{
+              left: toLeft(l.x),
+              top: toTop(l.y),
+              backgroundColor: colorByClusterId.get(l.cluster.id),
+              color: textColorOn(
+                colorByClusterId.get(l.cluster.id) ?? MUTED_POINT_COLOR
+              ),
+            }}
           >
-            <p className="mb-1 flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
-              <span
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  clusterColor(
-                    colorIndexByClusterId.get(hovered.clusterId) ?? 0
-                  ).bg
-                )}
-              />
-              <span className="truncate">
-                {labelByClusterId.get(hovered.clusterId)}
-              </span>
-            </p>
-            <p className="text-sm leading-relaxed break-words line-clamp-6">
-              {hovered.arg.argument}
-            </p>
+            <span className="line-clamp-3">{l.cluster.label}</span>
           </div>
-        )}
-      </div>
+        ))}
+
+      {hovered && (
+        <div
+          role="tooltip"
+          // スマホでは地図の幅が狭く吹き出しがはみ出すため、地図の下に表示する
+          className={cn(
+            "pointer-events-none mt-2 rounded-lg border-2 bg-white p-3 shadow-md md:absolute md:z-10 md:mt-0 md:w-72 md:max-w-[80%]",
+            hovered.cx > size.width / 2
+              ? "md:-translate-x-full md:-ml-3"
+              : "md:ml-3",
+            hovered.cy > size.height / 2
+              ? "md:-translate-y-full md:-mt-3"
+              : "md:mt-3"
+          )}
+          style={{
+            left: toLeft(hovered.cx),
+            top: toTop(hovered.cy),
+            borderColor: colorOf(hovered),
+          }}
+        >
+          <p className="mb-1 text-xs font-bold text-muted-foreground break-words">
+            {hovered.cluster?.label}
+          </p>
+          <p className="text-sm leading-relaxed break-words line-clamp-6">
+            {hovered.arg.argument}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
