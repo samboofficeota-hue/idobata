@@ -6,11 +6,10 @@ import type {
   KouchouCluster,
 } from "../../services/kouchou/types";
 import { Card, CardContent, CardTitle } from "../ui/card";
-import { clusterColor } from "./clusterColors";
 
 interface ClusterCardProps {
   cluster: KouchouCluster;
-  colorIndex: number;
+  color: string;
   totalArguments: number;
   subClusters: KouchouCluster[];
   sampleArguments: KouchouArgument[];
@@ -20,7 +19,7 @@ interface ClusterCardProps {
 
 const ClusterCard = ({
   cluster,
-  colorIndex,
+  color,
   totalArguments,
   subClusters,
   sampleArguments,
@@ -47,10 +46,8 @@ const ClusterCard = ({
         >
           <div className="flex items-start gap-3">
             <span
-              className={cn(
-                "mt-2 h-4 w-4 shrink-0 rounded-full",
-                clusterColor(colorIndex).bg
-              )}
+              className="mt-2 h-4 w-4 shrink-0 rounded-full"
+              style={{ backgroundColor: color }}
             />
             <div className="min-w-0 flex-1">
               <CardTitle className="text-lg leading-relaxed break-words">
@@ -120,7 +117,8 @@ const ClusterCard = ({
                   {sampleArguments.map((arg) => (
                     <li
                       key={arg.arg_id}
-                      className="border-l-4 border-primary-200 pl-3 text-sm break-words"
+                      className="border-l-4 pl-3 text-sm break-words"
+                      style={{ borderColor: color }}
                     >
                       {arg.argument}
                     </li>

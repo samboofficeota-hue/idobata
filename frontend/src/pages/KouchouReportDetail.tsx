@@ -1,14 +1,13 @@
 import { MessageSquareText, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import BreadcrumbView from "../components/common/BreadcrumbView";
 import SectionHeading from "../components/common/SectionHeading";
 import ClusterCard from "../components/kouchou/ClusterCard";
-import ClusterScatter from "../components/kouchou/ClusterScatter";
+import KouchouChart from "../components/kouchou/KouchouChart";
 import { clusterColor } from "../components/kouchou/clusterColors";
 import { Card } from "../components/ui/card";
 import { useKouchouReport } from "../hooks/useKouchouReports";
-import { cn } from "../lib/utils";
 import type {
   KouchouArgument,
   KouchouCluster,
@@ -48,8 +47,13 @@ const KouchouReportDetail = () => {
       samplesByCluster.set(id, list);
     }
 
+    const colorByClusterId = new Map(
+      topClusters.map((c, i) => [c.id, clusterColor(i)])
+    );
+
     return {
       topClusters,
+      colorByClusterId,
       childrenByParent,
       samplesByCluster,
     };
@@ -61,8 +65,18 @@ const KouchouReportDetail = () => {
     { label: title, href: `/kouchou/${slug ?? ""}` },
   ];
 
+  const chartRef = useRef<HTMLElement>(null);
+
   const toggleCluster = (id: string) =>
     setSelectedClusterId((current) => (current === id ? null : id));
+
+  // 下の意見グループから選んだときは、強調表示された分布図が見える位置まで戻る
+  const selectFromCard = (id: string) => {
+    if (selectedClusterId !== id) {
+      chartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    toggleCluster(id);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -96,6 +110,18 @@ const KouchouReportDetail = () => {
             </span>
           </div>
 
+          <section ref={chartRef} className="mb-10 scroll-mt-24">
+            <SectionHeading title="意見の分布" className="mb-4" />
+            <KouchouChart
+              arguments={result.arguments}
+              clusters={result.clusters}
+              topClusters={view.topClusters}
+              topColorByClusterId={view.colorByClusterId}
+              selectedClusterId={selectedClusterId}
+              onSelectCluster={toggleCluster}
+            />
+          </section>
+
           <Card className="mb-10">
             <h3 className="text-lg-bold mb-2">全体のまとめ</h3>
             <p className="text-base break-words whitespace-pre-wrap">
@@ -103,62 +129,23 @@ const KouchouReportDetail = () => {
             </p>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <section className="lg:sticky lg:top-28 self-start">
-              <SectionHeading title="意見の分布" className="mb-4" />
-              <ClusterScatter
-                arguments={result.arguments}
-                clusters={view.topClusters}
-                selectedClusterId={selectedClusterId}
-              />
-              <p className="text-sm text-muted-foreground mt-2">
-                点の1つ1つが意見です。近くにある意見ほど内容が似ています。点にカーソルを合わせる（スマホではタップする）と意見の本文が表示されます。グループを選ぶと強調表示されます。
-              </p>
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {view.topClusters.map((c, i) => (
-                  <li key={c.id}>
-                    <button
-                      type="button"
-                      onClick={() => toggleCluster(c.id)}
-                      aria-pressed={selectedClusterId === c.id}
-                      className={cn(
-                        "flex items-center gap-2 rounded-full border-2 px-3 py-1 text-sm transition-colors",
-                        selectedClusterId === c.id
-                          ? "border-primary-700 bg-primary-weak"
-                          : "border-secondary-200 bg-white hover:border-primary-300"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "h-3 w-3 rounded-full",
-                          clusterColor(i).bg
-                        )}
-                      />
-                      <span className="max-w-[16rem] truncate">{c.label}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section>
-              <SectionHeading title="意見グループ" className="mb-4" />
-              <div className="grid grid-cols-1 gap-4 mb-12">
-                {view.topClusters.map((c, i) => (
-                  <ClusterCard
-                    key={c.id}
-                    cluster={c}
-                    colorIndex={i}
-                    totalArguments={result.arguments.length}
-                    subClusters={view.childrenByParent.get(c.id) ?? []}
-                    sampleArguments={view.samplesByCluster.get(c.id) ?? []}
-                    isSelected={selectedClusterId === c.id}
-                    onSelect={() => toggleCluster(c.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
+          <section className="mb-12">
+            <SectionHeading title="意見グループ" className="mb-4" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {view.topClusters.map((c) => (
+                <ClusterCard
+                  key={c.id}
+                  cluster={c}
+                  color={view.colorByClusterId.get(c.id) ?? clusterColor(0)}
+                  totalArguments={result.arguments.length}
+                  subClusters={view.childrenByParent.get(c.id) ?? []}
+                  sampleArguments={view.samplesByCluster.get(c.id) ?? []}
+                  isSelected={selectedClusterId === c.id}
+                  onSelect={() => selectFromCard(c.id)}
+                />
+              ))}
+            </div>
+          </section>
         </>
       )}
     </div>
