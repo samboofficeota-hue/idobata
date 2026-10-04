@@ -109,6 +109,11 @@ app.use(
   })
 );
 
+// 広聴AI連携ルート。CSVのコメントをまとめて受け取るため、
+// 上限100kbの共通JSONパーサーより前に登録し、ルート内で上限を広げている
+import kouchouRoutes from "./routes/kouchouRoutes.js";
+app.use("/api/kouchou", kouchouRoutes);
+
 // JSON Parser: Parse incoming JSON requests
 app.use(express.json());
 

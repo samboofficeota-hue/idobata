@@ -3,8 +3,12 @@ import { ApiError, ApiErrorType } from "./apiError";
 import type {
   ClusteringParams,
   ClusteringResult,
+  CreateKouchouReportPayload,
   CreateThemePayload,
   CreateUserPayload,
+  KouchouReport,
+  KouchouReportProgress,
+  KouchouVisibility,
   LoginCredentials,
   LoginResponse,
   Question,
@@ -51,7 +55,10 @@ export class ApiClient {
       console.log("[ApiClient] Request:", {
         url,
         method: options.method || "GET",
-        headers: { ...headers, Authorization: token ? "Bearer ***" : undefined },
+        headers: {
+          ...headers,
+          Authorization: token ? "Bearer ***" : undefined,
+        },
       });
     }
 
@@ -308,6 +315,56 @@ export class ApiClient {
       {
         method: "POST",
       }
+    );
+  }
+
+  // ===== 広聴AI（kouchou-ai） =====
+
+  async getKouchouReports(): Promise<ApiResult<KouchouReport[]>> {
+    return this.request<KouchouReport[]>("/kouchou/reports");
+  }
+
+  async createKouchouReport(
+    payload: CreateKouchouReportPayload
+  ): Promise<ApiResult<null>> {
+    return this.request<null>("/kouchou/reports", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getKouchouReportProgress(
+    slug: string
+  ): Promise<ApiResult<KouchouReportProgress>> {
+    return this.request<KouchouReportProgress>(
+      `/kouchou/reports/${encodeURIComponent(slug)}/status`
+    );
+  }
+
+  async updateKouchouReportConfig(
+    slug: string,
+    config: { question: string; intro: string }
+  ): Promise<ApiResult<unknown>> {
+    return this.request<unknown>(
+      `/kouchou/reports/${encodeURIComponent(slug)}/config`,
+      { method: "PATCH", body: JSON.stringify(config) }
+    );
+  }
+
+  async updateKouchouReportVisibility(
+    slug: string,
+    visibility: KouchouVisibility
+  ): Promise<ApiResult<unknown>> {
+    return this.request<unknown>(
+      `/kouchou/reports/${encodeURIComponent(slug)}/visibility`,
+      { method: "PATCH", body: JSON.stringify({ visibility }) }
+    );
+  }
+
+  async deleteKouchouReport(slug: string): Promise<ApiResult<unknown>> {
+    return this.request<unknown>(
+      `/kouchou/reports/${encodeURIComponent(slug)}`,
+      { method: "DELETE" }
     );
   }
 
