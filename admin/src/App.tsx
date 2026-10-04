@@ -7,7 +7,6 @@ import MainContent from "./components/layout/MainContent";
 import Sidebar from "./components/layout/Sidebar";
 import { AuthProvider } from "./contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
-import KouchouCreate from "./pages/KouchouCreate";
 import KouchouEdit from "./pages/KouchouEdit";
 import KouchouList from "./pages/KouchouList";
 import Login from "./pages/Login";
@@ -55,10 +54,6 @@ const App: React.FC = () => {
                           element={<ThemeClustering />}
                         />
                         <Route path="/kouchou" element={<KouchouList />} />
-                        <Route
-                          path="/kouchou/new"
-                          element={<KouchouCreate />}
-                        />
                         <Route
                           path="/kouchou/:slug"
                           element={<KouchouEdit />}

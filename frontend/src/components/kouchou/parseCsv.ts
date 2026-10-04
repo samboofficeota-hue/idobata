@@ -1,4 +1,5 @@
 import Papa from "papaparse";
+import type { KouchouComment } from "../../services/kouchou/types";
 
 export interface ParsedCsv {
   columns: string[];
@@ -65,4 +66,34 @@ export function recommendedClusters(commentCount: number): [number, number] {
   const lv1 = Math.max(2, Math.min(10, Math.round(Math.cbrt(commentCount))));
   const lv2 = Math.max(2, Math.min(1000, lv1 * lv1));
   return [lv1, lv2];
+}
+
+// CSVの行を kouchou-ai に送るコメントに変換する
+// id列が空・重複している行には行番号のIDを振り、IDが一意になるようにする
+export function buildComments(
+  csv: ParsedCsv | null,
+  commentColumn: string,
+  attributeColumns: string[]
+): KouchouComment[] {
+  if (!csv) return [];
+  const seen = new Set<string>();
+  const comments: KouchouComment[] = [];
+  csv.rows.forEach((row, index) => {
+    const text = (row[commentColumn] ?? "").trim();
+    if (text === "") return;
+    let id = row.id || row["comment-id"] || `csv-${index + 1}`;
+    if (seen.has(id)) id = `csv-${index + 1}`;
+    seen.add(id);
+    const comment: KouchouComment = {
+      id,
+      comment: text,
+      source: row.source || null,
+      url: row.url || null,
+    };
+    for (const column of attributeColumns) {
+      comment[`attribute_${column}`] = row[column] ?? "";
+    }
+    comments.push(comment);
+  });
+  return comments;
 }

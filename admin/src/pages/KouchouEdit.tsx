@@ -160,7 +160,7 @@ const KouchouEdit: FC = () => {
         <div className="mb-6 rounded-md border border-warning/50 bg-warning/10 p-4 text-sm">
           {report.status === "processing"
             ? "分析中のため、タイトル・調査概要は完了後に編集できます。"
-            : "分析がエラーで終了しているため、タイトル・調査概要は編集できません。新規分析で作り直してください。"}
+            : "分析がエラーで終了しているため、タイトル・調査概要は編集できません。利用者向けサイトの「新規分析」から作り直してください。"}
         </div>
       )}
 

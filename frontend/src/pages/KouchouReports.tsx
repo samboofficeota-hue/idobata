@@ -1,18 +1,43 @@
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BreadcrumbView from "../components/common/BreadcrumbView";
 import SectionHeading from "../components/common/SectionHeading";
+import KouchouPasswordDialog from "../components/kouchou/KouchouPasswordDialog";
 import KouchouReportCard from "../components/kouchou/KouchouReportCard";
+import { Button } from "../components/ui/button";
 import { useKouchouReports } from "../hooks/useKouchouReports";
+import { storedPassword } from "../services/kouchou/createApiClient";
 
 const KouchouReports = () => {
   const breadcrumbItems = [{ label: "広聴AI", href: "/kouchou" }];
   const { reports, isLoading, error } = useKouchouReports();
+  const navigate = useNavigate();
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+
+  // パスワード確認済み（同じタブで一度入力済み）なら、そのまま新規分析ページへ
+  const handleNewAnalysis = () => {
+    if (storedPassword.get()) navigate("/kouchou/new");
+    else setIsPasswordOpen(true);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl">
         <BreadcrumbView items={breadcrumbItems} />
-        <SectionHeading title="広聴AIレポート一覧" />
-        <p className="text-base text-neutral-600 mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SectionHeading title="広聴AIレポート一覧" className="mb-0" />
+          <Button onClick={handleNewAnalysis} className="gap-1">
+            <Plus className="h-5 w-5" />
+            新規分析
+          </Button>
+        </div>
+        <KouchouPasswordDialog
+          open={isPasswordOpen}
+          onOpenChange={setIsPasswordOpen}
+          onVerified={() => navigate("/kouchou/new")}
+        />
+        <p className="text-base text-neutral-600 mt-3 mb-8">
           寄せられた多くの意見をAIで分析し、似た意見ごとのグループに整理したレポートです。
           どのような声がどれくらい集まっているのかを、全体像から確かめることができます。
         </p>

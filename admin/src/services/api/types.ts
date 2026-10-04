@@ -166,36 +166,6 @@ export interface KouchouReport {
   model?: string;
 }
 
-export interface KouchouComment {
-  id: string;
-  comment: string;
-  source?: string | null;
-  url?: string | null;
-  [attribute: string]: string | null | undefined;
-}
-
-export interface KouchouPrompt {
-  extraction: string;
-  initial_labelling: string;
-  merge_labelling: string;
-  overview: string;
-}
-
-export interface CreateKouchouReportPayload {
-  input: string;
-  question: string;
-  intro: string;
-  cluster: [number, number];
-  provider: "openai";
-  model: string;
-  workers: number;
-  prompt: KouchouPrompt;
-  comments: KouchouComment[];
-  is_pubcom: boolean;
-  inputType: "file";
-  is_embedded_at_local: false;
-}
-
 export interface KouchouReportProgress {
   current_step: string;
   estimated_cost?: number;

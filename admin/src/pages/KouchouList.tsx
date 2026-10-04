@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FC } from "react";
-import { Link } from "react-router-dom";
 import KouchouReportTable from "../components/kouchou/KouchouReportTable";
-import { Button } from "../components/ui/button";
 import { apiClient } from "../services/api/apiClient";
 import type { KouchouReport } from "../services/api/types";
 
@@ -54,12 +52,9 @@ const KouchouList: FC = () => {
     <div>
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-bold">広聴AI 分析一覧</h1>
-        <Link to="/kouchou/new">
-          <Button>新規分析</Button>
-        </Link>
       </div>
       <p className="text-sm text-muted-foreground mb-6">
-        CSVで集めた意見をAIで分析し、似た意見ごとのグループに整理します。公開設定を「公開」にした分析は、利用者向けサイトの「広聴AI」ページに表示されます。
+        広聴AIで作成した分析の管理（タイトル・調査概要・公開設定の変更、削除）を行います。新しい分析は、利用者向けサイトの「広聴AI」ページの「新規分析」から始めます（パスワードが必要です）。公開設定を「公開」にした分析は、利用者向けサイトの「広聴AI」ページに表示されます。
       </p>
 
       {loading ? (

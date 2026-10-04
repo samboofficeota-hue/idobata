@@ -46,3 +46,32 @@ export type KouchouResult = {
   config: KouchouConfig;
   comment_num?: number;
 };
+
+// ===== 新規分析（いどばた backend の /api/kouchou/public 経由） =====
+
+export type KouchouComment = {
+  id: string;
+  comment: string;
+  source?: string | null;
+  url?: string | null;
+  [attribute: string]: string | null | undefined;
+};
+
+export type KouchouPrompt = {
+  extraction: string;
+  initial_labelling: string;
+  merge_labelling: string;
+  overview: string;
+};
+
+export type CreateKouchouReportPayload = {
+  input: string;
+  question: string;
+  intro: string;
+  cluster: [number, number];
+  model: string;
+  workers: number;
+  prompt: KouchouPrompt;
+  comments: KouchouComment[];
+  is_pubcom: boolean;
+};

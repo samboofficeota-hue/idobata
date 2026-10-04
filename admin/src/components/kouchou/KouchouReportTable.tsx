@@ -49,7 +49,7 @@ const KouchouReportTable: FC<KouchouReportTableProps> = ({
                 colSpan={6}
                 className="py-4 text-center text-muted-foreground"
               >
-                まだ分析がありません。「新規分析」から作成してください。
+                まだ分析がありません。利用者向けサイトの「広聴AI」ページから作成できます。
               </td>
             </tr>
           ) : (

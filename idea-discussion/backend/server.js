@@ -70,6 +70,8 @@ async function connectToDatabase() {
 
 // --- Express App Setup ---
 const app = express();
+// Railwayのプロキシ経由でも req.ip が利用者のIPになるようにする（広聴AIのパスワード試行回数の制限で使用）
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {

@@ -9,6 +9,7 @@ import CommentsPage from "./pages/CommentsPage";
 import DataPage from "./pages/DataPage";
 import Forum from "./pages/Forum";
 import HowTo from "./pages/HowTo";
+import KouchouCreate from "./pages/KouchouCreate";
 import KouchouReportDetail from "./pages/KouchouReportDetail";
 import KouchouReports from "./pages/KouchouReports";
 import MainPage from "./pages/MainPage";
@@ -115,6 +116,14 @@ export const router = createBrowserRouter([
         element: (
           <PageLayout>
             <KouchouReports />
+          </PageLayout>
+        ),
+      },
+      {
+        path: "kouchou/new",
+        element: (
+          <PageLayout>
+            <KouchouCreate />
           </PageLayout>
         ),
       },

@@ -3,7 +3,6 @@ import { ApiError, ApiErrorType } from "./apiError";
 import type {
   ClusteringParams,
   ClusteringResult,
-  CreateKouchouReportPayload,
   CreateThemePayload,
   CreateUserPayload,
   KouchouReport,
@@ -322,15 +321,6 @@ export class ApiClient {
 
   async getKouchouReports(): Promise<ApiResult<KouchouReport[]>> {
     return this.request<KouchouReport[]>("/kouchou/reports");
-  }
-
-  async createKouchouReport(
-    payload: CreateKouchouReportPayload
-  ): Promise<ApiResult<null>> {
-    return this.request<null>("/kouchou/reports", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
   }
 
   async getKouchouReportProgress(
