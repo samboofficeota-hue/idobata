@@ -5,6 +5,7 @@ const Sidebar: React.FC = () => {
   const links = [
     { to: "/", label: "ダッシュボード", exact: true },
     { to: "/themes", label: "テーマ管理", exact: false },
+    { to: "/kouchou", label: "広聴AI", exact: false },
     { to: "/siteConfig/edit", label: "サイト設定", exact: true },
   ];
 

@@ -1,11 +1,12 @@
 import {
+  BarChart3,
   BookOpen,
   HeartHandshake,
   Home,
   Menu,
+  MessageSquare,
   UserRound,
   X,
-  MessageSquare,
 } from "lucide-react";
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -28,6 +29,11 @@ const NAV_ITEMS = [
     label: "テーマ一覧",
     icon: MessageSquare,
     to: "/themes",
+  },
+  {
+    label: "広聴AI",
+    icon: BarChart3,
+    to: "/kouchou",
   },
   {
     label: "はじめに",

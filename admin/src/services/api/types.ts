@@ -146,3 +146,27 @@ export interface Problem {
 export interface QuestionWithProblems extends Question {
   relatedProblems?: Problem[];
 }
+
+// ===== 広聴AI（kouchou-ai） =====
+// backend の /api/kouchou を経由して kouchou-ai の管理APIを呼び出す
+
+export type KouchouReportStatus = "ready" | "processing" | "error" | "deleted";
+export type KouchouVisibility = "public" | "unlisted" | "private";
+
+export interface KouchouReport {
+  slug: string;
+  title: string;
+  description: string;
+  status: KouchouReportStatus;
+  visibility: KouchouVisibility;
+  isPubcom: boolean;
+  createdAt?: string;
+  tokenUsage?: number;
+  estimatedCost?: number;
+  model?: string;
+}
+
+export interface KouchouReportProgress {
+  current_step: string;
+  estimated_cost?: number;
+}

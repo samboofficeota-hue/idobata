@@ -70,6 +70,8 @@ async function connectToDatabase() {
 
 // --- Express App Setup ---
 const app = express();
+// Railwayのプロキシ経由でも req.ip が利用者のIPになるようにする（広聴AIのパスワード試行回数の制限で使用）
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -108,6 +110,11 @@ app.use(
     credentials: true,
   })
 );
+
+// 広聴AI連携ルート。CSVのコメントをまとめて受け取るため、
+// 上限100kbの共通JSONパーサーより前に登録し、ルート内で上限を広げている
+import kouchouRoutes from "./routes/kouchouRoutes.js";
+app.use("/api/kouchou", kouchouRoutes);
 
 // JSON Parser: Parse incoming JSON requests
 app.use(express.json());
