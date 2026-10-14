@@ -124,6 +124,7 @@ app.use(express.urlencoded({ extended: true }));
 // --- API Routes ---
 
 import authRoutes from "./routes/authRoutes.js"; // 追加: 認証ルート
+import kaigiRoutes from "./routes/kaigiRoutes.js"; // いどばた会議室
 import likeRoutes from "./routes/likeRoutes.js"; // Import like routes
 import opinionsRoutes from "./routes/opinionsRoutes.js"; // Import opinions routes
 import questionEmbeddingRoutes from "./routes/questionEmbeddingRoutes.js";
@@ -143,6 +144,7 @@ import themeQuestionRoutes from "./routes/themeQuestionRoutes.js";
 import themeSolutionRoutes from "./routes/themeSolutionRoutes.js";
 import topPageRoutes from "./routes/topPageRoutes.js"; // Import top page routes
 import userRoutes from "./routes/userRoutes.js"; // Import user routes
+import { kaigiRoomChannel, setKaigiIo } from "./services/kaigi/wallEvents.js";
 
 // Theme management routes
 app.use("/api/themes", themeRoutes);
@@ -175,6 +177,7 @@ app.use("/api/questions", questionRoutes); // Add unified questions routes
 app.use("/api/questions/:questionId", questionEmbeddingRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/likes", likeRoutes);
+app.use("/api/kaigi", kaigiRoutes); // いどばた会議室
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // --- API-only backend ---
@@ -211,10 +214,21 @@ io.on("connection", (socket) => {
     socket.leave(`thread:${threadId}`);
   });
 
+  // いどばた会議室の壁（提案が貼り出されたら知らせる）
+  socket.on("subscribe-kaigi-room", (roomId) => {
+    if (typeof roomId === "string") socket.join(kaigiRoomChannel(roomId));
+  });
+
+  socket.on("unsubscribe-kaigi-room", (roomId) => {
+    if (typeof roomId === "string") socket.leave(kaigiRoomChannel(roomId));
+  });
+
   socket.on("disconnect", () => {
     console.log(`Socket disconnected: ${socket.id}`);
   });
 });
+
+setKaigiIo(io);
 
 export { io };
 
