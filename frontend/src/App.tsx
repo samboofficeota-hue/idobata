@@ -1,3 +1,5 @@
+import { Suspense, lazy } from "react";
+import type { ReactNode } from "react";
 import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import PageLayout from "./components/layout/PageLayout";
@@ -23,6 +25,26 @@ import Top from "./pages/Top";
 function App() {
   return <Outlet />;
 }
+
+// いどばた会議室の画面は、開いたときだけ読み込む
+const KaigiTop = lazy(() => import("./pages/KaigiTop"));
+const KaigiCreate = lazy(() => import("./pages/KaigiCreate"));
+const KaigiRoom = lazy(() => import("./pages/KaigiRoom"));
+const KaigiWall = lazy(() => import("./pages/KaigiWall"));
+
+const LazyPage = ({ children }: { children: ReactNode }) => (
+  <PageLayout>
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-8 text-center">
+          読み込み中...
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  </PageLayout>
+);
 
 export const router = createBrowserRouter([
   {
@@ -133,6 +155,38 @@ export const router = createBrowserRouter([
           <PageLayout>
             <KouchouReportDetail />
           </PageLayout>
+        ),
+      },
+      {
+        path: "kaigi",
+        element: (
+          <LazyPage>
+            <KaigiTop />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "kaigi/new",
+        element: (
+          <LazyPage>
+            <KaigiCreate />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "kaigi/:roomId",
+        element: (
+          <LazyPage>
+            <KaigiRoom />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "kaigi/:roomId/wall",
+        element: (
+          <LazyPage>
+            <KaigiWall />
+          </LazyPage>
         ),
       },
       {

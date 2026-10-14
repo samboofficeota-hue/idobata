@@ -6,6 +6,7 @@ import {
   Menu,
   MessageSquare,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 import React from "react";
@@ -34,6 +35,11 @@ const NAV_ITEMS = [
     label: "広聴AI",
     icon: BarChart3,
     to: "/kouchou",
+  },
+  {
+    label: "いどばた会議室",
+    icon: Users,
+    to: "/kaigi",
   },
   {
     label: "はじめに",
