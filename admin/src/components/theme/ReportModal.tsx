@@ -80,15 +80,16 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     const visualData = reportData as VisualReportData;
     const htmlContent = visualData.overallAnalysis || String(visualData);
 
+    // AIが作ったHTML（利用者の投稿をもとにしている）をそのまま管理画面に埋め込むと、
+    // 紛れ込んだスクリプトが管理者のログイン情報を読めてしまう。
+    // sandbox を空にした iframe に入れ、スクリプトを動かさず、管理画面とも切り離す
     return (
-      <div className="prose max-w-none">
-        <div
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{
-            __html: htmlContent,
-          }}
-        />
-      </div>
+      <iframe
+        title="ビジュアルレポート"
+        sandbox=""
+        srcDoc={htmlContent}
+        className="h-[70vh] w-full rounded border-0 bg-white"
+      />
     );
   };
 

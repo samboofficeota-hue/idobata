@@ -60,7 +60,10 @@ vi.mock("../services/kaigi/llm.js", () => ({
 }));
 
 process.env.KAIGI_HOST_PASSWORD = "test-password";
+process.env.RATE_LIMIT_DISABLED = "true";
 const { default: kaigiRoutes } = await import("../routes/kaigiRoutes.js");
+const { attachUser } = await import("../middleware/userTokenMiddleware.js");
+const { signUserToken } = await import("../services/userToken.js");
 
 // ローカルや CI に MongoDB がなければ、このテストは飛ばす
 const MONGO_URI =
@@ -74,10 +77,17 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
   let server;
   let base;
 
+  // 本文やクエリの userId の利用者として、その人の利用者トークンを付けて送る
   const call = async (method, path, body, headers = {}) => {
+    const userId =
+      body?.userId ?? new URL(path, "http://x").searchParams.get("userId");
     const response = await fetch(`${base}${path}`, {
       method,
-      headers: { "Content-Type": "application/json", ...headers },
+      headers: {
+        "Content-Type": "application/json",
+        ...(userId ? { "x-user-token": signUserToken(userId) } : {}),
+        ...headers,
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     return { status: response.status, body: await response.json() };
@@ -108,6 +118,7 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     await mongoose.model("KaigiSession").syncIndexes();
     const app = express();
     app.use(express.json());
+    app.use(attachUser);
     app.use("/api/kaigi", kaigiRoutes);
     server = app.listen(0, "127.0.0.1");
     await new Promise((resolve) => server.once("listening", resolve));

@@ -1,5 +1,6 @@
 import { Socket, io } from "socket.io-client";
 import type { Problem, Solution } from "../../types";
+import { currentUserToken } from "../userSession";
 
 export interface NewExtractionEvent {
   type: "problem" | "solution";
@@ -40,6 +41,8 @@ class SocketClient {
         ? import.meta.env.VITE_API_BASE_URL || ""
         : "";
     this.socket = io(baseUrl, {
+      // つなぐたびに利用者トークンを送る（スレッドの更新は本人にだけ届く）
+      auth: (cb) => cb({ userToken: currentUserToken() }),
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,

@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import hmac
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any, Union
 import os
@@ -13,13 +14,23 @@ load_dotenv()
 
 app = FastAPI(title="Idobata Embedding Service")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this to specific origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# このサービスは idea-discussion/backend からだけ呼ばれる（ブラウザからは呼ばない）ので、
+# CORS は許可しない。/api/* は backend と共有する鍵（PYTHON_SERVICE_API_KEY）で保護する。
+# 鍵が未設定のときは /api/* をすべて断る（OpenAI の利用枠と ChromaDB を守るため）
+SERVICE_API_KEY = os.getenv("PYTHON_SERVICE_API_KEY", "")
+if not SERVICE_API_KEY:
+    print("WARNING: PYTHON_SERVICE_API_KEY is not set; /api/* requests will be rejected")
+
+
+@app.middleware("http")
+async def require_service_key(request: Request, call_next):
+    if request.url.path.startswith("/api/"):
+        provided = request.headers.get("x-service-key", "")
+        if not SERVICE_API_KEY or not hmac.compare_digest(
+            provided.encode(), SERVICE_API_KEY.encode()
+        ):
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    return await call_next(request)
 
 # Default OpenAI client, reads OPENAI_API_KEY from environment automatically
 client = OpenAI()

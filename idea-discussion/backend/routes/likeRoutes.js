@@ -1,10 +1,11 @@
 import express from "express";
 import { getLikeStatus, toggleLike } from "../controllers/likeController.js";
+import { requireUser } from "../middleware/userTokenMiddleware.js";
 
 const router = express.Router();
 
 router.get("/:targetType/:targetId", getLikeStatus);
 
-router.post("/:targetType/:targetId", toggleLike);
+router.post("/:targetType/:targetId", requireUser, toggleLike);
 
 export default router;

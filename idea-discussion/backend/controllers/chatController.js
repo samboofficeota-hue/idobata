@@ -17,17 +17,16 @@ const handleNewMessageByTheme = async (req, res) => {
   }
 
   try {
-    let { userId, message, threadId, questionId, context } = req.body;
+    const { message, threadId, questionId, context } = req.body;
+    // 本文の userId ではなく、利用者トークンで確かめた userId を使う
+    const userId = req.verifiedUserId;
 
     // Validate input
-    if (!message) {
+    if (typeof message !== "string" || !message.trim()) {
       return res.status(400).json({ error: "Message content is required." });
     }
-
-    // Generate a temporary userId if not provided
-    if (!userId) {
-      userId = `temp_${uuidv4()}`;
-      console.log(`Generated temporary userId: ${userId}`);
+    if (threadId && !mongoose.Types.ObjectId.isValid(threadId)) {
+      return res.status(400).json({ error: "Invalid thread ID format" });
     }
 
     let chatThread;
@@ -48,11 +47,10 @@ const handleNewMessageByTheme = async (req, res) => {
           .json({ error: "Thread does not belong to the specified theme." });
       }
 
-      // Optional: Verify if the userId matches the thread's userId if needed for security
       if (chatThread.userId !== userId) {
-        console.warn(
-          `User ID mismatch for thread ${threadId}. Request userId: ${userId}, Thread userId: ${chatThread.userId}`
-        );
+        return res
+          .status(403)
+          .json({ error: "This chat thread belongs to another user." });
       }
       console.log(`Found existing chat thread with ID: ${threadId}`);
     } else {
@@ -100,8 +98,10 @@ const handleNewMessageByTheme = async (req, res) => {
               const parts = [];
               if (set.target) parts.push(`対象: ${set.target}`);
               if (set.purpose) parts.push(`目的: ${set.purpose}`);
-              if (set.expectedEffect) parts.push(`期待効果: ${set.expectedEffect}`);
-              if (parts.length > 0) referenceOpinions += `  - ${parts.join(" / ")}\n`;
+              if (set.expectedEffect)
+                parts.push(`期待効果: ${set.expectedEffect}`);
+              if (parts.length > 0)
+                referenceOpinions += `  - ${parts.join(" / ")}\n`;
             }
             referenceOpinions += "\n";
           }
@@ -231,14 +231,17 @@ const handleNewMessageByTheme = async (req, res) => {
 
           for (const question of themeQuestions) {
             referenceOpinions += `問い: ${question.questionText}\n`;
-            if (question.tagLine) referenceOpinions += `概要: ${question.tagLine}\n`;
+            if (question.tagLine)
+              referenceOpinions += `概要: ${question.tagLine}\n`;
             if (question.contextSets && question.contextSets.length > 0) {
               for (const set of question.contextSets) {
                 const parts = [];
                 if (set.target) parts.push(`対象: ${set.target}`);
                 if (set.purpose) parts.push(`目的: ${set.purpose}`);
-                if (set.expectedEffect) parts.push(`期待効果: ${set.expectedEffect}`);
-                if (parts.length > 0) referenceOpinions += `  - ${parts.join(" / ")}\n`;
+                if (set.expectedEffect)
+                  parts.push(`期待効果: ${set.expectedEffect}`);
+                if (parts.length > 0)
+                  referenceOpinions += `  - ${parts.join(" / ")}\n`;
               }
             }
 
@@ -272,10 +275,7 @@ const handleNewMessageByTheme = async (req, res) => {
             const problemStatements = [];
             for (const link of problemLinks) {
               const problem = link.linkedProblem;
-              if (
-                problem.themeId &&
-                problem.themeId.toString() === themeId
-              ) {
+              if (problem.themeId && problem.themeId.toString() === themeId) {
                 const statement =
                   problem.statement ||
                   problem.combinedStatement ||
@@ -321,13 +321,8 @@ const handleNewMessageByTheme = async (req, res) => {
             const solutionStatements = [];
             for (const link of solutionLinks) {
               const solution = link.linkedSolution;
-              if (
-                solution.themeId &&
-                solution.themeId.toString() === themeId
-              ) {
-                solutionStatements.push(
-                  `  - ${solution.statement || "N/A"}`
-                );
+              if (solution.themeId && solution.themeId.toString() === themeId) {
+                solutionStatements.push(`  - ${solution.statement || "N/A"}`);
               }
             }
             referenceOpinions += `  関連する解決策:\n${
@@ -453,9 +448,6 @@ const handleNewMessageByTheme = async (req, res) => {
       response: aiResponseContent,
       threadId: chatThread._id,
     };
-    if (req.body.userId !== userId) {
-      responsePayload.userId = userId;
-    }
 
     res.status(200).json(responsePayload);
   } catch (error) {
@@ -493,6 +485,12 @@ const getThreadExtractionsByTheme = async (req, res) => {
       return res
         .status(403)
         .json({ error: "Thread does not belong to the specified theme." });
+    }
+
+    if (chatThread.userId !== req.verifiedUserId) {
+      return res
+        .status(403)
+        .json({ error: "This chat thread belongs to another user." });
     }
 
     // Return the populated problems and solutions
@@ -541,10 +539,15 @@ const getThreadMessagesByTheme = async (req, res) => {
         .json({ error: "Thread does not belong to the specified theme." });
     }
 
+    if (chatThread.userId !== req.verifiedUserId) {
+      return res
+        .status(403)
+        .json({ error: "This chat thread belongs to another user." });
+    }
+
     // Return the thread's messages
     res.status(200).json({
       threadId: chatThread._id,
-      userId: chatThread.userId,
       themeId: chatThread.themeId,
       messages: chatThread.messages || [],
     });
@@ -715,6 +718,12 @@ const triggerExtractionForThread = async (req, res) => {
       return res
         .status(403)
         .json({ error: "Thread does not belong to the specified theme." });
+    }
+
+    if (chatThread.userId !== req.verifiedUserId) {
+      return res
+        .status(403)
+        .json({ error: "This chat thread belongs to another user." });
     }
 
     // Check if thread has enough content (at least 2 user messages)
