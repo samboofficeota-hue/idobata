@@ -9,6 +9,8 @@ import {
   makeSlide,
   reviseStory,
 } from "../services/kaigi/editor.js";
+import { hashHostKey } from "../services/kaigi/hostKey.js";
+import { createLockout } from "../services/kaigi/lockout.js";
 import { ensureOverview } from "../services/kaigi/overview.js";
 import { openingMessage } from "../services/kaigi/prompts.js";
 import {
@@ -22,18 +24,25 @@ import {
 } from "../services/kaigi/steps.js";
 import { runTurn } from "../services/kaigi/turn.js";
 import { emitSlidePosted } from "../services/kaigi/wallEvents.js";
+import kaigiHostRoutes from "./kaigiHostRoutes.js";
 
 // いどばた会議室（設計ドキュメント v2）
 //  - /host/*      : お題の作成。パスワード（KAIGI_HOST_PASSWORD）で保護（ログインと課金は未実装）
+//  - /rooms/:roomId/host/* : お題ごとのホスト用の画面。作成時に返す鍵で保護（kaigiHostRoutes.js）
 //  - /rooms/*     : お題の表示、参加、壁
 //  - /sessions/*  : 参加者1人分の20分。いどばたの利用者ID（userId）が一致する本人だけが操作できる
 
 const router = express.Router();
 
 const DEFAULT_HOST_PASSWORD = "dd";
+// 本番で未設定のときは、暫定パスワードでは通さない（誰でもお題を作れてしまうため）
+const hostPasswordMissing = () =>
+  !process.env.KAIGI_HOST_PASSWORD && process.env.NODE_ENV === "production";
 if (!process.env.KAIGI_HOST_PASSWORD) {
   console.warn(
-    "[kaigiRoutes] KAIGI_HOST_PASSWORD が未設定のため、お題の作成に暫定パスワードを使っています"
+    hostPasswordMissing()
+      ? "[kaigiRoutes] KAIGI_HOST_PASSWORD が未設定のため、お題の作成を止めています"
+      : "[kaigiRoutes] KAIGI_HOST_PASSWORD が未設定のため、お題の作成に暫定パスワードを使っています"
   );
 }
 
@@ -46,29 +55,7 @@ const text = (value, max) =>
 
 // ===== お題の作成（パスワード保護） =====
 
-// パスワードの総当たりを防ぐため、IPごとに失敗回数を数える（広聴AIと同じ方式）
-const MAX_FAILURES = 10;
-const FAILURE_WINDOW_MS = 15 * 60 * 1000;
-const failures = new Map();
-
-const isLockedOut = (ip) => {
-  const entry = failures.get(ip);
-  if (!entry) return false;
-  if (Date.now() - entry.since > FAILURE_WINDOW_MS) {
-    failures.delete(ip);
-    return false;
-  }
-  return entry.count >= MAX_FAILURES;
-};
-
-const recordFailure = (ip) => {
-  const entry = failures.get(ip);
-  if (!entry || Date.now() - entry.since > FAILURE_WINDOW_MS) {
-    failures.set(ip, { count: 1, since: Date.now() });
-  } else {
-    entry.count += 1;
-  }
-};
+const passwordLockout = createLockout();
 
 const passwordMatches = (input) => {
   const expected = Buffer.from(
@@ -82,18 +69,23 @@ const passwordMatches = (input) => {
 };
 
 const requireHostPassword = (req, res, next) => {
+  if (hostPasswordMissing()) {
+    return res.status(503).json({
+      message: "お題の作成は準備中です（管理者がパスワードを設定していません）",
+    });
+  }
   const ip = req.ip;
-  if (isLockedOut(ip)) {
+  if (passwordLockout.isLockedOut(ip)) {
     return res.status(429).json({
       message:
         "パスワードの入力に続けて失敗したため、しばらく時間をおいてから試してください",
     });
   }
   if (!passwordMatches(req.get("x-kaigi-password"))) {
-    recordFailure(ip);
+    passwordLockout.recordFailure(ip);
     return res.status(401).json({ message: "パスワードが違います" });
   }
-  failures.delete(ip);
+  passwordLockout.clear(ip);
   next();
 };
 
@@ -113,7 +105,10 @@ hostRouter.post("/rooms", async (req, res) => {
     return res.status(400).json({ message: "参加人数の枠が正しくありません" });
   }
 
+  // ホスト用の画面（Google 連携など）を開く鍵。保存するのはハッシュだけ
+  const hostKey = crypto.randomBytes(32).toString("base64url");
   const room = await KaigiRoom.create({
+    hostKeyHash: hashHostKey(hostKey),
     title,
     background: text(b.background, 4000),
     hostName: text(b.hostName, 50),
@@ -129,10 +124,13 @@ hostRouter.post("/rooms", async (req, res) => {
     )
   );
 
-  return res.status(201).json({ id: room._id.toString() });
+  return res.status(201).json({ id: room._id.toString(), hostKey });
 });
 
 router.use("/host", hostRouter);
+
+// ホスト用の画面（お題ごとの鍵で保護）と Google 連携
+router.use(kaigiHostRoutes);
 
 // ===== 応答の形 =====
 
@@ -144,6 +142,14 @@ const toClientRoom = (room) => ({
   capacity: room.capacity,
   sessionMinutes: SESSION_MINUTES,
   expiresAt: room.expiresAt,
+  // ホストが Google カレンダーに登録した会議（なければ null）
+  meeting: room.meeting?.meetUrl
+    ? {
+        meetUrl: room.meeting.meetUrl,
+        startAt: room.meeting.startAt,
+        endAt: room.meeting.endAt,
+      }
+    : null,
 });
 
 const toClientOverview = (overview) =>

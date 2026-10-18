@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import BreadcrumbView from "../components/common/BreadcrumbView";
 import KaigiChat from "../components/kaigi/KaigiChat";
+import MeetingLink from "../components/kaigi/MeetingLink";
 import OutputsCard from "../components/kaigi/OutputsCard";
 import OverviewPanel from "../components/kaigi/OverviewPanel";
 import SlideCard from "../components/kaigi/SlideCard";
@@ -340,6 +341,11 @@ const KaigiRoom = () => {
           </Link>
         </Button>
       </div>
+      {room.meeting && (
+        <div className="mb-4 max-w-3xl">
+          <MeetingLink meeting={room.meeting} />
+        </div>
+      )}
 
       {!session && (
         <JoinForm
