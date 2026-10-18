@@ -11,6 +11,7 @@ import { Input } from "../components/ui/input";
 import {
   KaigiPasswordError,
   kaigiApi,
+  storedHostKeys,
   storedHostPassword,
 } from "../services/kaigi/kaigiApi";
 
@@ -69,7 +70,10 @@ const KaigiCreate = () => {
   const [capacity, setCapacity] = useState(CAPACITY_OPTIONS[0].value);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [created, setCreated] = useState<{
+    id: string;
+    hostKey: string;
+  } | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -81,13 +85,14 @@ const KaigiCreate = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const { id } = await kaigiApi.createRoom(password, {
+      const { id, hostKey } = await kaigiApi.createRoom(password, {
         title,
         background,
         hostName,
         capacity,
       });
-      setCreatedId(id);
+      storedHostKeys.set(id, hostKey);
+      setCreated({ id, hostKey });
     } catch (err) {
       if (err instanceof KaigiPasswordError) {
         storedHostPassword.clear();
@@ -105,7 +110,8 @@ const KaigiCreate = () => {
     { label: "お題をつくる", href: "/kaigi/new" },
   ];
 
-  if (createdId) {
+  if (created) {
+    const createdId = created.id;
     const origin = window.location.origin;
     return (
       <div className="container mx-auto px-4 py-8">
@@ -123,12 +129,26 @@ const KaigiCreate = () => {
             label="壁（みんなの提案）のURL"
             url={`${origin}/kaigi/${createdId}/wall`}
           />
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-4">
+            <CopyField
+              label="ホスト用のURL（参加者には共有しないでください）"
+              url={`${origin}/kaigi/${createdId}/host#key=${created.hostKey}`}
+            />
+            <p className="mt-2 text-sm text-neutral-700">
+              Google カレンダーへの予定づくりや、Meet
+              の文字起こしの取り込みはホスト用の画面で行います。
+              このURLは今しか表示されません。ほかの端末から開くときのために控えておいてください。
+            </p>
+          </div>
           <div className="flex flex-wrap gap-3">
             <Button asChild>
               <Link to={`/kaigi/${createdId}`}>自分も参加する</Link>
             </Button>
             <Button asChild variant="outline">
               <Link to={`/kaigi/${createdId}/wall`}>壁を見る</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to={`/kaigi/${createdId}/host`}>ホスト用の画面へ</Link>
             </Button>
           </div>
         </div>

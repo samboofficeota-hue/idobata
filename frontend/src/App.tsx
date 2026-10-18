@@ -31,6 +31,7 @@ const KaigiTop = lazy(() => import("./pages/KaigiTop"));
 const KaigiCreate = lazy(() => import("./pages/KaigiCreate"));
 const KaigiRoom = lazy(() => import("./pages/KaigiRoom"));
 const KaigiWall = lazy(() => import("./pages/KaigiWall"));
+const KaigiHost = lazy(() => import("./pages/KaigiHost"));
 
 const LazyPage = ({ children }: { children: ReactNode }) => (
   <PageLayout>
@@ -186,6 +187,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyPage>
             <KaigiWall />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "kaigi/:roomId/host",
+        element: (
+          <LazyPage>
+            <KaigiHost />
           </LazyPage>
         ),
       },

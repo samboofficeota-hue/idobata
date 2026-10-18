@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import BreadcrumbView from "../components/common/BreadcrumbView";
 import SectionHeading from "../components/common/SectionHeading";
 import KaigiPasswordDialog from "../components/kaigi/KaigiPasswordDialog";
@@ -25,6 +25,9 @@ const STEPS = [
 const KaigiTop = () => {
   const navigate = useNavigate();
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  // Google の連携画面から、お題が分からないまま戻ってきたとき
+  const [searchParams] = useSearchParams();
+  const googleFailed = searchParams.has("google");
 
   const handleCreate = () => {
     if (storedHostPassword.get()) navigate("/kaigi/new");
@@ -47,6 +50,12 @@ const KaigiTop = () => {
           onOpenChange={setIsPasswordOpen}
           onVerified={() => navigate("/kaigi/new")}
         />
+        {googleFailed && (
+          <p className="mt-3 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
+            Google
+            との連携を完了できませんでした。ホスト用の画面から、もう一度やり直してください。
+          </p>
+        )}
         <p className="mt-3 mb-8 text-base text-neutral-600">
           意見がまとまらないうちに話し合うと、声の大きい人の意見が通りがちです。
           いどばた会議室では、まず一人ひとりが自分の提案を練り上げてから、それを並べて話し合います。

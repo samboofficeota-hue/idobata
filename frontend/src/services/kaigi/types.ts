@@ -19,6 +19,14 @@ export interface KaigiRoom {
   capacity: number;
   sessionMinutes: number;
   expiresAt: string;
+  // ホストが Google カレンダーに登録した会議（なければ null）
+  meeting: KaigiMeeting | null;
+}
+
+export interface KaigiMeeting {
+  meetUrl: string;
+  startAt: string | null;
+  endAt: string | null;
 }
 
 export interface KaigiMessage {
@@ -85,4 +93,45 @@ export interface CreateKaigiRoomPayload {
   background: string;
   hostName: string;
   capacity: number;
+}
+
+// ===== ホスト用の画面（routes/kaigiHostRoutes.js と対応） =====
+
+export interface KaigiHostMeeting extends KaigiMeeting {
+  meetingCode: string;
+  calendarHtmlLink: string;
+  recordsSyncedAt: string | null;
+}
+
+export interface KaigiHostGoogle {
+  // サーバーに Google 連携の設定があるか
+  available: boolean;
+  connected: boolean;
+  email?: string;
+  canCreateMeeting?: boolean;
+  canReadRecords?: boolean;
+}
+
+export interface KaigiHostView {
+  room: Pick<KaigiRoom, "id" | "title" | "hostName" | "capacity" | "expiresAt">;
+  google: KaigiHostGoogle;
+  meeting: KaigiHostMeeting | null;
+}
+
+export interface KaigiTranscriptEntry {
+  speaker: string;
+  text: string;
+  startTime: string | null;
+}
+
+export interface KaigiMeetRecord {
+  id: string;
+  startTime: string | null;
+  endTime: string | null;
+  transcripts: {
+    state: string;
+    docsUrl: string;
+    entries: KaigiTranscriptEntry[];
+  }[];
+  recordings: { state: string; url: string }[];
 }
