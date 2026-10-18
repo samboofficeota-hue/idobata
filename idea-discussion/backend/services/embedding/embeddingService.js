@@ -6,6 +6,12 @@ dotenv.config();
 const PYTHON_SERVICE_URL =
   process.env.PYTHON_SERVICE_URL || "http://python-service:8000";
 
+// python-service と共有する鍵。python-service はこの鍵がない要求を断る
+const pythonService = axios.create({
+  baseURL: PYTHON_SERVICE_URL,
+  headers: { "x-service-key": process.env.PYTHON_SERVICE_API_KEY || "" },
+});
+
 /**
  * Generate embeddings for a list of items
  * @param {Array} items - List of items with id, text, topicId, questionId, and itemType
@@ -13,12 +19,9 @@ const PYTHON_SERVICE_URL =
  */
 async function generateEmbeddings(items) {
   try {
-    const response = await axios.post(
-      `${PYTHON_SERVICE_URL}/api/embeddings/generate`,
-      {
-        items,
-      }
-    );
+    const response = await pythonService.post("/api/embeddings/generate", {
+      items,
+    });
     return response.data;
   } catch (error) {
     console.error("Error calling Python embedding service:", error);
@@ -33,12 +36,9 @@ async function generateEmbeddings(items) {
  */
 async function generateTransientEmbedding(text) {
   try {
-    const response = await axios.post(
-      `${PYTHON_SERVICE_URL}/api/embeddings/transient`,
-      {
-        text,
-      }
-    );
+    const response = await pythonService.post("/api/embeddings/transient", {
+      text,
+    });
     return response.data.embedding;
   } catch (error) {
     console.error("Error generating transient embedding:", error);
@@ -55,14 +55,11 @@ async function generateTransientEmbedding(text) {
  */
 async function searchVectors(queryVector, filter, k = 10) {
   try {
-    const response = await axios.post(
-      `${PYTHON_SERVICE_URL}/api/vectors/search`,
-      {
-        queryVector,
-        filter,
-        k,
-      }
-    );
+    const response = await pythonService.post("/api/vectors/search", {
+      queryVector,
+      filter,
+      k,
+    });
     return response.data;
   } catch (error) {
     console.error("Error searching vectors:", error);
@@ -83,14 +80,11 @@ async function clusterVectors(
   params = { n_clusters: 3 }
 ) {
   try {
-    const response = await axios.post(
-      `${PYTHON_SERVICE_URL}/api/vectors/cluster`,
-      {
-        filter,
-        method,
-        params,
-      }
-    );
+    const response = await pythonService.post("/api/vectors/cluster", {
+      filter,
+      method,
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error("Error clustering vectors:", error);

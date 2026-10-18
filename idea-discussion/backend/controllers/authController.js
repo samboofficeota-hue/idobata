@@ -1,11 +1,31 @@
+import crypto from "node:crypto";
 import AdminUser from "../models/AdminUser.js";
 import authService from "../services/auth/authService.js";
 
+// 最初の管理者を作るときの合言葉（ADMIN_BOOTSTRAP_TOKEN）。未設定なら作成できない。
+// 以前は管理者が0人のあいだ誰でも作れたため、全員を消されると乗っ取られる恐れがあった
+const bootstrapTokenMatches = (input) => {
+  const expected = process.env.ADMIN_BOOTSTRAP_TOKEN;
+  if (!expected || typeof input !== "string") return false;
+  const a = crypto.createHash("sha256").update(input).digest();
+  const b = crypto.createHash("sha256").update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+};
+
 const initializeAdminUser = async (req, res) => {
   try {
+    if (!bootstrapTokenMatches(req.get("x-admin-bootstrap-token"))) {
+      return res.status(403).json({
+        message:
+          "初期管理者の作成には ADMIN_BOOTSTRAP_TOKEN が必要です（サーバーに設定し、x-admin-bootstrap-token ヘッダーで送ってください）",
+      });
+    }
+
     // PASSWORD_PEPPERの事前チェック
     if (!process.env.PASSWORD_PEPPER) {
-      console.error("[AuthController] PASSWORD_PEPPER is not set during initialization");
+      console.error(
+        "[AuthController] PASSWORD_PEPPER is not set during initialization"
+      );
       return res.status(500).json({
         message:
           "サーバー設定エラー: PASSWORD_PEPPER環境変数が設定されていません。管理者に連絡してください。",
@@ -49,7 +69,7 @@ const initializeAdminUser = async (req, res) => {
     });
   } catch (error) {
     console.error("[AuthController] Initialize admin user error:", error);
-    
+
     // PASSWORD_PEPPER関連のエラーの場合、より詳細なメッセージを返す
     if (error.message && error.message.includes("PASSWORD_PEPPER")) {
       return res.status(500).json({
@@ -91,7 +111,10 @@ const login = async (req, res) => {
       });
     }
 
-    console.log("[AuthController] PASSWORD_PEPPER is set:", !!process.env.PASSWORD_PEPPER);
+    console.log(
+      "[AuthController] PASSWORD_PEPPER is set:",
+      !!process.env.PASSWORD_PEPPER
+    );
 
     try {
       const { user, token } = await authService.authenticate("local", {
@@ -214,13 +237,28 @@ const deleteAdminUser = async (req, res) => {
       });
     }
 
-    const user = await AdminUser.findOneAndDelete({ email });
+    if (typeof email !== "string") {
+      return res
+        .status(400)
+        .json({ message: "メールアドレスが正しくありません" });
+    }
 
-    if (!user) {
+    const target = await AdminUser.findOne({ email });
+    if (!target) {
       return res.status(404).json({
         message: "ユーザーが見つかりません",
       });
     }
+    // 最後の admin は消せない（管理者が0人になると、誰も管理できなくなるため）
+    if (
+      target.role === "admin" &&
+      (await AdminUser.countDocuments({ role: "admin" })) <= 1
+    ) {
+      return res.status(409).json({
+        message: "最後の管理者（admin）は削除できません",
+      });
+    }
+    const user = await AdminUser.findOneAndDelete({ _id: target._id });
 
     console.log(`[AuthController] Admin user deleted: ${email}`);
     res.json({
@@ -285,7 +323,7 @@ const resetAdminUser = async (req, res) => {
     });
   } catch (error) {
     console.error("[AuthController] Reset admin user error:", error);
-    
+
     // PASSWORD_PEPPER関連のエラーの場合、より詳細なメッセージを返す
     if (error.message && error.message.includes("PASSWORD_PEPPER")) {
       return res.status(500).json({
@@ -297,20 +335,6 @@ const resetAdminUser = async (req, res) => {
   }
 };
 
-const deleteAllAdminUsers = async (req, res) => {
-  try {
-    const result = await AdminUser.deleteMany({});
-    console.log(`[AuthController] Deleted ${result.deletedCount} admin user(s)`);
-    res.json({
-      message: `${result.deletedCount}人の管理者ユーザーを削除しました`,
-      deletedCount: result.deletedCount,
-    });
-  } catch (error) {
-    console.error("[AuthController] Delete all admin users error:", error);
-    res.status(500).json({ message: "サーバーエラーが発生しました" });
-  }
-};
-
 export {
   login,
   getCurrentUser,
@@ -318,5 +342,4 @@ export {
   deleteAdminUser,
   initializeAdminUser,
   resetAdminUser,
-  deleteAllAdminUsers,
 };

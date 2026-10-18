@@ -1,9 +1,11 @@
 import mongoose from "mongoose";
 import Like from "../models/Like.js";
 
-// 質問にいいねを追加（重複チェックなし）
+const countQuestionLikes = (questionId) =>
+  Like.countDocuments({ targetId: questionId, targetType: "question" });
+
+// 質問にいいねを追加（同じ利用者は1回まで）
 export const addLike = async (req, res) => {
-  const { targetId, targetType } = req.body;
   const { questionId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(questionId)) {
@@ -11,35 +13,29 @@ export const addLike = async (req, res) => {
   }
 
   try {
-    // 質問にいいねを追加
-    await Like.create({
-      userId: `anonymous_${Date.now()}_${Math.random()}`, // 一時的な匿名ユーザーID
-      targetId: questionId,
-      targetType: "question",
-    });
-
-    const count = await Like.countDocuments({
-      targetId: questionId,
-      targetType: "question",
-    });
+    await Like.updateOne(
+      {
+        userId: req.verifiedUserId,
+        targetId: questionId,
+        targetType: "question",
+      },
+      {},
+      { upsert: true }
+    );
 
     return res.status(201).json({
       success: true,
-      count,
+      count: await countQuestionLikes(questionId),
       message: "いいねが追加されました",
     });
   } catch (error) {
     console.error(`Error adding like for question ${questionId}:`, error);
-    res.status(500).json({
-      message: "いいねの追加中にエラーが発生しました",
-      error: error.message,
-    });
+    res.status(500).json({ message: "いいねの追加中にエラーが発生しました" });
   }
 };
 
-// 質問のいいねを削除
+// 質問のいいねを削除（自分のいいねだけ）
 export const removeLike = async (req, res) => {
-  const { targetId, targetType } = req.body;
   const { questionId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(questionId)) {
@@ -47,8 +43,8 @@ export const removeLike = async (req, res) => {
   }
 
   try {
-    // 最新のいいねを1つ削除（匿名ユーザーの場合）
     const likeToDelete = await Like.findOneAndDelete({
+      userId: req.verifiedUserId,
       targetId: questionId,
       targetType: "question",
     });
@@ -60,33 +56,22 @@ export const removeLike = async (req, res) => {
       });
     }
 
-    const count = await Like.countDocuments({
-      targetId: questionId,
-      targetType: "question",
-    });
-
     return res.status(200).json({
       success: true,
-      count,
+      count: await countQuestionLikes(questionId),
       message: "いいねが削除されました",
     });
   } catch (error) {
     console.error(`Error removing like for question ${questionId}:`, error);
-    res.status(500).json({
-      message: "いいねの削除中にエラーが発生しました",
-      error: error.message,
-    });
+    res.status(500).json({ message: "いいねの削除中にエラーが発生しました" });
   }
 };
 
 // TODO: 認証基盤が入ったら認証対応
 export const toggleLike = async (req, res) => {
-  const { userId } = req.body;
+  // 本文の userId ではなく、利用者トークンで確かめた userId を使う
+  const userId = req.verifiedUserId;
   const { targetId, targetType } = req.params;
-
-  if (!userId) {
-    return res.status(400).json({ message: "userId is required" });
-  }
 
   if (!mongoose.Types.ObjectId.isValid(targetId)) {
     return res.status(400).json({ message: "Invalid target ID format" });
@@ -126,7 +111,6 @@ export const toggleLike = async (req, res) => {
     console.error(`Error toggling like for ${targetType} ${targetId}:`, error);
     res.status(500).json({
       message: "Error toggling like status",
-      error: error.message,
     });
   }
 };
@@ -164,7 +148,6 @@ export const getLikeStatus = async (req, res) => {
     );
     res.status(500).json({
       message: "Error getting like status",
-      error: error.message,
     });
   }
 };

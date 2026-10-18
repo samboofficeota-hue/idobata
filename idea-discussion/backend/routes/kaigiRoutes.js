@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import express from "express";
 import mongoose from "mongoose";
+import { llmLimiter } from "../middleware/rateLimit.js";
+import { requireUser } from "../middleware/userTokenMiddleware.js";
 import KaigiRoom, { KAIGI_CAPACITIES } from "../models/KaigiRoom.js";
 import KaigiSession from "../models/KaigiSession.js";
 import KaigiSlide from "../models/KaigiSlide.js";
@@ -244,14 +246,11 @@ router.get("/rooms/:roomId", async (req, res) => {
 });
 
 // 参加（同じ利用者が開き直したら、続きから再開する）
-router.post("/rooms/:roomId/sessions", async (req, res) => {
+router.post("/rooms/:roomId/sessions", requireUser, async (req, res) => {
   const room = await loadRoom(req, res);
   if (!room) return;
-  const userId = text(req.body?.userId, 100);
+  const userId = req.verifiedUserId;
   const nickname = text(req.body?.nickname, 30);
-  if (!userId) {
-    return res.status(400).json({ message: "利用者IDがありません" });
-  }
 
   const existing = await KaigiSession.findOne({ roomId: room._id, userId });
   if (existing) return sendSession(res, existing, room);
@@ -284,13 +283,13 @@ router.post("/rooms/:roomId/sessions", async (req, res) => {
   }
 });
 
-router.get("/rooms/:roomId/my-session", async (req, res) => {
+router.get("/rooms/:roomId/my-session", requireUser, async (req, res) => {
   const room = await loadRoom(req, res);
   if (!room) return;
-  const userId = text(req.query.userId, 100);
-  const session = userId
-    ? await KaigiSession.findOne({ roomId: room._id, userId })
-    : null;
+  const session = await KaigiSession.findOne({
+    roomId: room._id,
+    userId: req.verifiedUserId,
+  });
   if (!session) return res.json({ session: null, room: toClientRoom(room) });
   return sendSession(res, session, room);
 });
@@ -320,12 +319,14 @@ const withSession = (handler) => async (req, res) => {
       .status(400)
       .json({ message: "セッションのIDが正しくありません" });
   }
-  const userId = text(req.body?.userId ?? req.query.userId, 100);
+  // 本文の userId ではなく、利用者トークンで確かめた userId で本人かを判定する
+  const userId = req.verifiedUserId;
+  if (!userId) return requireUser(req, res, () => {});
   const session = await KaigiSession.findById(sessionId);
   if (!session) {
     return res.status(404).json({ message: "セッションが見つかりません" });
   }
-  if (!userId || session.userId !== userId) {
+  if (session.userId !== userId) {
     return res
       .status(403)
       .json({ message: "このセッションを操作する権限がありません" });
@@ -379,6 +380,7 @@ router.get(
 // 工程3の整理を用意する（まだないか、新しい声が増えていれば作り直す）
 router.post(
   "/sessions/:sessionId/overview",
+  llmLimiter,
   withSession(async (req, res, { session, room }) => {
     if (session.step < 3) return wrongStep(res, session);
     await ensureOverview(room);
@@ -412,6 +414,7 @@ router.post(
 // 参加者の発言 → AIの発言（1回）
 router.post(
   "/sessions/:sessionId/messages",
+  llmLimiter,
   withSession(async (req, res, { session, room }) => {
     if (!requireActive(session, res)) return;
     if (!isChatStep(session.step)) return wrongStep(res, session);
@@ -446,6 +449,7 @@ router.post(
 // 参加者のボタン操作で次の工程へ進む
 router.post(
   "/sessions/:sessionId/advance",
+  llmLimiter,
   withSession(async (req, res, { session, room }) => {
     if (!requireActive(session, res)) return;
     const step = session.step;
@@ -502,6 +506,7 @@ router.put(
 // 工程9：ストーリーへのコメント → 編集者が書き直す
 router.post(
   "/sessions/:sessionId/story/revise",
+  llmLimiter,
   withSession(async (req, res, { session, room }) => {
     if (!requireActive(session, res)) return;
     if (session.step !== 9) return wrongStep(res, session);
@@ -519,6 +524,7 @@ router.post(
 // 工程9 → 10：ストーリーを確定し、1枚のスライドにまとめる
 router.post(
   "/sessions/:sessionId/story/confirm",
+  llmLimiter,
   withSession(async (req, res, { session, room }) => {
     if (!requireActive(session, res)) return;
     if (session.step !== 9) return wrongStep(res, session);

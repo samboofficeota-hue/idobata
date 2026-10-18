@@ -1,6 +1,9 @@
+import crypto from "node:crypto";
 import path from "node:path";
 import User from "../models/User.js";
+import UserTokenClaim from "../models/UserTokenClaim.js";
 import { createStorageService } from "../services/storage/storageServiceFactory.js";
+import { isValidUserId, signUserToken } from "../services/userToken.js";
 import { generateRandomDisplayName } from "../utils/displayNameGenerator.js";
 
 const storageService = createStorageService("local", {
@@ -84,6 +87,49 @@ export const getUserInfo = async (req, res) => {
   }
 };
 
+// 新しい userId に利用者トークンを出す。すでに誰かが受け取っていれば null
+const claimUserId = async (userId) => {
+  try {
+    await UserTokenClaim.create({ userId });
+    return true;
+  } catch (error) {
+    if (error?.code === 11000) return false;
+    throw error;
+  }
+};
+
+/**
+ * 利用者トークンを受け取る（ページを開いたときに毎回呼ぶ）
+ *  - 正しいトークンを持っていれば、そのまま返す
+ *  - トークンを持っていない端末が、以前から使っている userId を送ってきたら、
+ *    まだ誰もその userId のトークンを受け取っていない場合に限り出す（移行のため）
+ *  - それ以外は、新しい userId を作って出す
+ */
+export const createUserSession = async (req, res) => {
+  try {
+    if (req.verifiedUserId) {
+      return res.status(200).json({
+        userId: req.verifiedUserId,
+        token: signUserToken(req.verifiedUserId),
+      });
+    }
+
+    const requested = req.body?.userId;
+    if (isValidUserId(requested) && (await claimUserId(requested))) {
+      return res
+        .status(200)
+        .json({ userId: requested, token: signUserToken(requested) });
+    }
+
+    const userId = crypto.randomUUID();
+    await claimUserId(userId);
+    return res.status(201).json({ userId, token: signUserToken(userId) });
+  } catch (error) {
+    console.error("Error creating user session:", error);
+    return res.status(500).json({ error: "Failed to create user session" });
+  }
+};
+
 /**
  * Update user display name
  * @param {Object} req - Express request object
@@ -94,14 +140,14 @@ export const updateUserDisplayName = async (req, res) => {
     const { userId } = req.params;
     const { displayName } = req.body;
 
-    if (!displayName) {
+    if (typeof displayName !== "string" || !displayName.trim()) {
       return res.status(400).json({
         error: "Display name is required",
       });
     }
 
     const user = await getUser(userId);
-    user.displayName = displayName;
+    user.displayName = displayName.trim().slice(0, 50);
     await saveUser(user);
 
     return res.status(200).json({
@@ -125,11 +171,6 @@ export const uploadProfileImage = async (req, res) => {
   try {
     const { userId } = req.params;
     const file = req.file;
-    console.log("Upload request:", {
-      params: req.params,
-      file: req.file,
-      body: req.body,
-    });
 
     if (!file) {
       return res.status(400).json({

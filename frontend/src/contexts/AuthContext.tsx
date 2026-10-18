@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { apiClient } from "../services/api/apiClient";
+import { getUserSession } from "../services/userSession";
 
 interface User {
   id: string;
@@ -39,12 +39,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const initializeUser = async () => {
-      let userId = localStorage.getItem("idobataUserId");
-
-      if (!userId) {
-        userId = uuidv4();
-        localStorage.setItem("idobataUserId", userId);
-      }
+      // サーバーが署名した利用者トークンと一緒に ID を受け取る
+      const { userId } = await getUserSession();
 
       const result = await apiClient.getUserInfo(userId);
 

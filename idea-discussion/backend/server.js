@@ -2,13 +2,19 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cors from "cors";
-import cron from "node-cron";
 import dotenv from "dotenv";
 import express from "express";
+import helmet from "helmet";
 import mongoose from "mongoose";
+import cron from "node-cron";
 import { Server } from "socket.io";
+import { apiLimiter } from "./middleware/rateLimit.js";
+import { rejectMongoOperators } from "./middleware/rejectMongoOperators.js";
+import { attachUser } from "./middleware/userTokenMiddleware.js";
+import ChatThread from "./models/ChatThread.js";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
+import { verifyUserToken } from "./services/userToken.js";
 import { runDailyBatch } from "./workers/dailyBatchProcessor.js"; // Import daily batch processor
 
 // Load environment variables
@@ -34,10 +40,9 @@ async function connectToDatabase() {
       "Error: MONGODB_URI is not defined in the environment variables."
     );
     console.error("Please set MONGODB_URI environment variable.");
-    console.error("Available env vars:", Object.keys(process.env).join(", "));
     throw new Error("MONGODB_URI not set");
   }
-  
+
   try {
     // MongoDB接続オプションを追加（Cloud Run最適化）
     await mongoose.connect(mongoUri, {
@@ -93,6 +98,14 @@ const io = new Server(httpServer, {
 const PORT = process.env.PORT || 3000; // Use port from env or default to 3000
 
 // --- Middleware ---
+// セキュリティヘッダー。API は JSON を返すだけなので CSP は既定（何も読み込ませない）でよい。
+// プロフィール画像は別のドメインのフロントから表示するので、cross-origin で読めるようにする
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
 // CORS: Allow requests from configured origins
 app.use(
   cors({
@@ -114,12 +127,19 @@ app.use(
 // 広聴AI連携ルート。CSVのコメントをまとめて受け取るため、
 // 上限100kbの共通JSONパーサーより前に登録し、ルート内で上限を広げている
 import kouchouRoutes from "./routes/kouchouRoutes.js";
+// API 全体の回数制限（AIの呼び出しとログインには、ルートごとにさらに厳しい制限がある）
+app.use("/api", apiLimiter);
 app.use("/api/kouchou", kouchouRoutes);
 
 // JSON Parser: Parse incoming JSON requests
 app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
+
+// $ で始まるキー（MongoDB の演算子）を含む要求を断る
+app.use(rejectMongoOperators);
+// 利用者トークン（x-user-token）を確かめ、req.verifiedUserId に入れる
+app.use(attachUser);
 
 // --- API Routes ---
 
@@ -132,11 +152,11 @@ import questionRoutes from "./routes/questionRoutes.js"; // Import unified quest
 import siteConfigRoutes from "./routes/siteConfigRoutes.js";
 import themeChatRoutes from "./routes/themeChatRoutes.js";
 import themeDigestRoutes from "./routes/themeDigestRoutes.js";
+import themeDownloadOutputRoutes from "./routes/themeDownloadOutputRoutes.js";
 import themeEmbeddingRoutes from "./routes/themeEmbeddingRoutes.js";
 import themeGenerateQuestionsRoutes from "./routes/themeGenerateQuestionsRoutes.js";
 import themeImportRoutes from "./routes/themeImportRoutes.js";
 import themeOpinionSummaryRoutes from "./routes/themeOpinionSummaryRoutes.js";
-import themeDownloadOutputRoutes from "./routes/themeDownloadOutputRoutes.js";
 import themePolicyRoutes from "./routes/themePolicyRoutes.js";
 import themeProblemRoutes from "./routes/themeProblemRoutes.js";
 // Import theme-based routes
@@ -144,7 +164,7 @@ import themeQuestionRoutes from "./routes/themeQuestionRoutes.js";
 import themeSolutionRoutes from "./routes/themeSolutionRoutes.js";
 import topPageRoutes from "./routes/topPageRoutes.js"; // Import top page routes
 import userRoutes from "./routes/userRoutes.js"; // Import user routes
-import { kaigiRoomChannel, setKaigiIo } from "./services/kaigi/wallEvents.js";
+import { setKaigiIo } from "./services/kaigi/wallEvents.js";
 
 // Theme management routes
 app.use("/api/themes", themeRoutes);
@@ -178,7 +198,19 @@ app.use("/api/questions/:questionId", questionEmbeddingRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/kaigi", kaigiRoutes); // いどばた会議室
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// アップロードされたプロフィール画像だけを配信する（uploads/temp などは出さない）。
+// 画像の拡張子以外は返さず、ブラウザに形式を推測させない
+app.use(
+  "/uploads/profile-images",
+  (req, res, next) =>
+    /\.(jpg|jpeg|png|gif)$/i.test(req.path) ? next() : res.status(404).end(),
+  express.static(path.join(__dirname, "uploads/profile-images"), {
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
+    },
+  })
+);
 
 // --- API-only backend ---
 // This backend only serves API endpoints
@@ -186,47 +218,20 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // --- Error Handling Middleware (Example - Add more specific handlers later) ---
 app.use((err, req, res, next) => {
+  // 形式の誤った JSON・大きすぎるファイルなど、利用者側の誤り
+  if (
+    err?.name === "MulterError" ||
+    err?.status === 400 ||
+    err?.type === "entity.parse.failed"
+  ) {
+    return res.status(400).json({ message: err.message });
+  }
   console.error(err.stack);
   res.status(500).send("Something broke!");
 });
 
 // --- Socket.IO Setup ---
-io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
-
-  socket.on("subscribe-theme", (themeId) => {
-    console.log(`Socket ${socket.id} subscribing to theme: ${themeId}`);
-    socket.join(`theme:${themeId}`);
-  });
-
-  socket.on("subscribe-thread", (threadId) => {
-    console.log(`Socket ${socket.id} subscribing to thread: ${threadId}`);
-    socket.join(`thread:${threadId}`);
-  });
-
-  socket.on("unsubscribe-theme", (themeId) => {
-    console.log(`Socket ${socket.id} unsubscribing from theme: ${themeId}`);
-    socket.leave(`theme:${themeId}`);
-  });
-
-  socket.on("unsubscribe-thread", (threadId) => {
-    console.log(`Socket ${socket.id} unsubscribing from thread: ${threadId}`);
-    socket.leave(`thread:${threadId}`);
-  });
-
-  // いどばた会議室の壁（提案が貼り出されたら知らせる）
-  socket.on("subscribe-kaigi-room", (roomId) => {
-    if (typeof roomId === "string") socket.join(kaigiRoomChannel(roomId));
-  });
-
-  socket.on("unsubscribe-kaigi-room", (roomId) => {
-    if (typeof roomId === "string") socket.leave(kaigiRoomChannel(roomId));
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-  });
-});
+registerSocketHandlers(io);
 
 setKaigiIo(io);
 
@@ -258,7 +263,7 @@ app.get("/api/health", (req, res) => {
     2: "connecting",
     3: "disconnecting",
   };
-  
+
   // サーバーが起動していれば200を返す（DB接続状態は情報として含める）
   res.status(200).json({
     status: "healthy",
@@ -308,7 +313,7 @@ console.log(
 
 // --- Start Server ---
 // Start HTTP server immediately for health checks
-const server = httpServer.listen(PORT, '0.0.0.0', () => {
+const server = httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend server listening on port ${PORT}`);
   console.log(`Server process started at ${new Date().toISOString()}`);
   console.log("Server started. Connecting to MongoDB...");
@@ -316,9 +321,9 @@ const server = httpServer.listen(PORT, '0.0.0.0', () => {
 });
 
 // Handle server errors
-server.on('error', (err) => {
+server.on("error", (err) => {
   console.error("Server error:", err);
-  if (err.code === 'EADDRINUSE') {
+  if (err.code === "EADDRINUSE") {
     console.error(`Port ${PORT} is already in use`);
     process.exit(1);
   }

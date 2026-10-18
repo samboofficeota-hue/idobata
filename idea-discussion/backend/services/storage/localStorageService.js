@@ -21,7 +21,12 @@ export default class LocalStorageService extends StorageServiceInterface {
   async saveFile(file, destination) {
     await fs.mkdir(destination, { recursive: true });
 
-    const fileExt = path.extname(file.originalname);
+    // 元のファイル名の拡張子は信じない（.html などを画像として送られると、
+    // 配信したときにスクリプトとして動いてしまうため）
+    const fileExt = file.detectedExt;
+    if (![".jpg", ".png", ".gif"].includes(fileExt)) {
+      throw new Error("file type was not verified");
+    }
     const fileName = `${uuidv4()}${fileExt}`;
     const filePath = path.join(destination, fileName);
 

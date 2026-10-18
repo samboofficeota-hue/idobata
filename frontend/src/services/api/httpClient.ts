@@ -1,4 +1,5 @@
 import { type Result, err, ok } from "neverthrow";
+import { userTokenHeader } from "../userSession";
 import { ApiError } from "./apiError";
 
 export type HttpResult<T> = Result<T, ApiError>;
@@ -72,6 +73,7 @@ export class HttpClient {
       method,
       headers: {
         ...this.defaultHeaders,
+        ...(await userTokenHeader()),
         ...headers,
       },
     };
@@ -131,6 +133,7 @@ export class HttpClient {
     const options: RequestInit = {
       method,
       body: formData,
+      headers: await userTokenHeader(),
     };
 
     try {

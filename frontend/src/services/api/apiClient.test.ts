@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./apiClient";
 
+// 利用者トークンの取得（別の fetch）は数えない
+vi.mock("../userSession", () => ({
+  userTokenHeader: async () => ({ "x-user-token": "test-token" }),
+}));
+
 describe("apiClient.sendMessage のリトライ", () => {
   afterEach(() => {
     vi.unstubAllGlobals();

@@ -2,6 +2,7 @@ import { Heart, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardTitle } from "../../components/ui/card";
 import { Link } from "../../contexts/MockContext";
+import { userTokenHeader } from "../../services/userSession";
 
 interface KeyQuestionCardProps {
   question: string;
@@ -74,6 +75,7 @@ const KeyQuestionCard = ({
                         method: "DELETE",
                         headers: {
                           "Content-Type": "application/json",
+                          ...(await userTokenHeader()),
                         },
                         body: JSON.stringify({
                           targetType: "question",
@@ -96,6 +98,7 @@ const KeyQuestionCard = ({
                         method: "POST",
                         headers: {
                           "Content-Type": "application/json",
+                          ...(await userTokenHeader()),
                         },
                         body: JSON.stringify({
                           targetType: "question",

@@ -30,6 +30,8 @@ services:
       - JWT_SECRET=${JWT_SECRET} # Pass JWT secret from .env
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1d} # Pass expiration, default to 1 day
       - ALLOW_DELETE_THEME=${ALLOW_DELETE_THEME} # Pass theme deletion control
+      - PYTHON_SERVICE_API_KEY=${PYTHON_SERVICE_API_KEY} # python-service と共有する鍵
+      - ADMIN_BOOTSTRAP_TOKEN=${ADMIN_BOOTSTRAP_TOKEN} # 最初の管理者を作るときだけ設定
     # Use the CMD defined in the Dockerfile's development stage
     command: npm run dev
 
@@ -166,6 +168,7 @@ services:
       - "8000:8000" # Expose port for debugging
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY} # Pass from host environment
+      - PYTHON_SERVICE_API_KEY=${PYTHON_SERVICE_API_KEY} # backend と共有する鍵
     volumes:
       - ./python-service:/app # Mount source code for development
       - chroma_data:/data/chroma # ChromaDB data persistence

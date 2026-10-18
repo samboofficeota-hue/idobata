@@ -8,6 +8,7 @@ console.log("------------------------------------");
 import cors from "cors";
 // --- END DEBUG ---
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import { CORS_ORIGIN, PORT } from "./config.js";
 import chatRoutes from "./routes/chat.js";
 import { logger } from "./utils/logger.js";
@@ -25,8 +26,25 @@ app.use(
   })
 );
 
+// Railway のプロキシ経由でも req.ip が利用者の IP になるようにする（回数制限で使う）
+app.set("trust proxy", 1);
+
+// チャットは AI を呼ぶので、IP ごとに回数を制限する（1分に20回・1日に300回）
+const limitMessage = {
+  error:
+    "短い時間にたくさんの操作がありました。しばらく待ってから、もう一度試してください",
+};
+const chatLimiters = [
+  rateLimit({ windowMs: 60 * 1000, limit: 20, message: limitMessage }),
+  rateLimit({
+    windowMs: 24 * 60 * 60 * 1000,
+    limit: 300,
+    message: limitMessage,
+  }),
+];
+
 // Routes
-app.use("/chat", chatRoutes);
+app.use("/chat", chatLimiters, chatRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

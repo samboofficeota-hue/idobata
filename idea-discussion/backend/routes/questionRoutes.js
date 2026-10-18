@@ -1,6 +1,7 @@
 import express from "express";
 import { addLike, removeLike } from "../controllers/likeController.js";
 import { getAllQuestions } from "../controllers/questionController.js";
+import { requireUser } from "../middleware/userTokenMiddleware.js";
 
 const router = express.Router();
 
@@ -8,9 +9,9 @@ const router = express.Router();
 router.get("/", getAllQuestions);
 
 // POST /api/questions/:questionId/like - 質問にいいねを追加
-router.post("/:questionId/like", addLike);
+router.post("/:questionId/like", requireUser, addLike);
 
 // DELETE /api/questions/:questionId/like - 質問のいいねを削除
-router.delete("/:questionId/like", removeLike);
+router.delete("/:questionId/like", requireUser, removeLike);
 
 export default router;

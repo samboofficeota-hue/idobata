@@ -9,6 +9,8 @@ import type {
   KaigiWallSlide,
 } from "./types";
 
+import { userTokenHeader } from "../userSession";
+
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/kaigi`;
 const PASSWORD_STORAGE_KEY = "kaigiHostPassword";
 
@@ -87,6 +89,7 @@ async function request<T>(
       ...rest,
       headers: {
         "Content-Type": "application/json",
+        ...(await userTokenHeader()),
         ...(password ? { "x-kaigi-password": password } : {}),
         ...(hostKey ? { "x-kaigi-host-key": hostKey } : {}),
       },
