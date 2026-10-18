@@ -1,5 +1,7 @@
 import type {
   CreateKaigiRoomPayload,
+  KaigiHostView,
+  KaigiMeetRecord,
   KaigiOutputs,
   KaigiRoom,
   KaigiSessionResponse,
@@ -12,7 +14,44 @@ import { userTokenHeader } from "../userSession";
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/kaigi`;
 const PASSWORD_STORAGE_KEY = "kaigiHostPassword";
 
+const HOST_KEYS_STORAGE_KEY = "kaigiHostKeys";
+
 export class KaigiPasswordError extends Error {}
+export class KaigiHostKeyError extends Error {}
+
+// お題ごとのホスト用の鍵。作ったブラウザに残しておく（ほかの端末ではURLの # の後ろから受け取る）
+const readHostKeys = (): Record<string, string> => {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(HOST_KEYS_STORAGE_KEY) ?? "{}"
+    );
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+export const storedHostKeys = {
+  get: (roomId: string): string | null => readHostKeys()[roomId] ?? null,
+  set: (roomId: string, key: string) => {
+    try {
+      localStorage.setItem(
+        HOST_KEYS_STORAGE_KEY,
+        JSON.stringify({ ...readHostKeys(), [roomId]: key })
+      );
+    } catch {
+      // 保存できない環境では、ホスト用のURLから開き直してもらう
+    }
+  },
+  remove: (roomId: string) => {
+    try {
+      const { [roomId]: _removed, ...rest } = readHostKeys();
+      localStorage.setItem(HOST_KEYS_STORAGE_KEY, JSON.stringify(rest));
+    } catch {
+      // 何もしない
+    }
+  },
+};
 
 // 同じタブの中では、一度通ったパスワードを再入力しなくてよいようにする
 export const storedHostPassword = {
@@ -41,9 +80,9 @@ export const storedHostPassword = {
 
 async function request<T>(
   path: string,
-  init: RequestInit & { password?: string } = {}
+  init: RequestInit & { password?: string; hostKey?: string } = {}
 ): Promise<T> {
-  const { password, ...rest } = init;
+  const { password, hostKey, ...rest } = init;
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
@@ -52,6 +91,7 @@ async function request<T>(
         "Content-Type": "application/json",
         ...(await userTokenHeader()),
         ...(password ? { "x-kaigi-password": password } : {}),
+        ...(hostKey ? { "x-kaigi-host-key": hostKey } : {}),
       },
     });
   } catch {
@@ -60,6 +100,11 @@ async function request<T>(
   const data = await response.json().catch(() => null);
   if (response.status === 401 && password !== undefined) {
     throw new KaigiPasswordError(data?.message ?? "パスワードが違います");
+  }
+  if (response.status === 403 && hostKey !== undefined) {
+    throw new KaigiHostKeyError(
+      data?.message ?? "ホスト用の鍵が正しくありません"
+    );
   }
   if (!response.ok) {
     throw new Error(
@@ -76,7 +121,7 @@ export const kaigiApi = {
   verifyPassword: (password: string) =>
     request<{ ok: true }>("/host/verify", { method: "POST", password }),
   createRoom: (password: string, payload: CreateKaigiRoomPayload) =>
-    request<{ id: string }>("/host/rooms", {
+    request<{ id: string; hostKey: string }>("/host/rooms", {
       method: "POST",
       password,
       body: JSON.stringify(payload),
@@ -147,4 +192,49 @@ export const kaigiApi = {
       userId,
       slide,
     }),
+
+  // ===== ホスト用の画面 =====
+  getHost: (roomId: string, hostKey: string) =>
+    request<KaigiHostView>(`/rooms/${encodeURIComponent(roomId)}/host`, {
+      hostKey,
+    }),
+  connectGoogle: (roomId: string, hostKey: string) =>
+    request<{ url: string }>(
+      `/rooms/${encodeURIComponent(roomId)}/host/google/connect`,
+      { method: "POST", hostKey }
+    ),
+  disconnectGoogle: (roomId: string, hostKey: string) =>
+    request<KaigiHostView>(`/rooms/${encodeURIComponent(roomId)}/host/google`, {
+      method: "DELETE",
+      hostKey,
+    }),
+  scheduleMeeting: (
+    roomId: string,
+    hostKey: string,
+    startAt: string,
+    durationMinutes: number
+  ) =>
+    request<KaigiHostView>(
+      `/rooms/${encodeURIComponent(roomId)}/host/meeting`,
+      {
+        method: "PUT",
+        hostKey,
+        body: JSON.stringify({ startAt, durationMinutes }),
+      }
+    ),
+  cancelMeeting: (roomId: string, hostKey: string) =>
+    request<KaigiHostView>(
+      `/rooms/${encodeURIComponent(roomId)}/host/meeting`,
+      { method: "DELETE", hostKey }
+    ),
+  getRecords: (roomId: string, hostKey: string) =>
+    request<{ records: KaigiMeetRecord[] }>(
+      `/rooms/${encodeURIComponent(roomId)}/host/records`,
+      { hostKey }
+    ),
+  syncRecords: (roomId: string, hostKey: string) =>
+    request<{ records: KaigiMeetRecord[] }>(
+      `/rooms/${encodeURIComponent(roomId)}/host/records/sync`,
+      { method: "POST", hostKey }
+    ),
 };

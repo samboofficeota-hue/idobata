@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import BreadcrumbView from "../components/common/BreadcrumbView";
 import SectionHeading from "../components/common/SectionHeading";
+import MeetingLink from "../components/kaigi/MeetingLink";
 import SlideCard from "../components/kaigi/SlideCard";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
@@ -78,6 +79,11 @@ const KaigiWall = () => {
         </div>
       </div>
       {room && <p className="mt-2 text-lg">{room.title}</p>}
+      {room?.meeting && (
+        <div className="mt-3 max-w-3xl">
+          <MeetingLink meeting={room.meeting} />
+        </div>
+      )}
 
       {error && (
         <p className="mt-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">

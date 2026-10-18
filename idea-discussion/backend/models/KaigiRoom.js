@@ -20,6 +20,21 @@ const overviewSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// ホストがGoogleカレンダーに登録した会議（Google Meet）。参加者にも見せる
+const meetingSchema = new mongoose.Schema(
+  {
+    calendarEventId: { type: String, default: "" },
+    calendarHtmlLink: { type: String, default: "" },
+    meetUrl: { type: String, default: "" },
+    // Meet の会議コード（abc-defg-hij）。文字起こし・録画を探すときに使う
+    meetingCode: { type: String, default: "" },
+    startAt: { type: Date, default: null },
+    endAt: { type: Date, default: null },
+    recordsSyncedAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
 const kaigiRoomSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 200 },
@@ -31,6 +46,10 @@ const kaigiRoomSchema = new mongoose.Schema(
       default: KAIGI_CAPACITIES[0],
     },
     overview: { type: overviewSchema, default: () => ({}) },
+    // ホスト用の鍵のハッシュ。鍵そのものは作成時に一度だけホストへ返す
+    // （この値が空のお題は、ホスト用の画面を使えない）
+    hostKeyHash: { type: String, default: "", select: false },
+    meeting: { type: meetingSchema, default: () => ({}) },
     expiresAt: { type: Date, required: true },
   },
   { timestamps: true }
