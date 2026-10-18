@@ -14,6 +14,7 @@ import { attachUser } from "./middleware/userTokenMiddleware.js";
 import ChatThread from "./models/ChatThread.js";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
+import { registerSocketHandlers } from "./services/socketHandlers.js";
 import { verifyUserToken } from "./services/userToken.js";
 import { runDailyBatch } from "./workers/dailyBatchProcessor.js"; // Import daily batch processor
 
