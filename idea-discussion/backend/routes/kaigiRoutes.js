@@ -150,7 +150,7 @@ const toClientMembers = (room) => {
   return Object.fromEntries(
     MEMBER_KEYS.map((key) => [
       key,
-      { name: members[key].name, role: members[key].role },
+      { name: members[key].name, role: members[key].label },
     ])
   );
 };
@@ -491,8 +491,16 @@ router.post(
     session.step = nextStep(step);
     session.stepStartedAt = now;
 
-    // メンバーが加わる工程4の前に、お題に合わせた立場をそろえる（作れなければ既定の立場）
-    if (session.step === 4) await ensurePersonas(room);
+    if (session.step === 4) {
+      // メンバーが加わる工程4の前に、お題に合わせた肩書きをそろえる（作れなければ肩書きなし）
+      await ensurePersonas(room);
+      // この人の20分のあいだ、メンバーが立つ論点を固定する
+      if (room.overview?.updatedAt) {
+        session.overviewAtStart = room.overview.toObject
+          ? room.overview.toObject()
+          : room.overview;
+      }
+    }
 
     if (isChatStep(session.step)) {
       await runTurn(room, session, { event: "enter", now });

@@ -1,4 +1,4 @@
-import { resolveMembers } from "./personas.js";
+import { describeMember, resolveMembers } from "./personas.js";
 import {
   OUTPUT_LABELS,
   STEPS,
@@ -7,7 +7,7 @@ import {
   stepTiming,
 } from "./steps.js";
 
-// AIの役割（設計ドキュメント v2 第6章）。メンバー3人の立場はお題ごとに作る（personas.js）
+// AIの役割（設計ドキュメント v2 第6章）。メンバー3体は肯定派・否定派・未定派で固定（personas.js）
 const FACILITATOR = {
   name: "ファシリ",
   role: "ファシリテーター",
@@ -28,7 +28,7 @@ const STEP_GOALS = {
   2: "参加者の意見と経験を引き出す。話すのはファシリテーターだけ（1対1）。まだ課題は決めない。『なぜそう思うのか』『具体的にどんなことがあったか』と掘り下げたり、『ほかに気になることは』と広げたりする。参加者の思いが十分に出たら advance を true にし、content で『ほかの参加者の声を見てみましょう』と伝える。",
   4: "ここからメンバー3人が加わる。参加者が『何を課題と捉えるか』を決められるよう、問いを重ねて詰める（ソクラテス式の問答）。課題の候補が複数あれば、どれが一番大事かを参加者に選ばせる。参加者が課題の方向を選んだら advance を true にする。",
   5: "課題を一文の言葉にする。『誰が、どんなことで困っているか』が分かる形にする。参加者が自分の言葉で言えたら、その文を capture.issue に入れ、advance を true にし、content でアイディア出しへの橋渡しをする。",
-  6: "課題に対するアイディアをどんどん出す。量を優先する。メンバーも案を出してよいが、参加者の案を引き出すのが主。この工程のどこかで、ソラが『そもそもこの課題は合っているか』『この案なら課題の立て方自体が違うのでは』とちゃぶ台を返す。アイディアが十分に出たら advance を true にする。",
+  6: "課題に対するアイディアをどんどん出す。量を優先する。メンバーも案を出してよいが、参加者の案を引き出すのが主。この工程のどこかで、未定派のソラが『そもそもこの課題で決めていいのか、まだ迷っていて』『この案なら課題の立て方自体が違うのでは』とちゃぶ台を返す。アイディアが十分に出たら advance を true にする。",
   7: "課題と解決アイディアを組にして議論する。アイディアから見て課題を言い直したほうがよければ、参加者に確認してから capture.issue を更新する。有力な案が見えたら capture.solution に入れる。組が見えてきたら advance を true にし、content で『そろそろ決めましょう』と伝える。",
   8: "残り時間が少ない。アイディアを1つに決め、課題を最終調整し、お題のどの部分の話か（対象領域）を一文で書き表す。すべて参加者の言葉で確定させ、capture の domain・issue・solution に入れる。3点がそろったら、画面の『これで決める』を押すよう参加者に伝える。",
 };
@@ -54,12 +54,20 @@ const RESPONSES = `# 参加者の反応への応じ方
 - 特定のメンバーに話しかけた：そのメンバーが答える。
 - 先へ進みたい、時間を気にしている：ファシリテーターが、ここまでの要点をまとめて進行を寄せる。`;
 
+// 3体が論点（対立軸）にどう立つか（docs/いどばた会議室_キャラと論点カード.md）
+const AXIS_STANCE = `# 論点（対立軸）への立ち方
+- 3体は、会話の最後の「今の状況」にある論点ごとに立つ。肯定派（member1）は肯定側、否定派（member2）は否定側、未定派（member3）は合意を足場に、決めきれないところに立つ。
+- 立ち位置は20分のあいだ変えない。前に言ったことと逆のことを言わない。考えを言い直すときは、何を聞いてそう思ったのかを言う。
+- 参加者の考えがある側と同じとき：同じ側のメンバーは、同意だけで終わらず、根拠を固める問いを出す（「その理由で、反対する人を説得できそうですか？」）。反対側のメンバーは、その考えの弱いところを問う。
+- 参加者の話がどの論点にも近くないとき：未定派が「それは、みんなが分かれている〇〇の話と、どう関係しますか？」と論点につなぐ。つながらなければ、それも新しい課題として扱う。`;
+
 const SPEAKER_GUIDE = `# 次に話す人の選び方
 - 進行・まとめ・工程の切り替え・時間の管理・話が先走ったとき：facilitator
-- 話が抽象的、誰が困っているのかが見えない：member1
-- 案が出た、楽観的すぎる、反対する人の言い分が抜けている：member2
-- 前提が固まりすぎている、課題の立て方そのものを疑いたい：member3
-- メンバーは、直前の別のメンバーの発言を受けて、別の角度から重ねてもよい。`;
+- 参加者が論点のどちらかの側の考えを出した：反対側のメンバーが弱いところを問うか、同じ側のメンバーが根拠を固める
+- 話が抽象的、誰が助かるのかが見えない：member1（肯定派）
+- 案が楽観的、反対する人の言い分・費用・手間が抜けている：member2（否定派）
+- 何を決めるのかを見失っている、前提が固まりすぎている、どの論点にも近くない：member3（未定派）
+- メンバーは、直前の別のメンバーの発言を受けて、自分の側から重ねてもよい。`;
 
 // 問い詰める強さ（参加者が会話の画面で選ぶ）
 const INTENSITY = {
@@ -99,15 +107,17 @@ const formatOverview = (overview) => {
   if (!overview?.updatedAt) return "";
   const list = (items) =>
     items?.length ? items.map((i) => `- ${i}`).join("\n") : "- （なし）";
-  return `# みんなの声の整理（工程3で参加者に見せたもの）
+  // テーマの3軸ができるまでは、みんなの声の整理の対立点を仮の論点にする
+  return `# 論点（仮：みんなの声の整理の対立点。肯定派・否定派はここに立つ）
+${list(overview.conflicts)}
+## 合意点（未定派の足場）
+${list(overview.agreements)}
+
+# みんなの声の整理（工程3で参加者に見せたもの）
 ## 課題の候補
 ${list(overview.issueCandidates)}
 ## 解決アイディアの候補
-${list(overview.ideaCandidates)}
-## 対立点
-${list(overview.conflicts)}
-## 合意点
-${list(overview.agreements)}`;
+${list(overview.ideaCandidates)}`;
 };
 
 const formatOutputs = (outputs = {}) =>
@@ -115,12 +125,21 @@ const formatOutputs = (outputs = {}) =>
     .map(([key, label]) => `- ${label}：${outputs[key]?.trim() || "（未定）"}`)
     .join("\n");
 
-const formatMembers = (step, members) =>
+// 先頭に置く、全員の役割の説明
+const formatMembers = (members) =>
+  [
+    `- facilitator：${FACILITATOR.name}（${FACILITATOR.role}）… ${FACILITATOR.stance}`,
+    ...Object.entries(members).map(([key, m]) => describeMember(key, m)),
+  ].join("\n");
+
+// 末尾に置く、この工程で話してよいAI（名前だけ）
+const formatSpeakers = (step, members) =>
   allowedSpeakers(step)
-    .map((key) => {
-      const p = key === "facilitator" ? FACILITATOR : members[key];
-      return `- ${key}：${p.name}（${p.role}）… ${p.stance}`;
-    })
+    .map((key) =>
+      key === "facilitator"
+        ? `- facilitator：${FACILITATOR.name}`
+        : `- ${key}：${members[key].name}（${members[key].label}）`
+    )
     .join("\n");
 
 // この工程で誰が何回話したか。同じメンバーばかりにならないよう、指示文に添える
@@ -182,8 +201,8 @@ ${room.background ? `\n# 背景\n${room.background}\n` : ""}
 ニックネーム：${session.nickname}
 
 # 登場するAI
-工程2は参加者とファシリテーターの1対1。工程4から、メンバー3人が加わる。
-${formatMembers(4, members)}
+工程2は参加者とファシリテーターの1対1。工程4から、メンバー3体（肯定派・否定派・未定派）が加わる。
+${formatMembers(members)}
 
 # 工程ごとの目的
 ${formatStepGoals()}
@@ -192,9 +211,12 @@ ${RULES}
 
 ${RESPONSES}
 
+${AXIS_STANCE}
+
 ${SPEAKER_GUIDE}
 
 # 問い詰める強さ（工程4〜8。どれを使うかは、会話の最後の「今の状況」で伝える）
+強さで変わるのは問いの言い方だけ。3体の役割と立ち位置は変えない。
 ${formatIntensities()}
 
 # 返答のしかた
@@ -216,14 +238,15 @@ export const buildTurnContext = ({ room, session, now = new Date() }) => {
     `# 今の状況
 工程${step}「${STEPS[step].label}」（${STEPS[step].diamond}）。目的は「工程ごとの目的」のとおり。`,
     `# 話してよいAI
-${formatMembers(step, members)}`,
+${formatSpeakers(step, members)}`,
     `# 残り時間
 - この工程：${formatSeconds(timing.stepRemainingSec)}
 - 全体（20分）：${formatSeconds(timing.totalRemainingSec)}
 ${timeNote}`.trim(),
     `# ここまでに決まったこと
 ${formatOutputs(session.outputs)}`,
-    withMembers ? formatOverview(room.overview) : "",
+    // 論点は、その参加者が工程4に入った時点のものを使い続ける（途中で立ち位置がぶれないように）
+    withMembers ? formatOverview(session.overviewAtStart ?? room.overview) : "",
     withMembers ? speakerBalance(session, members) : "",
     withMembers ? `# 今の強さ\n${session.intensity ?? "normal"}` : "",
     OUTPUT_FORMAT(step),
@@ -248,7 +271,7 @@ export const buildHistory = (messages, room) => {
 // 参加者のボタン操作で工程に入ったときの、最初の発言の依頼
 export const enterStepInstruction = (step) =>
   step === 4
-    ? "（工程4が始まった。ファシリテーターとして、メンバー3人をどんな立場の人か一言ずつ紹介し、工程2で参加者が書いたことと工程3で見たみんなの声を踏まえて、参加者が何を課題と捉えるかを最初に問う。）"
+    ? "（工程4が始まった。ファシリテーターとして、メンバー3体を肯定派・否定派・未定派であることと肩書きとともに一言ずつ紹介し、工程2で参加者が書いたことと工程3で見たみんなの声を踏まえて、参加者が何を課題と捉えるかを最初に問う。）"
     : `（工程${step}「${STEPS[step].label}」が始まった。ファシリテーターとして、この工程で何をするかを一言で伝え、最初の問いを投げる。）`;
 
 // 工程2の最初の一言（AIを呼ばずに定型文で始める）

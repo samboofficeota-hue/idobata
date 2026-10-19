@@ -20,11 +20,11 @@ const overviewSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// AIメンバー1人分の立場。お題に合わせて作る（services/kaigi/personas.js）
+// AIメンバー1体分の、お題に合わせた肩書き（services/kaigi/personas.js）
+// 役割（肯定派・否定派・未定派）は固定なので、ここには持たない
 const personaSchema = new mongoose.Schema(
   {
-    role: { type: String, default: "" },
-    stance: { type: String, default: "" },
+    title: { type: String, default: "" },
   },
   { _id: false }
 );
@@ -55,8 +55,7 @@ const kaigiRoomSchema = new mongoose.Schema(
       default: KAIGI_CAPACITIES[0],
     },
     overview: { type: overviewSchema, default: () => ({}) },
-    // AIメンバー3人の立場。名前と役回りは固定で、お題に合わせた立場だけを持つ
-    // （空なら既定の立場を使う）
+    // AIメンバー3体の肩書き。名前と役割は固定で、お題に合わせた肩書きだけを持つ（空なら肩書きなし）
     personas: {
       member1: { type: personaSchema, default: undefined },
       member2: { type: personaSchema, default: undefined },

@@ -221,38 +221,35 @@ describe("turn messages", () => {
 });
 
 describe("personas", () => {
-  it("keeps only complete personas from the AI and trims them", () => {
+  it("keeps only the titles the AI gave, trimmed", () => {
     expect(
       normalizePersonas({
-        member1: {
-          role: " 子育て中の住民 ",
-          stance: "子どもの安全から考える。",
-        },
-        member2: { role: "元理事" },
-        member3: "外の人",
+        member1: " 子育て中の住民 ",
+        member2: "",
+        member3: { title: "外の人" },
       })
-    ).toEqual({
-      member1: { role: "子育て中の住民", stance: "子どもの安全から考える。" },
-    });
+    ).toEqual({ member1: { title: "子育て中の住民" } });
     expect(normalizePersonas(null)).toEqual({});
   });
 
-  it("keeps the fixed names and falls back to the default stance", () => {
+  it("keeps the three fixed camps and adds the room's title", () => {
     const members = resolveMembers({
-      personas: {
-        member2: { role: "会計担当の元理事", stance: "費用を見る。" },
-      },
+      personas: { member2: { title: "会計担当の元理事" } },
     });
     expect(members.member1).toMatchObject({
       name: "ミナミ",
-      role: "当事者の目線",
+      camp: "肯定派",
+      label: "肯定派",
     });
     expect(members.member2).toMatchObject({
       name: "ケンジ",
-      role: "会計担当の元理事",
-      stance: "費用を見る。",
+      camp: "否定派",
+      label: "否定派・会計担当の元理事",
     });
-    expect(resolveMembers(undefined).member3.name).toBe("ソラ");
+    expect(resolveMembers(undefined).member3).toMatchObject({
+      name: "ソラ",
+      camp: "未定派",
+    });
   });
 });
 
@@ -294,24 +291,42 @@ describe("speakerBalance", () => {
 describe("member prompts", () => {
   const room = {
     title: "共用自転車をどうするか",
-    personas: {
-      member1: {
-        role: "子育て中の住民",
-        stance: "子どもを乗せる立場で考える。",
-      },
+    personas: { member1: { title: "子育て中の住民" } },
+    overview: {
+      issueCandidates: [],
+      ideaCandidates: [],
+      conflicts: ["今の対立点"],
+      agreements: ["通路の安全は守る"],
+      updatedAt: new Date(),
     },
   };
 
-  it("uses the room's personas and the participant's intensity", () => {
+  it("describes the three camps, the room's titles and the intensity", () => {
     const session = makeSession({ step: 4, intensity: "strict" });
-    const prompt = `${buildTurnSystemPrompt({ room, session })}\n${buildTurnContext({ room, session })}`;
-    expect(prompt).toContain(
-      "ミナミ（子育て中の住民）… 子どもを乗せる立場で考える。"
-    );
-    expect(prompt).toContain("ケンジ（反対の立場）");
-    expect(prompt).toContain("grill me");
-    expect(prompt).toContain("# 今の強さ\nstrict");
-    expect(prompt).toContain('"read"');
+    const head = buildTurnSystemPrompt({ room, session });
+    const tail = buildTurnContext({ room, session });
+    expect(head).toContain("member1：ミナミ（肯定派・子育て中の住民）");
+    expect(head).toContain("member2：ケンジ（否定派）");
+    expect(head).toContain("member3：ソラ（未定派）");
+    expect(head).toContain("論点（対立軸）への立ち方");
+    expect(head).toContain("grill me");
+    expect(tail).toContain("- member2：ケンジ（否定派）");
+    expect(tail).toContain("# 今の強さ\nstrict");
+    expect(tail).toContain("- 今の対立点");
+    expect(tail).toContain('"read"');
+  });
+
+  it("keeps the axes the participant started step 4 with", () => {
+    const session = makeSession({
+      step: 6,
+      overviewAtStart: {
+        ...room.overview,
+        conflicts: ["始めたときの対立点"],
+      },
+    });
+    const tail = buildTurnContext({ room, session });
+    expect(tail).toContain("- 始めたときの対立点");
+    expect(tail).not.toContain("- 今の対立点");
   });
 
   it("labels each AI line in the history with its name", () => {

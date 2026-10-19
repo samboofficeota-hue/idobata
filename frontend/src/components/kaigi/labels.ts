@@ -5,7 +5,7 @@ import type {
 } from "../../services/kaigi/types";
 
 // AIの名前と既定の立場（backend の services/kaigi/personas.js と合わせる）
-// メンバー3人の立場はお題ごとに作られ、room.members で上書きされる
+// メンバー3体の役割は固定。お題に合わせた肩書きが付くと、room.members で「否定派・肩書き」に上書きされる
 export const SPEAKERS: Record<
   KaigiSpeaker,
   { name: string; role: string; bubble: string; badge: string }
@@ -24,19 +24,19 @@ export const SPEAKERS: Record<
   },
   member1: {
     name: "ミナミ",
-    role: "当事者の目線",
+    role: "肯定派",
     bubble: "bg-amber-50 border-amber-300",
     badge: "bg-amber-600 text-white",
   },
   member2: {
     name: "ケンジ",
-    role: "反対の立場",
+    role: "否定派",
     bubble: "bg-rose-50 border-rose-300",
     badge: "bg-rose-600 text-white",
   },
   member3: {
     name: "ソラ",
-    role: "外から来た人",
+    role: "未定派",
     bubble: "bg-emerald-50 border-emerald-300",
     badge: "bg-emerald-600 text-white",
   },

@@ -33,9 +33,9 @@ vi.mock("../services/kaigi/llm.js", () => ({
     }
     if (system.includes("話し合いの場づくりを手伝う補助役")) {
       return {
-        member1: { role: "自転車を使う住民", stance: "毎日使う立場で考える。" },
-        member2: { role: "管理費を気にする理事", stance: "費用から考える。" },
-        member3: { role: "最近越してきた人", stance: "そもそもを問う。" },
+        member1: "自転車を使う住民",
+        member2: "管理費を気にする理事",
+        member3: "最近越してきた住民",
       };
     }
     if (system.includes("1つのストーリーの文章にまとめる")) {
@@ -254,17 +254,23 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     });
     res = await call("POST", `/sessions/${id}/advance`, u);
     expect(res.body.session.step).toBe(4);
-    expect(llm.calls.at(-1)).toContain("ミナミ（自転車を使う住民）");
+    expect(llm.calls.at(-1)).toContain("ミナミ（肯定派・自転車を使う住民）");
     // お題に合わせた立場は、お題1つにつき1回だけ作る
     expect(
       llm.calls.filter((c) => c.includes("話し合いの場づくりを手伝う補助役"))
     ).toHaveLength(1);
     expect(res.body.room.members.member2).toEqual({
       name: "ケンジ",
-      role: "管理費を気にする理事",
+      role: "否定派・管理費を気にする理事",
     });
 
     // 問い詰める強さは参加者が選び、次の発言から効く
+    // この人の20分のあいだ、メンバーが立つ論点を固定する
+    const started = await mongoose.model("KaigiSession").findById(id).lean();
+    expect(started.overviewAtStart.issueCandidates).toContain(
+      "放置自転車が通路をふさぐ"
+    );
+
     expect(res.body.session.intensity).toBe("normal");
     expect(
       (
