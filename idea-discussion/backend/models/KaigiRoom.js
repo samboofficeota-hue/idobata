@@ -63,6 +63,23 @@ const kaigiRoomSchema = new mongoose.Schema(
     },
     // ホスト用の鍵のハッシュ。鍵そのものは作成時に一度だけホストへ返す
     // （この値が空のお題は、ホスト用の画面を使えない）
+    // お題に近い、いどばたのテーマ（services/kaigi/roomAxes.js）。AIが選び、ホストが外せる
+    themeLink: {
+      themeId: { type: mongoose.Schema.Types.ObjectId, default: null },
+      themeTitle: { type: String, default: "" },
+      // ホストが外したら、自動では紐づけ直さない
+      removedByHost: { type: Boolean, default: false },
+      // 最後にテーマを探した日時（見つからなかったときも記録する）
+      checkedAt: { type: Date, default: null },
+    },
+    // お題の軸カード：テーマの3軸のうち、お題に関係する軸をお題の言葉で言い直したもの
+    // （AIメンバー3体が立つ論点。各側のいどばたの声も添える）
+    axes: {
+      themeId: { type: mongoose.Schema.Types.ObjectId, default: null },
+      themeAxesVersion: { type: Number, default: null },
+      items: { type: [mongoose.Schema.Types.Mixed], default: [] },
+      builtAt: { type: Date, default: null },
+    },
     hostKeyHash: { type: String, default: "", select: false },
     meeting: { type: meetingSchema, default: () => ({}) },
     expiresAt: { type: Date, required: true },

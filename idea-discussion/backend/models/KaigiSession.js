@@ -46,6 +46,8 @@ const kaigiSessionSchema = new mongoose.Schema(
     // 工程4に入った時点の論点（みんなの声の整理）。20分のあいだ、AIメンバーはこれに立ち続ける
     // （お題の整理はほかの参加者の声で作り直されるが、この人の途中で立ち位置が変わらないように）
     overviewAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 工程4に入った時点のお題の軸カード（あれば、こちらがメンバーの立つ論点になる）
+    axesAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
     intensity: {
       type: String,
       enum: KAIGI_INTENSITIES,

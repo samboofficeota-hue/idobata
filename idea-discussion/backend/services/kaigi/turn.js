@@ -1,5 +1,6 @@
 import { kaigiLLM } from "./llm.js";
 import {
+  buildAxesBlock,
   buildHistory,
   buildTurnContext,
   buildTurnSystemPrompt,
@@ -61,10 +62,13 @@ export const applyTurn = (session, turn, now = new Date()) => {
   return { advanced };
 };
 
-// 変わらない指示文 → 会話の履歴 → 毎回変わる情報、の順に並べる（キャッシュを効かせるため。prompts.js）
+// 変わらない指示文 →（あれば）固定した論点 → 会話の履歴 → 毎回変わる情報、の順に並べる（キャッシュを効かせるため。prompts.js）
 export const buildMessages = (room, session, { event, now }) => {
+  const axesBlock = buildAxesBlock(session);
   const messages = [
     { role: "system", content: buildTurnSystemPrompt({ room, session }) },
+    // 論点は参加者ごとに20分のあいだ固定なので、履歴の前に置いてもキャッシュは切れない
+    ...(axesBlock ? [{ role: "system", content: axesBlock }] : []),
     ...buildHistory(session.messages, room),
     { role: "system", content: buildTurnContext({ room, session, now }) },
   ];

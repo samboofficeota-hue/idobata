@@ -237,6 +237,16 @@ export const kaigiApi = {
       `/rooms/${encodeURIComponent(roomId)}/host/meeting`,
       { method: "DELETE", hostKey }
     ),
+  removeTheme: (roomId: string, hostKey: string) =>
+    request<KaigiHostView>(`/rooms/${encodeURIComponent(roomId)}/host/theme`, {
+      method: "DELETE",
+      hostKey,
+    }),
+  relinkTheme: (roomId: string, hostKey: string) =>
+    request<KaigiHostView>(
+      `/rooms/${encodeURIComponent(roomId)}/host/theme/relink`,
+      { method: "POST", hostKey }
+    ),
   getRecords: (roomId: string, hostKey: string) =>
     request<{ records: KaigiMeetRecord[] }>(
       `/rooms/${encodeURIComponent(roomId)}/host/records`,

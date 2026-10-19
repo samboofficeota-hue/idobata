@@ -103,21 +103,73 @@ const formatSeconds = (sec) => {
   return m > 0 ? `${m}分${s}秒` : `${s}秒`;
 };
 
-const formatOverview = (overview) => {
+const list = (items) =>
+  items?.length ? items.map((i) => `- ${i}`).join("\n") : "- （なし）";
+
+// みんなの声の整理。お題の軸カードがないときは、その対立点を仮の論点にする
+const formatOverview = (overview, { asAxes }) => {
   if (!overview?.updatedAt) return "";
-  const list = (items) =>
-    items?.length ? items.map((i) => `- ${i}`).join("\n") : "- （なし）";
-  // テーマの3軸ができるまでは、みんなの声の整理の対立点を仮の論点にする
-  return `# 論点（仮：みんなの声の整理の対立点。肯定派・否定派はここに立つ）
+  const axes = asAxes
+    ? `# 論点（仮：みんなの声の整理の対立点。肯定派・否定派はここに立つ）
 ${list(overview.conflicts)}
 ## 合意点（未定派の足場）
 ${list(overview.agreements)}
 
-# みんなの声の整理（工程3で参加者に見せたもの）
+`
+    : "";
+  return `${axes}# みんなの声の整理（工程3で参加者に見せたもの）
 ## 課題の候補
 ${list(overview.issueCandidates)}
 ## 解決アイディアの候補
-${list(overview.ideaCandidates)}`;
+${list(overview.ideaCandidates)}
+## 対立点
+${list(overview.conflicts)}
+## 合意点
+${list(overview.agreements)}`;
+};
+
+const formatVoices = (voices = []) =>
+  voices.length
+    ? voices
+        .map((v) => {
+          const extra = [
+            v.reason && `理由：${v.reason}`,
+            v.concern && `懸念：${v.concern}`,
+          ]
+            .filter(Boolean)
+            .join("／");
+          return `  - （${v.kind}）${v.statement}${extra ? `（${extra}）` : ""}`;
+        })
+        .join("\n")
+    : "  - （なし）";
+
+// お題の軸カード（参加者が工程4に入った時点で固定したもの）。3体が立つ論点
+// 20分のあいだ変わらないので、変わらない先頭と会話の履歴のあいだに置く（キャッシュに乗る）
+export const buildAxesBlock = (session) => {
+  const axes = session.axesAtStart;
+  if (session.step < 4 || !axes?.items?.length) return "";
+  return `# 論点（3体が立つところ。いどばたのテーマ「${axes.themeTitle}」の合意と対立の軸を、お題の言葉で言い直したもの）
+${axes.items
+  .map(
+    (a) => `## ${a.key}：${a.proposition}
+- 合意（ほぼ全員が同じ考え。未定派の足場）：${a.agreement?.length ? a.agreement.join("／") : "（なし）"}
+- 肯定側の主張（肯定派ミナミが立つ）：${a.affirmative}
+- 否定側の主張（否定派ケンジが立つ）：${a.negative}
+- 決めきれない理由（未定派ソラが立つ）：${a.undecidedReason || "（なし）"}
+- 肯定側の声：
+${formatVoices(a.voices?.affirmative)}
+- 否定側の声：
+${formatVoices(a.voices?.negative)}
+- 決めきれない声：
+${formatVoices(a.voices?.undecided)}`
+  )
+  .join("\n\n")}
+
+# 論点の声の使い方
+- 声は、いどばたで別の場（授業・フォーラムなど）に集まった声。このお題の参加者の声ではない。使うときは「別の場では〜という声がありました」と、出どころが分かる言い方にする。
+- 各メンバーは、自分の側の声だけを使う。肯定派は肯定側、否定派は否定側、未定派は決めきれない声と合意。
+- 声は使わなくてよい。話の流れに合うときだけ、1回に1つまで使う。同じ声を何度も使わない。
+- 声に書かれていないことを、声のように言わない。`;
 };
 
 const formatOutputs = (outputs = {}) =>
@@ -246,7 +298,11 @@ ${timeNote}`.trim(),
     `# ここまでに決まったこと
 ${formatOutputs(session.outputs)}`,
     // 論点は、その参加者が工程4に入った時点のものを使い続ける（途中で立ち位置がぶれないように）
-    withMembers ? formatOverview(session.overviewAtStart ?? room.overview) : "",
+    withMembers
+      ? formatOverview(session.overviewAtStart ?? room.overview, {
+          asAxes: !session.axesAtStart?.items?.length,
+        })
+      : "",
     withMembers ? speakerBalance(session, members) : "",
     withMembers ? `# 今の強さ\n${session.intensity ?? "normal"}` : "",
     OUTPUT_FORMAT(step),

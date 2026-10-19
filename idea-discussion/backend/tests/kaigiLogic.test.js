@@ -5,6 +5,7 @@ import {
   resolveMembers,
 } from "../services/kaigi/personas.js";
 import {
+  buildAxesBlock,
   buildHistory,
   buildTurnContext,
   buildTurnSystemPrompt,
@@ -327,6 +328,55 @@ describe("member prompts", () => {
     const tail = buildTurnContext({ room, session });
     expect(tail).toContain("- 始めたときの対立点");
     expect(tail).not.toContain("- 今の対立点");
+  });
+
+  it("puts the fixed theme axes between the head and the history", () => {
+    const axesAtStart = {
+      themeTitle: "共用自転車",
+      items: [
+        {
+          key: "R1",
+          proposition: "共用自転車を残すべきか",
+          agreement: ["通路の安全は守る"],
+          affirmative: "足になる",
+          negative: "負担が大きい",
+          undecidedReason: "数が分からない",
+          voices: {
+            affirmative: [],
+            negative: [
+              {
+                kind: "課題",
+                statement: "管理費がかさむ",
+                reason: "毎年上がる",
+              },
+            ],
+            undecided: [],
+          },
+        },
+      ],
+    };
+    const session = makeSession({
+      step: 6,
+      axesAtStart,
+      overviewAtStart: room.overview,
+      messages: [{ speaker: "user", content: "暗い", step: 6 }],
+    });
+    const block = buildAxesBlock(session);
+    expect(block).toContain("R1：共用自転車を残すべきか");
+    expect(block).toContain("（課題）管理費がかさむ（理由：毎年上がる）");
+    expect(block).toContain("別の場では");
+    expect(buildAxesBlock({ ...session, step: 2 })).toBe("");
+
+    const messages = buildMessages(room, session, { event: "reply" });
+    expect(messages.map((m) => m.role)).toEqual([
+      "system",
+      "system",
+      "user",
+      "system",
+    ]);
+    expect(messages[1].content).toBe(block);
+    // 軸カードがあるときは、みんなの声の対立点を論点として扱わない
+    expect(messages[3].content).not.toContain("論点（仮");
   });
 
   it("labels each AI line in the history with its name", () => {

@@ -20,6 +20,7 @@ import {
   resolveMembers,
 } from "../services/kaigi/personas.js";
 import { openingMessage } from "../services/kaigi/prompts.js";
+import { ensureRoomAxes } from "../services/kaigi/roomAxes.js";
 import {
   OUTPUT_LABELS,
   SESSION_MINUTES,
@@ -123,9 +124,11 @@ hostRouter.post("/rooms", async (req, res) => {
     expiresAt: new Date(Date.now() + retentionMs()),
   });
 
-  // AIメンバーの立場と、工程3で最初の参加者に見せる候補を、お題と背景から先に作っておく
+  // AIメンバーの肩書き、お題の軸カード（いどばたのテーマの3軸から）、
+  // 工程3で最初の参加者に見せる候補を、お題と背景から先に作っておく
   // （同じお題を2つ同時に保存しないよう、順に作る）
   ensurePersonas(room)
+    .then(() => ensureRoomAxes(room))
     .then(() => ensureOverview(room))
     .catch((error) =>
       console.error(
@@ -494,7 +497,16 @@ router.post(
     if (session.step === 4) {
       // メンバーが加わる工程4の前に、お題に合わせた肩書きをそろえる（作れなければ肩書きなし）
       await ensurePersonas(room);
+      // テーマの3軸が新しくなっていれば、お題の軸カードを作り直してから固定する
+      await ensureRoomAxes(room, now);
       // この人の20分のあいだ、メンバーが立つ論点を固定する
+      if (room.axes?.items?.length) {
+        session.axesAtStart = {
+          themeTitle: room.themeLink?.themeTitle ?? "",
+          themeAxesVersion: room.axes.themeAxesVersion,
+          items: room.axes.items,
+        };
+      }
       if (room.overview?.updatedAt) {
         session.overviewAtStart = room.overview.toObject
           ? room.overview.toObject()

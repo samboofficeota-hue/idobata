@@ -16,6 +16,7 @@ import {
 } from "../services/kaigi/google.js";
 import { hostKeyMatches } from "../services/kaigi/hostKey.js";
 import { createLockout } from "../services/kaigi/lockout.js";
+import { ensureRoomAxes } from "../services/kaigi/roomAxes.js";
 
 // いどばた会議室のホスト用の画面（お題ごと）
 //  - /rooms/:roomId/host/*  : お題の作成時に返した鍵（x-kaigi-host-key）で保護
@@ -102,6 +103,20 @@ const toHostRecord = (record) => ({
   recordings: record.recordings.map((r) => ({ state: r.state, url: r.url })),
 });
 
+// お題に紐づいた、いどばたのテーマと、そこから作ったお題の軸カード
+const toHostTheme = (room) => ({
+  themeTitle: room.themeLink?.themeId ? room.themeLink.themeTitle : "",
+  removedByHost: Boolean(room.themeLink?.removedByHost),
+  checkedAt: room.themeLink?.checkedAt ?? null,
+  axes: (room.axes?.items ?? []).map((a) => ({
+    proposition: a.proposition,
+    agreement: a.agreement ?? [],
+    affirmative: a.affirmative,
+    negative: a.negative,
+    undecidedReason: a.undecidedReason,
+  })),
+});
+
 const hostView = async (room) => ({
   room: {
     id: room._id.toString(),
@@ -115,6 +130,7 @@ const hostView = async (room) => ({
     ...(await accountStatus(room._id)),
   },
   meeting: toHostMeeting(room.meeting),
+  theme: toHostTheme(room),
 });
 
 const host = express.Router({ mergeParams: true });
@@ -206,6 +222,45 @@ host.post("/records/sync", requireGoogle, async (req, res) => {
   } finally {
     syncing.delete(roomId);
   }
+});
+
+// いどばたのテーマを外す（自動では紐づけ直さない）。参加中の人は、始めた時点の論点のまま
+host.delete("/theme", async (req, res) => {
+  const room = req.kaigiRoom;
+  room.themeLink = {
+    themeId: null,
+    themeTitle: "",
+    removedByHost: true,
+    checkedAt: room.themeLink?.checkedAt ?? null,
+  };
+  room.axes = {
+    themeId: null,
+    themeAxesVersion: null,
+    items: [],
+    builtAt: null,
+  };
+  await room.save();
+  return res.json(await hostView(room));
+});
+
+// テーマをもう一度AIに探してもらう
+host.post("/theme/relink", async (req, res) => {
+  const room = req.kaigiRoom;
+  room.themeLink = {
+    themeId: null,
+    themeTitle: "",
+    removedByHost: false,
+    checkedAt: null,
+  };
+  room.axes = {
+    themeId: null,
+    themeAxesVersion: null,
+    items: [],
+    builtAt: null,
+  };
+  await room.save();
+  await ensureRoomAxes(room);
+  return res.json(await hostView(room));
 });
 
 router.use("/rooms/:roomId/host", host);

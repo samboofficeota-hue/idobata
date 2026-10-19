@@ -31,7 +31,24 @@ vi.mock("../services/kaigi/llm.js", () => ({
         agreements: [],
       };
     }
-    if (system.includes("話し合いの場づくりを手伝う補助役")) {
+    if (system.includes("お題に一番近いテーマを1つ選ぶ")) {
+      return { theme: "T1" };
+    }
+    if (system.includes("お題に関係する軸を選んで、お題の言葉で言い直す")) {
+      return {
+        axes: [
+          {
+            source: "A1",
+            proposition: "このマンションで共用自転車を残すべきか",
+            agreement: ["通路の安全は守る"],
+            affirmative: "高齢の住民の足になる",
+            negative: "放置と管理費の負担が大きい",
+            undecidedReason: "使っている人の数が分からない",
+          },
+        ],
+      };
+    }
+    if (system.includes("AIメンバー3体に、お題の場に合う「肩書き」を付ける")) {
       return {
         member1: "自転車を使う住民",
         member2: "管理費を気にする理事",
@@ -72,6 +89,9 @@ process.env.RATE_LIMIT_DISABLED = "true";
 const { default: kaigiRoutes } = await import("../routes/kaigiRoutes.js");
 const { attachUser } = await import("../middleware/userTokenMiddleware.js");
 const { signUserToken } = await import("../services/userToken.js");
+const { default: Theme } = await import("../models/Theme.js");
+const { default: Problem } = await import("../models/Problem.js");
+const { default: ThemeAxes } = await import("../models/ThemeAxes.js");
 
 // ローカルや CI に MongoDB がなければ、このテストは飛ばす
 const MONGO_URI =
@@ -124,6 +144,32 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
   beforeAll(async () => {
     await mongoose.connection.dropDatabase();
     await mongoose.model("KaigiSession").syncIndexes();
+
+    // いどばたのテーマと、その3軸（会議室はこれに立つ）
+    const theme = await Theme.create({ title: "共用自転車", slug: "bike" });
+    const voice = await Problem.create({
+      statement: "放置自転車で管理費がかさむ",
+      sourceOriginId: new mongoose.Types.ObjectId(),
+      sourceType: "chat",
+      themeId: theme._id,
+    });
+    await ThemeAxes.create({
+      themeId: theme._id,
+      version: 1,
+      fingerprint: "f",
+      schemaVersion: 1,
+      axes: [
+        {
+          key: "A1",
+          proposition: "共用自転車を残すべきか",
+          affirmative: "必要",
+          negative: "負担",
+          voices: [
+            { itemType: "problem", itemId: voice._id, side: "negative" },
+          ],
+        },
+      ],
+    });
     const app = express();
     app.use(express.json());
     app.use(attachUser);
@@ -257,20 +303,38 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     expect(llm.calls.at(-1)).toContain("ミナミ（肯定派・自転車を使う住民）");
     // お題に合わせた立場は、お題1つにつき1回だけ作る
     expect(
-      llm.calls.filter((c) => c.includes("話し合いの場づくりを手伝う補助役"))
+      llm.calls.filter((c) =>
+        c.includes("AIメンバー3体に、お題の場に合う「肩書き」を付ける")
+      )
     ).toHaveLength(1);
     expect(res.body.room.members.member2).toEqual({
       name: "ケンジ",
       role: "否定派・管理費を気にする理事",
     });
 
-    // 問い詰める強さは参加者が選び、次の発言から効く
     // この人の20分のあいだ、メンバーが立つ論点を固定する
     const started = await mongoose.model("KaigiSession").findById(id).lean();
+    expect(started.axesAtStart).toMatchObject({
+      themeTitle: "共用自転車",
+      themeAxesVersion: 1,
+    });
+    expect(started.axesAtStart.items[0]).toMatchObject({
+      key: "R1",
+      source: "A1",
+      proposition: "このマンションで共用自転車を残すべきか",
+    });
+    // 否定側には、いどばたの元の声が付く
+    expect(started.axesAtStart.items[0].voices.negative).toEqual([
+      expect.objectContaining({ statement: "放置自転車で管理費がかさむ" }),
+    ]);
+    expect(llm.calls.at(-1)).toContain(
+      "R1：このマンションで共用自転車を残すべきか"
+    );
     expect(started.overviewAtStart.issueCandidates).toContain(
       "放置自転車が通路をふさぐ"
     );
 
+    // 問い詰める強さは参加者が選び、次の発言から効く
     expect(res.body.session.intensity).toBe("normal");
     expect(
       (
@@ -361,6 +425,53 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
       solution: "登録制",
     });
     expect(JSON.stringify(wall.body)).not.toContain("flow");
+  });
+
+  it("shows the linked theme to the host and lets the host remove it", async () => {
+    const created = await call(
+      "POST",
+      "/host/rooms",
+      { title: "共用自転車をどうするか", capacity: 5 },
+      host
+    );
+    const { id: roomId, hostKey } = created.body;
+    const asHost = { "x-kaigi-host-key": hostKey };
+    // 作成のあとの準備（肩書き・軸カード・整理）は裏で進むので、少し待つ
+    let view;
+    for (let i = 0; i < 20; i += 1) {
+      view = (await call("GET", `/rooms/${roomId}/host`, undefined, asHost))
+        .body;
+      if (view.theme.axes.length > 0) break;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    expect(view.theme).toMatchObject({
+      themeTitle: "共用自転車",
+      removedByHost: false,
+    });
+    expect(view.theme.axes[0].proposition).toBe(
+      "このマンションで共用自転車を残すべきか"
+    );
+
+    const removed = await call(
+      "DELETE",
+      `/rooms/${roomId}/host/theme`,
+      undefined,
+      asHost
+    );
+    expect(removed.body.theme).toMatchObject({
+      themeTitle: "",
+      removedByHost: true,
+      axes: [],
+    });
+
+    const relinked = await call(
+      "POST",
+      `/rooms/${roomId}/host/theme/relink`,
+      undefined,
+      asHost
+    );
+    expect(relinked.body.theme.themeTitle).toBe("共用自転車");
+    expect(relinked.body.theme.axes).toHaveLength(1);
   });
 
   it("does not save the participant's message when the AI fails", async () => {

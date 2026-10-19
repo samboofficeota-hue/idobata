@@ -124,10 +124,28 @@ export interface KaigiHostGoogle {
   canReadRecords?: boolean;
 }
 
+// お題に紐づいた、いどばたのテーマと、そこから作ったお題の軸カード（AIメンバー3体が立つ論点）
+export interface KaigiHostAxis {
+  proposition: string;
+  agreement: string[];
+  affirmative: string;
+  negative: string;
+  undecidedReason: string;
+}
+
+export interface KaigiHostTheme {
+  // 紐づいたテーマの名前（紐づいていなければ空）
+  themeTitle: string;
+  removedByHost: boolean;
+  checkedAt: string | null;
+  axes: KaigiHostAxis[];
+}
+
 export interface KaigiHostView {
   room: Pick<KaigiRoom, "id" | "title" | "hostName" | "capacity" | "expiresAt">;
   google: KaigiHostGoogle;
   meeting: KaigiHostMeeting | null;
+  theme: KaigiHostTheme;
 }
 
 export interface KaigiTranscriptEntry {
