@@ -1,7 +1,8 @@
+import { SIDES } from "./cast.js";
 import { kaigiLLM } from "./llm.js";
 import {
-  buildAxesBlock,
   buildHistory,
+  buildSessionBlock,
   buildTurnContext,
   buildTurnSystemPrompt,
   enterStepInstruction,
@@ -35,7 +36,51 @@ export const normalizeTurn = (raw, step) => {
     }
   }
 
-  return { speaker, content, capture, advance: raw?.advance === true };
+  // 話しているメンバーの判断が、新しい情報で変わったとき（形だけ整える。中身は applyTurn で確かめる）
+  const j = raw?.judgment;
+  const judgment =
+    j && typeof j === "object"
+      ? {
+          axis: typeof j.axis === "string" ? j.axis : "",
+          to: typeof j.to === "string" ? j.to : "",
+          because:
+            typeof j.because === "string" ? j.because.trim().slice(0, 100) : "",
+        }
+      : null;
+
+  return {
+    speaker,
+    content,
+    capture,
+    advance: raw?.advance === true,
+    judgment,
+  };
+};
+
+// 判断の変化を反映する。話しているメンバーの、今ある軸の判断で、理由があり、実際に変わるときだけ
+// 価値観（譲れないこと・大切にしたいこと）は変わらないので、ここで扱うのは軸ごとの判断だけ
+export const applyJudgment = (session, speaker, judgment, now = new Date()) => {
+  const current = session.judgments?.[speaker];
+  if (!judgment || !current) return null;
+  const { axis, to, because } = judgment;
+  const from = current[axis];
+  if (!from || !SIDES.includes(to) || to === from || !because) return null;
+  session.judgments = {
+    ...session.judgments,
+    [speaker]: { ...current, [axis]: to },
+  };
+  session.markModified?.("judgments");
+  const entry = {
+    member: speaker,
+    axis,
+    from,
+    to,
+    because,
+    step: session.step,
+    at: now,
+  };
+  session.judgmentLog = [...(session.judgmentLog ?? []), entry];
+  return entry;
 };
 
 // 整えた返答をセッションに反映する。AIが進行を求めても、条件を満たさなければ進めない
@@ -50,6 +95,7 @@ export const applyTurn = (session, turn, now = new Date()) => {
   for (const [key, value] of Object.entries(turn.capture)) {
     session.outputs[key] = value;
   }
+  applyJudgment(session, turn.speaker, turn.judgment, now);
 
   const advanced =
     turn.advance &&
@@ -64,7 +110,7 @@ export const applyTurn = (session, turn, now = new Date()) => {
 
 // 変わらない指示文 →（あれば）固定した論点 → 会話の履歴 → 毎回変わる情報、の順に並べる（キャッシュを効かせるため。prompts.js）
 export const buildMessages = (room, session, { event, now }) => {
-  const axesBlock = buildAxesBlock(session);
+  const axesBlock = buildSessionBlock(session, room);
   const messages = [
     { role: "system", content: buildTurnSystemPrompt({ room, session }) },
     // 論点は参加者ごとに20分のあいだ固定なので、履歴の前に置いてもキャッシュは切れない

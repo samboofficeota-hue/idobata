@@ -1,4 +1,9 @@
-import { describeMember, resolveMembers } from "./personas.js";
+import {
+  LEAN_LABELS,
+  MEMBER_KEYS,
+  describeMember,
+  resolveMembers,
+} from "./personas.js";
 import {
   OUTPUT_LABELS,
   STEPS,
@@ -54,20 +59,25 @@ const RESPONSES = `# 参加者の反応への応じ方
 - 特定のメンバーに話しかけた：そのメンバーが答える。
 - 先へ進みたい、時間を気にしている：ファシリテーターが、ここまでの要点をまとめて進行を寄せる。`;
 
-// 3体が論点（対立軸）にどう立つか（docs/いどばた会議室_キャラと論点カード.md）
-const AXIS_STANCE = `# 論点（対立軸）への立ち方
-- 3体は、会話の最後の「今の状況」にある論点ごとに立つ。肯定派（member1）は肯定側、否定派（member2）は否定側、未定派（member3）は合意を足場に、決めきれないところに立つ。
-- 立ち位置は20分のあいだ変えない。前に言ったことと逆のことを言わない。考えを言い直すときは、何を聞いてそう思ったのかを言う。
-- 参加者の考えがある側と同じとき：同じ側のメンバーは、同意だけで終わらず、根拠を固める問いを出す（「その理由で、反対する人を説得できそうですか？」）。反対側のメンバーは、その考えの弱いところを問う。
-- 参加者の話がどの論点にも近くないとき：未定派が「それは、みんなが分かれている〇〇の話と、どう関係しますか？」と論点につなぐ。つながらなければ、それも新しい課題として扱う。`;
+// 3体の判断の持ち方（docs/いどばた会議室_キャラと論点カード.md 2章）
+// 価値観は変わらない。軸ごとの判断は、新しい情報で変わることがある
+const JUDGMENT_RULES = `# 判断の持ち方
+- 3体は、論点ごとに「賛成・反対・決めかねる」の判断を持つ（今の判断は、会話の最後の「今の状況」にある）。1人の中で賛成・反対・決めかねるが混ざっているのが、ふつうの人。肯定派・否定派・未定派は、全体としての傾きにすぎない。
+- 判断の理由は、自分の譲れないこと・大切にしたいこと・経験と、そのときの感情から話す（「私は費用の話になると慎重になるんです。前に〜で」）。
+- 譲れないことと大切にしたいことは、何があっても変わらない。
+- 判断は、新しい情報（参加者の経験や事実、資料、別の場の声）を聞いて変わることがある。説得の強さ・お世辞・同じことの繰り返しでは変わらない。変わるときは、何を聞いてどう変わったのかを口に出し、judgment に書く。変えられるのは、話しているメンバーの、1つの論点の判断だけ。
+- 前に言ったことと食い違うことを、理由なく言わない。
+- 参加者の考えと、ある論点で判断が同じメンバーは、同意だけで終わらず根拠を固める問いを出す（「その理由で、反対する人を説得できそうですか？」）。判断が違うメンバーは、自分の経験と価値観から、その考えの弱いところを問う。
+- 参加者の話がどの論点にも近くないとき：ソラが「それは、みんなが分かれている〇〇の話と、どう関係しますか？」と論点につなぐ。つながらなければ、それも新しい課題として扱う。`;
 
 const SPEAKER_GUIDE = `# 次に話す人の選び方
 - 進行・まとめ・工程の切り替え・時間の管理・話が先走ったとき：facilitator
-- 参加者が論点のどちらかの側の考えを出した：反対側のメンバーが弱いところを問うか、同じ側のメンバーが根拠を固める
-- 話が抽象的、誰が助かるのかが見えない：member1（肯定派）
-- 案が楽観的、反対する人の言い分・費用・手間が抜けている：member2（否定派）
-- 何を決めるのかを見失っている、前提が固まりすぎている、どの論点にも近くない：member3（未定派）
-- メンバーは、直前の別のメンバーの発言を受けて、自分の側から重ねてもよい。`;
+- 参加者がある論点について考えを出した：その論点で判断が違うメンバーが問うか、判断が同じメンバーが根拠を固める
+- 話が抽象的、誰が助かるのかが見えない：member1（ミナミ）
+- 案が楽観的、負担・費用・手間を誰が持つかが抜けている：member2（ケンジ）
+- 何を決めるのかを見失っている、前提が固まりすぎている、どの論点にも近くない：member3（ソラ）
+- 参加者の話が、あるメンバーの大切にしたいことや経験に触れた：そのメンバー
+- メンバーは、直前の別のメンバーの発言を受けて、自分の価値観から重ねてもよい。`;
 
 // 問い詰める強さ（参加者が会話の画面で選ぶ）
 const INTENSITY = {
@@ -91,8 +101,15 @@ const OUTPUT_FORMAT = (step) => {
   "speaker": "${speakers}",
   "content": "発言",
 ${captureLine}
-  "advance": false
-}`;
+  "advance": false${
+    step >= 4
+      ? `,
+  "judgment": null
+}
+judgment は、話しているメンバーの論点の判断が新しい情報で変わったときだけ { "axis": "R1", "to": "affirmative | negative | undecided", "because": "何を聞いて変わったか" } にする。変わらなければ null`
+      : `
+}`
+  }`;
 };
 
 const formatSeconds = (sec) => {
@@ -110,9 +127,9 @@ const list = (items) =>
 const formatOverview = (overview, { asAxes }) => {
   if (!overview?.updatedAt) return "";
   const axes = asAxes
-    ? `# 論点（仮：みんなの声の整理の対立点。肯定派・否定派はここに立つ）
+    ? `# 論点（仮：みんなの声の整理の対立点。3体は、それぞれの傾きと価値観から判断を持つ。全部の論点で同じ判断にはしない）
 ${list(overview.conflicts)}
-## 合意点（未定派の足場）
+## 合意点（ソラの足場）
 ${list(overview.agreements)}
 
 `
@@ -143,22 +160,19 @@ const formatVoices = (voices = []) =>
         .join("\n")
     : "  - （なし）";
 
-// お題の軸カード（参加者が工程4に入った時点で固定したもの）。3体が立つ論点
-// 20分のあいだ変わらないので、変わらない先頭と会話の履歴のあいだに置く（キャッシュに乗る）
-export const buildAxesBlock = (session) => {
-  const axes = session.axesAtStart;
-  if (session.step < 4 || !axes?.items?.length) return "";
-  return `# 論点（3体が立つところ。いどばたのテーマ「${axes.themeTitle}」の合意と対立の軸を、お題の言葉で言い直したもの）
+const formatAxes = (
+  axes
+) => `# 論点（いどばたのテーマ「${axes.themeTitle}」の合意と対立の軸を、お題の言葉で言い直したもの）
 ${axes.items
   .map(
     (a) => `## ${a.key}：${a.proposition}
-- 合意（ほぼ全員が同じ考え。未定派の足場）：${a.agreement?.length ? a.agreement.join("／") : "（なし）"}
-- 肯定側の主張（肯定派ミナミが立つ）：${a.affirmative}
-- 否定側の主張（否定派ケンジが立つ）：${a.negative}
-- 決めきれない理由（未定派ソラが立つ）：${a.undecidedReason || "（なし）"}
-- 肯定側の声：
+- 合意（ほぼ全員が同じ考え）：${a.agreement?.length ? a.agreement.join("／") : "（なし）"}
+- 賛成の主張：${a.affirmative}
+- 反対の主張：${a.negative}
+- 決めきれない理由：${a.undecidedReason || "（なし）"}
+- 賛成の声：
 ${formatVoices(a.voices?.affirmative)}
-- 否定側の声：
+- 反対の声：
 ${formatVoices(a.voices?.negative)}
 - 決めきれない声：
 ${formatVoices(a.voices?.undecided)}`
@@ -167,9 +181,48 @@ ${formatVoices(a.voices?.undecided)}`
 
 # 論点の声の使い方
 - 声は、いどばたで別の場（授業・フォーラムなど）に集まった声。このお題の参加者の声ではない。使うときは「別の場では〜という声がありました」と、出どころが分かる言い方にする。
-- 各メンバーは、自分の側の声だけを使う。肯定派は肯定側、否定派は否定側、未定派は決めきれない声と合意。
+- 各メンバーは、その論点での自分の今の判断に合う声を使う（決めかねているなら、決めきれない声か両方）。
 - 声は使わなくてよい。話の流れに合うときだけ、1回に1つまで使う。同じ声を何度も使わない。
 - 声に書かれていないことを、声のように言わない。`;
+
+const formatCast = (cast, members) =>
+  `# 3体の経験と感情（このお題での設定。20分のあいだ変わらない）
+${MEMBER_KEYS.map((key) => {
+  const experiences = cast[key]?.experiences ?? [];
+  return `## ${members[key].name}
+${experiences.length ? experiences.map((e) => `- ${e.episode}${e.emotion ? `（そのときの気持ち：${e.emotion}）` : ""}`).join("\n") : "- （なし。芯から話す）"}`;
+}).join("\n")}
+- これは各メンバー自身の経験として話してよい（いどばたの声をもとに作った設定）。別の場の声とは混ぜない。実在の誰かの話として語らない。`;
+
+// 参加者が工程4に入った時点で固定したもの（論点の軸カード、3体の経験と感情）
+// 20分のあいだ変わらないので、変わらない先頭と会話の履歴のあいだに置く（キャッシュに乗る）
+export const buildSessionBlock = (session, room) => {
+  if (session.step < 4) return "";
+  const parts = [];
+  if (session.axesAtStart?.items?.length)
+    parts.push(formatAxes(session.axesAtStart));
+  if (session.castAtStart)
+    parts.push(formatCast(session.castAtStart, resolveMembers(room)));
+  return parts.join("\n\n");
+};
+
+// 3体の今の判断と、判断が変わった記録（毎回変わりうるので末尾に置く）
+export const formatJudgments = (session, members) => {
+  const judgments = session.judgments;
+  const axes = session.axesAtStart?.items ?? [];
+  if (!judgments || axes.length === 0) return "";
+  const lines = MEMBER_KEYS.map(
+    (key) =>
+      `- ${members[key].name}：${axes.map((a) => `${a.key} ${LEAN_LABELS[judgments[key]?.[a.key]] ?? "決めかねる"}`).join("、")}`
+  );
+  const changes = (session.judgmentLog ?? [])
+    .slice(-3)
+    .map(
+      (c) =>
+        `- ${members[c.member]?.name ?? c.member}：${c.axis} ${LEAN_LABELS[c.from]} → ${LEAN_LABELS[c.to]}（${c.because}）`
+    );
+  return `# 3体の今の判断
+${lines.join("\n")}${changes.length ? `\n## 最近、判断が変わったこと\n${changes.join("\n")}` : ""}`;
 };
 
 const formatOutputs = (outputs = {}) =>
@@ -253,7 +306,7 @@ ${room.background ? `\n# 背景\n${room.background}\n` : ""}
 ニックネーム：${session.nickname}
 
 # 登場するAI
-工程2は参加者とファシリテーターの1対1。工程4から、メンバー3体（肯定派・否定派・未定派）が加わる。
+工程2は参加者とファシリテーターの1対1。工程4から、メンバー3体が加わる。3体の芯（譲れないこと・大切にしたいこと）は変わらない。
 ${formatMembers(members)}
 
 # 工程ごとの目的
@@ -263,12 +316,12 @@ ${RULES}
 
 ${RESPONSES}
 
-${AXIS_STANCE}
+${JUDGMENT_RULES}
 
 ${SPEAKER_GUIDE}
 
 # 問い詰める強さ（工程4〜8。どれを使うかは、会話の最後の「今の状況」で伝える）
-強さで変わるのは問いの言い方だけ。3体の役割と立ち位置は変えない。
+強さで変わるのは問いの言い方だけ。3体の価値観と判断は変えない。
 ${formatIntensities()}
 
 # 返答のしかた
@@ -303,6 +356,7 @@ ${formatOutputs(session.outputs)}`,
           asAxes: !session.axesAtStart?.items?.length,
         })
       : "",
+    withMembers ? formatJudgments(session, members) : "",
     withMembers ? speakerBalance(session, members) : "",
     withMembers ? `# 今の強さ\n${session.intensity ?? "normal"}` : "",
     OUTPUT_FORMAT(step),

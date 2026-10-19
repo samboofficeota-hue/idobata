@@ -80,6 +80,9 @@ const kaigiRoomSchema = new mongoose.Schema(
       items: { type: [mongoose.Schema.Types.Mixed], default: [] },
       builtAt: { type: Date, default: null },
     },
+    // 3体の、お題ごとの経験・感情と、軸ごとの最初の判断（services/kaigi/cast.js）
+    // { axesBuiltAt, builtAt, members: { member1: { experiences: [{ episode, emotion }], judgments: { R1: { side, because } } } } }
+    cast: { type: mongoose.Schema.Types.Mixed, default: null },
     hostKeyHash: { type: String, default: "", select: false },
     meeting: { type: meetingSchema, default: () => ({}) },
     expiresAt: { type: Date, required: true },

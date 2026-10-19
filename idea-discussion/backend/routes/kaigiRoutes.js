@@ -6,6 +6,7 @@ import { requireUser } from "../middleware/userTokenMiddleware.js";
 import KaigiRoom, { KAIGI_CAPACITIES } from "../models/KaigiRoom.js";
 import KaigiSession, { KAIGI_INTENSITIES } from "../models/KaigiSession.js";
 import KaigiSlide from "../models/KaigiSlide.js";
+import { ensureCast } from "../services/kaigi/cast.js";
 import {
   draftStory,
   makeSlide,
@@ -129,6 +130,7 @@ hostRouter.post("/rooms", async (req, res) => {
   // （同じお題を2つ同時に保存しないよう、順に作る）
   ensurePersonas(room)
     .then(() => ensureRoomAxes(room))
+    .then(() => ensureCast(room))
     .then(() => ensureOverview(room))
     .catch((error) =>
       console.error(
@@ -499,6 +501,8 @@ router.post(
       await ensurePersonas(room);
       // テーマの3軸が新しくなっていれば、お題の軸カードを作り直してから固定する
       await ensureRoomAxes(room, now);
+      // 軸カードに合わせて、3体の経験と最初の判断をそろえる
+      await ensureCast(room, now);
       // この人の20分のあいだ、メンバーが立つ論点を固定する
       if (room.axes?.items?.length) {
         session.axesAtStart = {
@@ -506,6 +510,21 @@ router.post(
           themeAxesVersion: room.axes.themeAxesVersion,
           items: room.axes.items,
         };
+      }
+      const cast = room.cast?.members;
+      if (cast) {
+        session.castAtStart = cast;
+        session.judgments = Object.fromEntries(
+          Object.entries(cast).map(([member, c]) => [
+            member,
+            Object.fromEntries(
+              Object.entries(c.judgments ?? {}).map(([axis, j]) => [
+                axis,
+                j.side,
+              ])
+            ),
+          ])
+        );
       }
       if (room.overview?.updatedAt) {
         session.overviewAtStart = room.overview.toObject

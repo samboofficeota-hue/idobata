@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { enforceMix, normalizeCast } from "../services/kaigi/cast.js";
 import { needsRefresh } from "../services/kaigi/overview.js";
 import {
   normalizePersonas,
   resolveMembers,
 } from "../services/kaigi/personas.js";
 import {
-  buildAxesBlock,
   buildHistory,
+  buildSessionBlock,
   buildTurnContext,
   buildTurnSystemPrompt,
   speakerBalance,
@@ -17,6 +18,7 @@ import {
   stepTiming,
 } from "../services/kaigi/steps.js";
 import {
+  applyJudgment,
   applyTurn,
   buildMessages,
   normalizeTurn,
@@ -306,10 +308,16 @@ describe("member prompts", () => {
     const session = makeSession({ step: 4, intensity: "strict" });
     const head = buildTurnSystemPrompt({ room, session });
     const tail = buildTurnContext({ room, session });
-    expect(head).toContain("member1：ミナミ（肯定派・子育て中の住民）");
-    expect(head).toContain("member2：ケンジ（否定派）");
-    expect(head).toContain("member3：ソラ（未定派）");
-    expect(head).toContain("論点（対立軸）への立ち方");
+    expect(head).toContain(
+      "member1：ミナミ（肯定派・子育て中の住民。全体として「賛成」に傾く）"
+    );
+    expect(head).toContain(
+      "譲れないこと（何があっても変わらない）：引き受けた負担は誰かが必ず背負う"
+    );
+    expect(head).toContain(
+      "member3：ソラ（未定派。全体として「決めかねる」に傾く）"
+    );
+    expect(head).toContain("判断の持ち方");
     expect(head).toContain("grill me");
     expect(tail).toContain("- member2：ケンジ（否定派）");
     expect(tail).toContain("# 今の強さ\nstrict");
@@ -361,11 +369,11 @@ describe("member prompts", () => {
       overviewAtStart: room.overview,
       messages: [{ speaker: "user", content: "暗い", step: 6 }],
     });
-    const block = buildAxesBlock(session);
+    const block = buildSessionBlock(session, room);
     expect(block).toContain("R1：共用自転車を残すべきか");
     expect(block).toContain("（課題）管理費がかさむ（理由：毎年上がる）");
     expect(block).toContain("別の場では");
-    expect(buildAxesBlock({ ...session, step: 2 })).toBe("");
+    expect(buildSessionBlock({ ...session, step: 2 }, room)).toBe("");
 
     const messages = buildMessages(room, session, { event: "reply" });
     expect(messages.map((m) => m.role)).toEqual([
@@ -394,5 +402,132 @@ describe("member prompts", () => {
       { role: "assistant", content: "【ミナミ】いつ頃ですか？" },
       { role: "assistant", content: "【ファシリ】次へ進みます" },
     ]);
+  });
+});
+
+describe("cast", () => {
+  const side = (s) => ({ side: s, because: "" });
+
+  it("mixes the judgments: the lean is the most common, never all the same", () => {
+    const keys = ["R1", "R2", "R3"];
+    const all = (s) => ({ R1: side(s), R2: side(s), R3: side(s) });
+    const sides = (j) => keys.map((k) => j[k].side);
+
+    expect(sides(enforceMix(all("affirmative"), keys, "affirmative"))).toEqual([
+      "affirmative",
+      "affirmative",
+      "undecided",
+    ]);
+    expect(sides(enforceMix(all("undecided"), keys, "undecided"))).toEqual([
+      "undecided",
+      "undecided",
+      "affirmative",
+    ]);
+    // 傾きが一番多くなるよう直す
+    expect(sides(enforceMix(all("negative"), keys, "affirmative"))).toEqual([
+      "affirmative",
+      "affirmative",
+      "negative",
+    ]);
+    // すでに混ざっていれば、そのまま
+    const mixed = {
+      R1: side("negative"),
+      R2: side("negative"),
+      R3: side("undecided"),
+    };
+    expect(enforceMix(mixed, keys, "negative")).toEqual(mixed);
+    // 軸が1つなら混ぜられない
+    expect(enforceMix({ R1: side("negative") }, ["R1"], "negative")).toEqual({
+      R1: side("negative"),
+    });
+  });
+
+  it("keeps the AI's experiences and fills missing judgments with the lean", () => {
+    const cast = normalizeCast(
+      {
+        member1: {
+          experiences: [
+            { episode: "親の通院の送り迎えで苦労した", emotion: "心細さ" },
+            { episode: "" },
+            { episode: "2つ目" },
+            { episode: "3つ目は捨てる" },
+          ],
+          judgments: {
+            R1: { side: "affirmative", because: "置き去りにしたくない" },
+            R2: { side: "maybe" },
+            R9: { side: "negative" },
+          },
+        },
+      },
+      [{ key: "R1" }, { key: "R2" }]
+    );
+    expect(cast.member1.experiences).toHaveLength(2);
+    expect(cast.member1.judgments).toEqual({
+      R1: { side: "affirmative", because: "置き去りにしたくない" },
+      R2: { side: "undecided", because: "" },
+    });
+    expect(cast.member2.experiences).toEqual([]);
+    expect(Object.values(cast.member2.judgments).map((j) => j.side)).toEqual([
+      "negative",
+      "undecided",
+    ]);
+  });
+});
+
+describe("applyJudgment", () => {
+  const make = () => ({
+    step: 6,
+    judgments: { member2: { R1: "negative", R2: "affirmative" } },
+    judgmentLog: [],
+  });
+
+  it("changes only the speaker's judgment, with a reason, and records it", () => {
+    const session = make();
+    const entry = applyJudgment(session, "member2", {
+      axis: "R1",
+      to: "undecided",
+      because: "使っている人が多いと聞いたので",
+    });
+    expect(entry).toMatchObject({ from: "negative", to: "undecided" });
+    expect(session.judgments.member2.R1).toBe("undecided");
+    expect(session.judgmentLog).toHaveLength(1);
+  });
+
+  it("ignores a change without a reason, to an unknown axis, or of another member", () => {
+    const session = make();
+    const apply = (speaker, judgment) =>
+      applyJudgment(session, speaker, judgment);
+    expect(
+      apply("member2", { axis: "R1", to: "undecided", because: "" })
+    ).toBeNull();
+    expect(
+      apply("member2", { axis: "R9", to: "undecided", because: "x" })
+    ).toBeNull();
+    expect(
+      apply("member2", { axis: "R1", to: "maybe", because: "x" })
+    ).toBeNull();
+    expect(
+      apply("member2", { axis: "R1", to: "negative", because: "x" })
+    ).toBeNull();
+    expect(
+      apply("member1", { axis: "R1", to: "undecided", because: "x" })
+    ).toBeNull();
+    expect(apply("facilitator", null)).toBeNull();
+    expect(session.judgments.member2.R1).toBe("negative");
+    expect(session.judgmentLog).toHaveLength(0);
+  });
+
+  it("passes the judgment through normalizeTurn and applyTurn", () => {
+    const session = { ...make(), messages: [], outputs: {} };
+    const turn = normalizeTurn(
+      {
+        speaker: "member2",
+        content: "その話を聞いて、少し考えが変わりました。",
+        judgment: { axis: "R2", to: "undecided", because: "費用の話を聞いた" },
+      },
+      6
+    );
+    applyTurn(session, turn);
+    expect(session.judgments.member2.R2).toBe("undecided");
   });
 });

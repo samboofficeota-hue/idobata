@@ -48,6 +48,26 @@ const kaigiSessionSchema = new mongoose.Schema(
     overviewAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
     // 工程4に入った時点のお題の軸カード（あれば、こちらがメンバーの立つ論点になる）
     axesAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 工程4に入った時点の、3体の経験・感情と最初の判断（20分のあいだ変わらない）
+    castAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 3体の今の判断 { member1: { R1: "affirmative" } }。新しい情報で変わることがある（価値観は変わらない）
+    judgments: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 判断が変わった記録
+    judgmentLog: {
+      type: [
+        {
+          member: String,
+          axis: String,
+          from: String,
+          to: String,
+          because: String,
+          step: Number,
+          at: Date,
+          _id: false,
+        },
+      ],
+      default: [],
+    },
     intensity: {
       type: String,
       enum: KAIGI_INTENSITIES,

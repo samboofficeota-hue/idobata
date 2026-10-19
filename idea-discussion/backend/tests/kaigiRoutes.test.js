@@ -48,6 +48,20 @@ vi.mock("../services/kaigi/llm.js", () => ({
         ],
       };
     }
+    if (
+      system.includes(
+        "それぞれの「経験と感情」と、論点ごとの「最初の判断」を作る"
+      )
+    ) {
+      return {
+        member2: {
+          experiences: [
+            { episode: "前の施策の後始末を背負った", emotion: "徒労感" },
+          ],
+          judgments: { R1: { side: "negative", because: "負担が残る" } },
+        },
+      };
+    }
     if (system.includes("AIメンバー3体に、お題の場に合う「肩書き」を付ける")) {
       return {
         member1: "自転車を使う住民",
@@ -330,6 +344,17 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     expect(llm.calls.at(-1)).toContain(
       "R1：このマンションで共用自転車を残すべきか"
     );
+    // 3体の経験と最初の判断も、この人の20分のあいだ固定する
+    expect(started.castAtStart.member2.experiences[0].episode).toBe(
+      "前の施策の後始末を背負った"
+    );
+    expect(started.judgments).toEqual({
+      member1: { R1: "affirmative" },
+      member2: { R1: "negative" },
+      member3: { R1: "undecided" },
+    });
+    expect(llm.calls.at(-1)).toContain("前の施策の後始末を背負った");
+    expect(llm.calls.at(-1)).toContain("- ケンジ：R1 反対");
     expect(started.overviewAtStart.issueCandidates).toContain(
       "放置自転車が通路をふさぐ"
     );
@@ -352,11 +377,28 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
 
     llm.turnReplies.push({
       speaker: "member2",
-      content: "どれが一番ですか？",
+      content:
+        "毎日使う人がいると聞いて、少し迷い始めました。どれが一番ですか？",
+      judgment: {
+        axis: "R1",
+        to: "undecided",
+        because: "毎日使う人がいると聞いた",
+      },
       advance: true,
     });
     res = await say("通路の安全が一番気になります");
     expect(res.body.session.step).toBe(5);
+    // 新しい情報で、ケンジの判断が変わり、記録される（価値観は変わらない）
+    const afterTurn = await mongoose.model("KaigiSession").findById(id).lean();
+    expect(afterTurn.judgments.member2.R1).toBe("undecided");
+    expect(afterTurn.judgmentLog).toEqual([
+      expect.objectContaining({
+        member: "member2",
+        axis: "R1",
+        from: "negative",
+        to: "undecided",
+      }),
+    ]);
     expect(llm.calls.at(-1)).toContain("# 今の強さ\nstrict");
 
     // 5：課題が書き留められるまで、ボタンでも進めない
