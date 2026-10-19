@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { needsRefresh } from "../services/kaigi/overview.js";
-import { buildTurnSystemPrompt } from "../services/kaigi/prompts.js";
+import {
+  normalizePersonas,
+  resolveMembers,
+} from "../services/kaigi/personas.js";
+import {
+  buildHistory,
+  buildTurnSystemPrompt,
+  speakerBalance,
+} from "../services/kaigi/prompts.js";
 import {
   canAiAdvance,
   missingToLeave,
@@ -175,5 +183,128 @@ describe("buildTurnSystemPrompt", () => {
     );
     expect(prompt).toContain("ミナミ");
     expect(prompt).toContain("放置自転車が通路をふさぐ");
+  });
+});
+
+describe("personas", () => {
+  it("keeps only complete personas from the AI and trims them", () => {
+    expect(
+      normalizePersonas({
+        member1: {
+          role: " 子育て中の住民 ",
+          stance: "子どもの安全から考える。",
+        },
+        member2: { role: "元理事" },
+        member3: "外の人",
+      })
+    ).toEqual({
+      member1: { role: "子育て中の住民", stance: "子どもの安全から考える。" },
+    });
+    expect(normalizePersonas(null)).toEqual({});
+  });
+
+  it("keeps the fixed names and falls back to the default stance", () => {
+    const members = resolveMembers({
+      personas: {
+        member2: { role: "会計担当の元理事", stance: "費用を見る。" },
+      },
+    });
+    expect(members.member1).toMatchObject({
+      name: "ミナミ",
+      role: "当事者の目線",
+    });
+    expect(members.member2).toMatchObject({
+      name: "ケンジ",
+      role: "会計担当の元理事",
+      stance: "費用を見る。",
+    });
+    expect(resolveMembers(undefined).member3.name).toBe("ソラ");
+  });
+});
+
+describe("speakerBalance", () => {
+  const members = resolveMembers({});
+  const said = (speaker, step = 6) => ({ speaker, content: "…", step });
+
+  it("points to a member who has not spoken yet in the step", () => {
+    const note = speakerBalance(
+      makeSession({
+        step: 4,
+        messages: [said("facilitator", 4), said("user", 4), said("member1", 4)],
+      }),
+      members
+    );
+    expect(note).toContain("ミナミ 1回、ケンジ 0回、ソラ 0回");
+    expect(note).toContain("直前に話したAI：ミナミ");
+    expect(note).toContain("まだ話していないメンバー：ケンジ、ソラ");
+  });
+
+  it("reminds Sora to question the issue during step 6 until it happens", () => {
+    const before = speakerBalance(
+      makeSession({ step: 6, messages: [said("member1")] }),
+      members
+    );
+    expect(before).toContain("ちゃぶ台返し");
+    const after = speakerBalance(
+      makeSession({ step: 6, messages: [said("member3")] }),
+      members
+    );
+    expect(after).not.toContain("ちゃぶ台返し");
+  });
+
+  it("says nothing in the one-on-one step", () => {
+    expect(speakerBalance(makeSession({ step: 2 }), members)).toBe("");
+  });
+});
+
+describe("member prompts", () => {
+  const room = {
+    title: "共用自転車をどうするか",
+    personas: {
+      member1: {
+        role: "子育て中の住民",
+        stance: "子どもを乗せる立場で考える。",
+      },
+    },
+  };
+
+  it("uses the room's personas and the participant's intensity", () => {
+    const prompt = buildTurnSystemPrompt({
+      room,
+      session: makeSession({ step: 4, intensity: "strict" }),
+    });
+    expect(prompt).toContain(
+      "ミナミ（子育て中の住民）… 子どもを乗せる立場で考える。"
+    );
+    expect(prompt).toContain("ケンジ（反対の立場）");
+    expect(prompt).toContain("grill me");
+    expect(prompt).toContain('"read"');
+  });
+
+  it("keeps the speaker guide and intensity out of the one-on-one step", () => {
+    const prompt = buildTurnSystemPrompt({
+      room,
+      session: makeSession({ step: 2, intensity: "strict" }),
+    });
+    expect(prompt).not.toContain("grill me");
+    expect(prompt).not.toContain("次に話す人の選び方");
+    expect(prompt).toContain("参加者の反応への応じ方");
+  });
+
+  it("labels each AI line in the history with its name", () => {
+    expect(
+      buildHistory(
+        [
+          { speaker: "user", content: "暗いのが怖い" },
+          { speaker: "member1", content: "いつ頃ですか？" },
+          { speaker: "facilitator", content: "次へ進みます" },
+        ],
+        room
+      )
+    ).toEqual([
+      { role: "user", content: "暗いのが怖い" },
+      { role: "assistant", content: "【ミナミ】いつ頃ですか？" },
+      { role: "assistant", content: "【ファシリ】次へ進みます" },
+    ]);
   });
 });

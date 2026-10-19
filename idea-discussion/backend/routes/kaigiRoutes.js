@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { llmLimiter } from "../middleware/rateLimit.js";
 import { requireUser } from "../middleware/userTokenMiddleware.js";
 import KaigiRoom, { KAIGI_CAPACITIES } from "../models/KaigiRoom.js";
-import KaigiSession from "../models/KaigiSession.js";
+import KaigiSession, { KAIGI_INTENSITIES } from "../models/KaigiSession.js";
 import KaigiSlide from "../models/KaigiSlide.js";
 import {
   draftStory,
@@ -14,6 +14,11 @@ import {
 import { hashHostKey } from "../services/kaigi/hostKey.js";
 import { createLockout } from "../services/kaigi/lockout.js";
 import { ensureOverview } from "../services/kaigi/overview.js";
+import {
+  MEMBER_KEYS,
+  ensurePersonas,
+  resolveMembers,
+} from "../services/kaigi/personas.js";
 import { openingMessage } from "../services/kaigi/prompts.js";
 import {
   OUTPUT_LABELS,
@@ -118,13 +123,16 @@ hostRouter.post("/rooms", async (req, res) => {
     expiresAt: new Date(Date.now() + retentionMs()),
   });
 
-  // 工程3で最初の参加者に見せる候補を、お題と背景から先に作っておく
-  ensureOverview(room).catch((error) =>
-    console.error(
-      `[kaigiRoutes] seed overview failed room=${room._id}:`,
-      error.message
-    )
-  );
+  // AIメンバーの立場と、工程3で最初の参加者に見せる候補を、お題と背景から先に作っておく
+  // （同じお題を2つ同時に保存しないよう、順に作る）
+  ensurePersonas(room)
+    .then(() => ensureOverview(room))
+    .catch((error) =>
+      console.error(
+        `[kaigiRoutes] seed room failed room=${room._id}:`,
+        error.message
+      )
+    );
 
   return res.status(201).json({ id: room._id.toString(), hostKey });
 });
@@ -136,6 +144,17 @@ router.use(kaigiHostRoutes);
 
 // ===== 応答の形 =====
 
+// 会話の画面で、AIメンバーの名前と立場を見せる
+const toClientMembers = (room) => {
+  const members = resolveMembers(room);
+  return Object.fromEntries(
+    MEMBER_KEYS.map((key) => [
+      key,
+      { name: members[key].name, role: members[key].role },
+    ])
+  );
+};
+
 const toClientRoom = (room) => ({
   id: room._id.toString(),
   title: room.title,
@@ -144,6 +163,7 @@ const toClientRoom = (room) => ({
   capacity: room.capacity,
   sessionMinutes: SESSION_MINUTES,
   expiresAt: room.expiresAt,
+  members: toClientMembers(room),
   // ホストが Google カレンダーに登録した会議（なければ null）
   meeting: room.meeting?.meetUrl
     ? {
@@ -173,6 +193,7 @@ const toClientSession = (session, room, now = new Date()) => ({
   step: session.step,
   stepLabel: STEPS[session.step].label,
   status: session.status,
+  intensity: session.intensity,
   messages: session.messages.map((m) => ({
     speaker: m.speaker,
     content: m.content,
@@ -470,6 +491,9 @@ router.post(
     session.step = nextStep(step);
     session.stepStartedAt = now;
 
+    // メンバーが加わる工程4の前に、お題に合わせた立場をそろえる（作れなければ既定の立場）
+    if (session.step === 4) await ensurePersonas(room);
+
     if (isChatStep(session.step)) {
       await runTurn(room, session, { event: "enter", now });
     }
@@ -483,6 +507,21 @@ router.post(
         )
       );
     }
+    return sendSession(res, session, room);
+  })
+);
+
+// 参加者がAIメンバーの問い詰める強さを選ぶ（次の発言から効く）
+router.put(
+  "/sessions/:sessionId/intensity",
+  withSession(async (req, res, { session, room }) => {
+    if (!requireActive(session, res)) return;
+    const intensity = req.body?.intensity;
+    if (!KAIGI_INTENSITIES.includes(intensity)) {
+      return res.status(400).json({ message: "強さの指定が正しくありません" });
+    }
+    session.intensity = intensity;
+    await session.save();
     return sendSession(res, session, room);
   })
 );

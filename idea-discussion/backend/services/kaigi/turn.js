@@ -63,7 +63,7 @@ export const applyTurn = (session, turn, now = new Date()) => {
 const buildMessages = (room, session, { event, now }) => {
   const messages = [
     { role: "system", content: buildTurnSystemPrompt({ room, session, now }) },
-    ...buildHistory(session.messages),
+    ...buildHistory(session.messages, room),
   ];
   if (event === "enter") {
     messages.push({
@@ -81,8 +81,9 @@ export const runTurn = async (
   session,
   { event = "reply", now = new Date() } = {}
 ) => {
+  // 発言の前に読み取り（read）を書かせるぶん、上限を少し広げている
   const raw = await kaigiLLM(buildMessages(room, session, { event, now }), {
-    maxTokens: 500,
+    maxTokens: 600,
   });
   const turn = normalizeTurn(raw, session.step);
   // ボタン操作で入った直後の発言では、工程を進めない

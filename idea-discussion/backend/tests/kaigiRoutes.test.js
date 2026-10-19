@@ -30,6 +30,13 @@ vi.mock("../services/kaigi/llm.js", () => ({
         agreements: [],
       };
     }
+    if (system.includes("話し合いの場づくりを手伝う補助役")) {
+      return {
+        member1: { role: "自転車を使う住民", stance: "毎日使う立場で考える。" },
+        member2: { role: "管理費を気にする理事", stance: "費用から考える。" },
+        member3: { role: "最近越してきた人", stance: "そもそもを問う。" },
+      };
+    }
     if (system.includes("1つのストーリーの文章にまとめる")) {
       const last = messages[messages.length - 1].content;
       return {
@@ -246,7 +253,31 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     });
     res = await call("POST", `/sessions/${id}/advance`, u);
     expect(res.body.session.step).toBe(4);
-    expect(llm.calls.at(-1)).toContain("ミナミ");
+    expect(llm.calls.at(-1)).toContain("ミナミ（自転車を使う住民）");
+    // お題に合わせた立場は、お題1つにつき1回だけ作る
+    expect(
+      llm.calls.filter((c) => c.includes("話し合いの場づくりを手伝う補助役"))
+    ).toHaveLength(1);
+    expect(res.body.room.members.member2).toEqual({
+      name: "ケンジ",
+      role: "管理費を気にする理事",
+    });
+
+    // 問い詰める強さは参加者が選び、次の発言から効く
+    expect(res.body.session.intensity).toBe("normal");
+    expect(
+      (
+        await call("PUT", `/sessions/${id}/intensity`, {
+          ...u,
+          intensity: "harsh",
+        })
+      ).status
+    ).toBe(400);
+    res = await call("PUT", `/sessions/${id}/intensity`, {
+      ...u,
+      intensity: "strict",
+    });
+    expect(res.body.session.intensity).toBe("strict");
 
     llm.turnReplies.push({
       speaker: "member2",
@@ -255,6 +286,7 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     });
     res = await say("通路の安全が一番気になります");
     expect(res.body.session.step).toBe(5);
+    expect(llm.calls.at(-1)).toContain("grill me");
 
     // 5：課題が書き留められるまで、ボタンでも進めない
     expect((await call("POST", `/sessions/${id}/advance`, u)).status).toBe(400);

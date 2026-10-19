@@ -1,6 +1,11 @@
-import type { KaigiOutputKey, KaigiSpeaker } from "../../services/kaigi/types";
+import type {
+  KaigiIntensity,
+  KaigiOutputKey,
+  KaigiSpeaker,
+} from "../../services/kaigi/types";
 
-// AIの名前と立場（backend の services/kaigi/prompts.js の PERSONAS と合わせる）
+// AIの名前と既定の立場（backend の services/kaigi/personas.js と合わせる）
+// メンバー3人の立場はお題ごとに作られ、room.members で上書きされる
 export const SPEAKERS: Record<
   KaigiSpeaker,
   { name: string; role: string; bubble: string; badge: string }
@@ -42,6 +47,13 @@ export const SPEAKERS: Record<
     badge: "bg-neutral-500 text-white",
   },
 };
+
+// 問い詰める強さ（backend の services/kaigi/prompts.js の INTENSITY と合わせる）
+export const INTENSITY_OPTIONS: { value: KaigiIntensity; label: string }[] = [
+  { value: "gentle", label: "やさしく" },
+  { value: "normal", label: "ふつう" },
+  { value: "strict", label: "きびしく" },
+];
 
 export const OUTPUT_LABELS: Record<KaigiOutputKey, string> = {
   domain: "対象領域",

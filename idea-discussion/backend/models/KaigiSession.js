@@ -12,6 +12,9 @@ export const KAIGI_SPEAKERS = [
   "editor",
 ];
 
+// AIメンバーの問い詰める強さ。問い詰められるのは本人だけなので、本人がいつでも選び直せる
+export const KAIGI_INTENSITIES = ["gentle", "normal", "strict"];
+
 const messageSchema = new mongoose.Schema(
   {
     speaker: { type: String, enum: KAIGI_SPEAKERS, required: true },
@@ -40,6 +43,11 @@ const kaigiSessionSchema = new mongoose.Schema(
     startedAt: { type: Date, default: null },
     deadlineAt: { type: Date, default: null },
     messages: { type: [messageSchema], default: [] },
+    intensity: {
+      type: String,
+      enum: KAIGI_INTENSITIES,
+      default: "normal",
+    },
     // ダブルダイヤモンドの黄色の3点
     outputs: {
       domain: { type: String, default: "" },

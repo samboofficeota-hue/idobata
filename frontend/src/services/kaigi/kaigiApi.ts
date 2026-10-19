@@ -1,6 +1,7 @@
 import type {
   CreateKaigiRoomPayload,
   KaigiHostView,
+  KaigiIntensity,
   KaigiMeetRecord,
   KaigiOutputs,
   KaigiRoom,
@@ -172,6 +173,15 @@ export const kaigiApi = {
     request<KaigiSessionResponse>(`/sessions/${sessionId}/outputs`, {
       method: "PUT",
       body: JSON.stringify({ userId, ...outputs }),
+    }),
+  setIntensity: (
+    sessionId: string,
+    userId: string,
+    intensity: KaigiIntensity
+  ) =>
+    request<KaigiSessionResponse>(`/sessions/${sessionId}/intensity`, {
+      method: "PUT",
+      body: JSON.stringify({ userId, intensity }),
     }),
   reviseStory: (sessionId: string, userId: string, comment: string) =>
     post<KaigiSessionResponse>(`/sessions/${sessionId}/story/revise`, {

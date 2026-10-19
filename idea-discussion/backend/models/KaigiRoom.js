@@ -20,6 +20,15 @@ const overviewSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// AIメンバー1人分の立場。お題に合わせて作る（services/kaigi/personas.js）
+const personaSchema = new mongoose.Schema(
+  {
+    role: { type: String, default: "" },
+    stance: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 // ホストがGoogleカレンダーに登録した会議（Google Meet）。参加者にも見せる
 const meetingSchema = new mongoose.Schema(
   {
@@ -46,6 +55,13 @@ const kaigiRoomSchema = new mongoose.Schema(
       default: KAIGI_CAPACITIES[0],
     },
     overview: { type: overviewSchema, default: () => ({}) },
+    // AIメンバー3人の立場。名前と役回りは固定で、お題に合わせた立場だけを持つ
+    // （空なら既定の立場を使う）
+    personas: {
+      member1: { type: personaSchema, default: undefined },
+      member2: { type: personaSchema, default: undefined },
+      member3: { type: personaSchema, default: undefined },
+    },
     // ホスト用の鍵のハッシュ。鍵そのものは作成時に一度だけホストへ返す
     // （この値が空のお題は、ホスト用の画面を使えない）
     hostKeyHash: { type: String, default: "", select: false },
