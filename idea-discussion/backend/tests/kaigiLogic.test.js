@@ -6,6 +6,7 @@ import {
 } from "../services/kaigi/personas.js";
 import {
   buildHistory,
+  buildTurnContext,
   buildTurnSystemPrompt,
   speakerBalance,
 } from "../services/kaigi/prompts.js";
@@ -14,7 +15,11 @@ import {
   missingToLeave,
   stepTiming,
 } from "../services/kaigi/steps.js";
-import { applyTurn, normalizeTurn } from "../services/kaigi/turn.js";
+import {
+  applyTurn,
+  buildMessages,
+  normalizeTurn,
+} from "../services/kaigi/turn.js";
 
 const makeSession = (overrides = {}) => ({
   nickname: "たろう",
@@ -149,7 +154,7 @@ describe("needsRefresh", () => {
   });
 });
 
-describe("buildTurnSystemPrompt", () => {
+describe("turn messages", () => {
   const room = {
     title: "共用自転車をどうするか",
     background: "利用が減っている",
@@ -161,28 +166,57 @@ describe("buildTurnSystemPrompt", () => {
       updatedAt: new Date(),
     },
   };
+  const at = (min) =>
+    new Date(Date.parse("2026-10-14T10:00:00Z") + min * 60000);
+
+  it("keeps the head of the prompt the same through the 20 minutes", () => {
+    const early = makeSession({ step: 2, intensity: "normal" });
+    const late = makeSession({
+      step: 7,
+      intensity: "strict",
+      outputs: { domain: "駐輪場", issue: "通路がふさがる", solution: "" },
+    });
+    // 工程・残り時間・強さ・決まったことが変わっても、先頭は1文字も変わらない
+    const head = buildTurnSystemPrompt({ room, session: early });
+    expect(buildTurnSystemPrompt({ room, session: late })).toBe(head);
+    expect(head).toContain("共用自転車をどうするか");
+    expect(head).not.toContain("放置自転車が通路をふさぐ");
+
+    // 並びは「先頭 → 会話の履歴 → 毎回変わる情報」
+    const messages = buildMessages(
+      room,
+      { ...late, messages: [{ speaker: "user", content: "暗い", step: 7 }] },
+      { event: "reply", now: at(14) }
+    );
+    expect(messages.map((m) => m.role)).toEqual(["system", "user", "system"]);
+    expect(messages[0].content).toBe(head);
+    expect(messages[2].content).toContain("工程7「行ったり来たり」");
+  });
 
   it("offers only the facilitator in step 2", () => {
-    const prompt = buildTurnSystemPrompt({
+    const context = buildTurnContext({
       room,
       session: makeSession({ step: 2 }),
+      now: at(1),
     });
-    expect(prompt).toContain("共用自転車をどうするか");
-    expect(prompt).toContain('"speaker": "facilitator"');
-    expect(prompt).not.toContain("ミナミ");
-    expect(prompt).not.toContain("放置自転車が通路をふさぐ");
+    expect(context).toContain('"speaker": "facilitator"');
+    expect(context).not.toContain("ミナミ");
+    expect(context).not.toContain("放置自転車が通路をふさぐ");
+    expect(context).not.toContain("今の強さ");
   });
 
   it("brings in the three members and the overview from step 4", () => {
-    const prompt = buildTurnSystemPrompt({
+    const context = buildTurnContext({
       room,
       session: makeSession({ step: 4 }),
+      now: at(7),
     });
-    expect(prompt).toContain(
+    expect(context).toContain(
       '"speaker": "facilitator | member1 | member2 | member3"'
     );
-    expect(prompt).toContain("ミナミ");
-    expect(prompt).toContain("放置自転車が通路をふさぐ");
+    expect(context).toContain("ミナミ");
+    expect(context).toContain("放置自転車が通路をふさぐ");
+    expect(context).toContain("この工程：2分0秒");
   });
 });
 
@@ -269,26 +303,15 @@ describe("member prompts", () => {
   };
 
   it("uses the room's personas and the participant's intensity", () => {
-    const prompt = buildTurnSystemPrompt({
-      room,
-      session: makeSession({ step: 4, intensity: "strict" }),
-    });
+    const session = makeSession({ step: 4, intensity: "strict" });
+    const prompt = `${buildTurnSystemPrompt({ room, session })}\n${buildTurnContext({ room, session })}`;
     expect(prompt).toContain(
       "ミナミ（子育て中の住民）… 子どもを乗せる立場で考える。"
     );
     expect(prompt).toContain("ケンジ（反対の立場）");
     expect(prompt).toContain("grill me");
+    expect(prompt).toContain("# 今の強さ\nstrict");
     expect(prompt).toContain('"read"');
-  });
-
-  it("keeps the speaker guide and intensity out of the one-on-one step", () => {
-    const prompt = buildTurnSystemPrompt({
-      room,
-      session: makeSession({ step: 2, intensity: "strict" }),
-    });
-    expect(prompt).not.toContain("grill me");
-    expect(prompt).not.toContain("次に話す人の選び方");
-    expect(prompt).toContain("参加者の反応への応じ方");
   });
 
   it("labels each AI line in the history with its name", () => {

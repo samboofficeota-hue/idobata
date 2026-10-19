@@ -1,6 +1,7 @@
 import { kaigiLLM } from "./llm.js";
 import {
   buildHistory,
+  buildTurnContext,
   buildTurnSystemPrompt,
   enterStepInstruction,
 } from "./prompts.js";
@@ -60,10 +61,12 @@ export const applyTurn = (session, turn, now = new Date()) => {
   return { advanced };
 };
 
-const buildMessages = (room, session, { event, now }) => {
+// 変わらない指示文 → 会話の履歴 → 毎回変わる情報、の順に並べる（キャッシュを効かせるため。prompts.js）
+export const buildMessages = (room, session, { event, now }) => {
   const messages = [
-    { role: "system", content: buildTurnSystemPrompt({ room, session, now }) },
+    { role: "system", content: buildTurnSystemPrompt({ room, session }) },
     ...buildHistory(session.messages, room),
+    { role: "system", content: buildTurnContext({ room, session, now }) },
   ];
   if (event === "enter") {
     messages.push({

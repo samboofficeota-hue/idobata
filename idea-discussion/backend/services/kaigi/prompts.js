@@ -70,8 +70,6 @@ const INTENSITY = {
   strict:
     "きびしく（grill me）。あいまいな答えはそのままにせず、根拠・具体例・反例を容赦なく問う。都合の良い前提や見落としを遠慮なく指摘する。ただし人格や言い方を責めない。",
 };
-export const intensityNote = (intensity) =>
-  `# 問い詰める強さ\n${INTENSITY[intensity] ?? INTENSITY.normal}`;
 
 const OUTPUT_FORMAT = (step) => {
   const speakers = allowedSpeakers(step).join(" | ");
@@ -154,17 +152,27 @@ export const speakerBalance = (session, members) => {
   return lines.join("\n");
 };
 
-// 1回の発言を作るための指示文。AIが4人いても、呼び出しは1回にする
-export const buildTurnSystemPrompt = ({ room, session, now = new Date() }) => {
-  const step = session.step;
-  const members = resolveMembers(room);
-  const withMembers = step >= 4;
-  const timing = stepTiming(session, now);
-  const timeNote =
-    timing.stepRemainingSec !== null && timing.stepRemainingSec <= 0
-      ? "この工程の予定時間を過ぎている。まとめに入り、次の工程へ進める。"
-      : "";
+const formatStepGoals = () =>
+  Object.entries(STEP_GOALS)
+    .map(
+      ([step, goal]) =>
+        `## 工程${step}「${STEPS[step].label}」（${STEPS[step].diamond}）\n${goal}`
+    )
+    .join("\n\n");
 
+const formatIntensities = () =>
+  Object.entries(INTENSITY)
+    .map(([key, text]) => `- ${key}：${text}`)
+    .join("\n");
+
+// 1回の発言を作るための指示文。AIが4人いても、呼び出しは1回にする
+//
+// 指示文は2つに分ける。OpenAI のキャッシュは、送る内容の先頭から同じ部分にしか効かないため。
+//  - 先頭（buildTurnSystemPrompt）：お題・役割・ルールなど、20分のあいだ変わらないもの
+//  - 末尾（buildTurnContext）：工程・残り時間・決まったこと・みんなの声など、毎回変わるもの
+// 並びは「先頭 → 会話の履歴 → 末尾」。こうすると、先頭と履歴の前の部分が毎回キャッシュに乗る
+export const buildTurnSystemPrompt = ({ room, session }) => {
+  const members = resolveMembers(room);
   return `あなたは「いどばた会議室」で、参加者1人と擬似的なグループディスカッションをするAIたちを演じる。参加者がダブルダイヤモンドの考え方で、お題について「対象領域・課題・解決策」を一つのストーリーとして語れるようになるのを助ける。
 
 # お題
@@ -174,29 +182,54 @@ ${room.background ? `\n# 背景\n${room.background}\n` : ""}
 ニックネーム：${session.nickname}
 
 # 登場するAI
-${formatMembers(step, members)}
+工程2は参加者とファシリテーターの1対1。工程4から、メンバー3人が加わる。
+${formatMembers(4, members)}
 
-# 今の工程
-工程${step}「${STEPS[step].label}」（${STEPS[step].diamond}）
-目的：${STEP_GOALS[step] ?? ""}
-
-# 残り時間
-- この工程：${formatSeconds(timing.stepRemainingSec)}
-- 全体（20分）：${formatSeconds(timing.totalRemainingSec)}
-${timeNote}
-
-# ここまでに決まったこと
-${formatOutputs(session.outputs)}
-
-${withMembers ? formatOverview(room.overview) : ""}
+# 工程ごとの目的
+${formatStepGoals()}
 
 ${RULES}
 
 ${RESPONSES}
 
-${withMembers ? `${SPEAKER_GUIDE}\n\n${speakerBalance(session, members)}\n\n${intensityNote(session.intensity)}` : ""}
+${SPEAKER_GUIDE}
 
-${OUTPUT_FORMAT(step)}`;
+# 問い詰める強さ（工程4〜8。どれを使うかは、会話の最後の「今の状況」で伝える）
+${formatIntensities()}
+
+# 返答のしかた
+会話の最後に「今の状況」が届く。そこに書かれた工程・話してよいAI・出力形式に従って、JSONだけで返す。`;
+};
+
+// 毎回変わる情報。会話の履歴の後ろに置く
+export const buildTurnContext = ({ room, session, now = new Date() }) => {
+  const step = session.step;
+  const members = resolveMembers(room);
+  const withMembers = step >= 4;
+  const timing = stepTiming(session, now);
+  const timeNote =
+    timing.stepRemainingSec !== null && timing.stepRemainingSec <= 0
+      ? "この工程の予定時間を過ぎている。まとめに入り、次の工程へ進める。"
+      : "";
+
+  return [
+    `# 今の状況
+工程${step}「${STEPS[step].label}」（${STEPS[step].diamond}）。目的は「工程ごとの目的」のとおり。`,
+    `# 話してよいAI
+${formatMembers(step, members)}`,
+    `# 残り時間
+- この工程：${formatSeconds(timing.stepRemainingSec)}
+- 全体（20分）：${formatSeconds(timing.totalRemainingSec)}
+${timeNote}`.trim(),
+    `# ここまでに決まったこと
+${formatOutputs(session.outputs)}`,
+    withMembers ? formatOverview(room.overview) : "",
+    withMembers ? speakerBalance(session, members) : "",
+    withMembers ? `# 今の強さ\n${session.intensity ?? "normal"}` : "",
+    OUTPUT_FORMAT(step),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 };
 
 // 会話の履歴。誰の発言かが分かるように名前を付ける

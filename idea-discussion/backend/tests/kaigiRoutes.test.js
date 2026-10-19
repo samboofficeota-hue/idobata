@@ -20,7 +20,8 @@ const llm = vi.hoisted(() => ({
 vi.mock("../services/kaigi/llm.js", () => ({
   kaigiLLM: async (messages) => {
     const system = messages[0].content;
-    llm.calls.push(system);
+    // 指示文の先頭だけでなく、毎回変わる情報（末尾）も確かめられるよう、全体を残す
+    llm.calls.push(messages.map((m) => m.content).join("\n"));
     if (llm.fail) throw new Error("upstream down");
     if (system.includes("論点を整理する補助役")) {
       return {
@@ -286,7 +287,7 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     });
     res = await say("通路の安全が一番気になります");
     expect(res.body.session.step).toBe(5);
-    expect(llm.calls.at(-1)).toContain("grill me");
+    expect(llm.calls.at(-1)).toContain("# 今の強さ\nstrict");
 
     // 5：課題が書き留められるまで、ボタンでも進めない
     expect((await call("POST", `/sessions/${id}/advance`, u)).status).toBe(400);
