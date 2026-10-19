@@ -14,6 +14,7 @@ import { attachUser } from "./middleware/userTokenMiddleware.js";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
 import { registerSocketHandlers } from "./services/socketHandlers.js";
+import { runVoiceProfiling } from "./services/voiceProfile/profiler.js";
 import { runDailyBatch } from "./workers/dailyBatchProcessor.js"; // Import daily batch processor
 
 // Load environment variables
@@ -309,6 +310,30 @@ cron.schedule(
 console.log(
   `[Scheduler] Daily batch processing scheduled with cron: ${BATCH_SCHEDULE} (${BATCH_TIMEZONE})`
 );
+
+// --- 声のプロフィール（docs/いどばたの声のプロフィール.md） ---
+// VOICE_PROFILE_SCHEDULE を設定したときだけ動く（既定では動かない）。本体のデータは書き換えない
+// OpenAI の利用枠は本体と共有なので、授業のない時間帯にする（例："*/30 0-6 * * *"）
+const VOICE_PROFILE_SCHEDULE = process.env.VOICE_PROFILE_SCHEDULE;
+if (VOICE_PROFILE_SCHEDULE) {
+  cron.schedule(
+    VOICE_PROFILE_SCHEDULE,
+    async () => {
+      try {
+        const summary = await runVoiceProfiling({
+          limit: Number(process.env.VOICE_PROFILE_LIMIT) || 20,
+        });
+        console.log("[Scheduler] voice profiling:", JSON.stringify(summary));
+      } catch (error) {
+        console.error("[Scheduler] voice profiling failed:", error.message);
+      }
+    },
+    { timezone: BATCH_TIMEZONE }
+  );
+  console.log(
+    `[Scheduler] Voice profiling scheduled with cron: ${VOICE_PROFILE_SCHEDULE} (${BATCH_TIMEZONE})`
+  );
+}
 
 // --- Start Server ---
 // Start HTTP server immediately for health checks
