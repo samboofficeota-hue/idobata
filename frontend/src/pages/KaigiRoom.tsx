@@ -286,6 +286,12 @@ const KaigiRoom = () => {
       run(() => kaigiApi.prepareOverview(sessionId, user.id));
   }, [needsOverview, sessionId, user.id, run]);
 
+  // 音声入力：録音を文字にして入力欄へ（会話の状態は変えないので run は通さない）
+  const transcribe = useCallback(
+    (audio: Blob) => kaigiApi.transcribe(sessionId ?? "", audio),
+    [sessionId]
+  );
+
   const breadcrumbItems = [
     { label: "いどばた会議室", href: "/kaigi" },
     { label: room?.title ?? "お題", href: `/kaigi/${roomId}` },
@@ -408,6 +414,7 @@ const KaigiRoom = () => {
                   onSend={(content) =>
                     run(() => kaigiApi.sendMessage(sid, user.id, content))
                   }
+                  onTranscribe={transcribe}
                 />
               </div>
               <aside className="space-y-4">

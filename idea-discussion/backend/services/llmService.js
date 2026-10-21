@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 
 dotenv.config({ override: true });
 
@@ -163,4 +163,54 @@ async function testLLM(model) {
   }
 }
 
-export { callLLM, testLLM, DEFAULT_MODEL };
+/**
+ * 音声を文字にするモデル。whisper-1 と gpt-4o-transcribe は 2027-02-26 に提供が終わるので、
+ * 後継の gpt-transcribe を使う（環境変数 TRANSCRIBE_MODEL で差し替えられる）
+ */
+const DEFAULT_TRANSCRIBE_MODEL = "gpt-transcribe";
+
+/**
+ * 音声を文字にする（OpenAI Audio Transcriptions API）
+ * @param {Buffer} audio - 音声ファイルの中身
+ * @param {string} filename - 形式は拡張子で判定されるので、中身に合った拡張子を付ける
+ * @param {Object} options - language（既定 ja）と prompt（言葉の手がかり）
+ * @returns {Promise<string>} - 文字にした結果
+ */
+async function transcribeAudio(
+  audio,
+  filename,
+  { language = "ja", prompt } = {}
+) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      "No valid API key found. Please set OPENAI_API_KEY in your environment."
+    );
+  }
+  const model = process.env.TRANSCRIBE_MODEL || DEFAULT_TRANSCRIBE_MODEL;
+  // ログには中身を出さない（参加者の発言そのものなので）
+  const callInfo = `model=${model} bytes=${audio.length} prompt=${prompt?.length ?? 0}`;
+  const startedAt = Date.now();
+  try {
+    const response = await getClient().audio.transcriptions.create({
+      file: await toFile(audio, filename),
+      model,
+      language,
+      ...(prompt ? { prompt } : {}),
+      response_format: "json",
+    });
+    const text = response.text ?? "";
+    console.log(
+      `[llmService] transcribe ${callInfo} chars=${text.length} ms=${Date.now() - startedAt}`
+    );
+    return text;
+  } catch (error) {
+    const status = error.status ? ` status=${error.status}` : "";
+    const firstLine = String(error.message).split("\n")[0].slice(0, 300);
+    console.error(
+      `[llmService] Error transcribing: ${callInfo} ms=${Date.now() - startedAt}${status} ${firstLine}`
+    );
+    throw error;
+  }
+}
+
+export { callLLM, testLLM, transcribeAudio, DEFAULT_MODEL };
