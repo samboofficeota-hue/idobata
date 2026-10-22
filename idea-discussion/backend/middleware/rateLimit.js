@@ -37,6 +37,14 @@ const llmPerMinute = limiter(MINUTE, 20);
 const llmPerDay = limiter(24 * 60 * MINUTE, 300);
 export const llmLimiter = [llmPerMinute, llmPerDay];
 
+// 音声入力（会議室）：1人あたり1分に10回、1日に200回まで。対話の回数とは別に数える
+// （話してから送るので、1回の発言に録音が1〜2回つく想定）
+// 会議の冒頭でやると全員が同じWi-Fi（同じIP）になるので、IPではなく利用者ごとに数える
+const byUser = { keyGenerator: (req) => req.verifiedUserId ?? req.ip };
+const transcribePerMinute = limiter(MINUTE, 10, byUser);
+const transcribePerDay = limiter(24 * 60 * MINUTE, 200, byUser);
+export const transcribeLimiter = [transcribePerMinute, transcribePerDay];
+
 // 利用者トークンの発行（新しい userId を作り放題にしない）
 export const userSessionLimiter = limiter(15 * MINUTE, 60);
 

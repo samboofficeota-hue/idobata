@@ -59,6 +59,15 @@ vi.mock("../services/kaigi/llm.js", () => ({
   },
 }));
 
+// 音声を文字にする部分の代わり。受け取った音声と手がかりを記録して、決まった文を返す
+const stt = vi.hoisted(() => ({ calls: [], text: "駐輪場が狭いです。" }));
+vi.mock("../services/llmService.js", () => ({
+  transcribeAudio: async (audio, filename, options) => {
+    stt.calls.push({ bytes: audio.length, filename, ...options });
+    return stt.text;
+  },
+}));
+
 process.env.KAIGI_HOST_PASSWORD = "test-password";
 process.env.RATE_LIMIT_DISABLED = "true";
 const { default: kaigiRoutes } = await import("../routes/kaigiRoutes.js");
@@ -340,6 +349,52 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     const after = await call("GET", `/sessions/${id}?userId=fail`);
     expect(after.body.session.messages).toHaveLength(1);
     expect(after.body.session.step).toBe(2);
+  });
+
+  it("transcribes a recording into text without saving it as a message", async () => {
+    const roomId = await createRoom();
+    const { body } = await join(roomId, "voice");
+    const id = body.session.id;
+    const upload = (bytes, userId = "voice") => {
+      const form = new FormData();
+      form.append("audio", new Blob([bytes], { type: "audio/webm" }), "a.webm");
+      return fetch(`${base}/sessions/${id}/transcribe`, {
+        method: "POST",
+        headers: { "x-user-token": signUserToken(userId) },
+        body: form,
+      }).then(async (r) => ({ status: r.status, body: await r.json() }));
+    };
+    const webm = Buffer.concat([
+      Buffer.from([0x1a, 0x45, 0xdf, 0xa3]),
+      Buffer.alloc(4096),
+    ]);
+
+    // 20分を始める前（工程1）は受け付けない
+    expect((await upload(webm)).status).toBe(409);
+    await call("POST", `/sessions/${id}/start`, { userId: "voice" });
+
+    stt.calls = [];
+    const res = await upload(webm);
+    expect(res.status).toBe(200);
+    expect(res.body.text).toBe("駐輪場が狭いです。");
+    expect(stt.calls[0]).toMatchObject({
+      filename: "speech.webm",
+      language: "ja",
+    });
+    expect(stt.calls[0].prompt).toContain("共用自転車をどうするか");
+
+    // 本人以外、音声でないもの、短すぎるものは断る
+    expect((await upload(webm, "someone")).status).toBe(403);
+    expect((await upload(Buffer.alloc(4096, 0x41))).status).toBe(400);
+    expect((await upload(webm.subarray(0, 100))).status).toBe(400);
+
+    // 無音に対する定型文は空で返す
+    stt.text = "ご視聴ありがとうございました。";
+    expect((await upload(webm)).body.text).toBe("");
+    stt.text = "駐輪場が狭いです。";
+
+    const after = await call("GET", `/sessions/${id}?userId=voice`);
+    expect(after.body.session.messages).toHaveLength(1);
   });
 
   it("sets every document to expire with the room", async () => {
