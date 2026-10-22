@@ -20,6 +20,15 @@ const overviewSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// AIメンバー1体分の、お題に合わせた肩書き（services/kaigi/personas.js）
+// 役割（肯定派・否定派・未定派）は固定なので、ここには持たない
+const personaSchema = new mongoose.Schema(
+  {
+    title: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 // ホストがGoogleカレンダーに登録した会議（Google Meet）。参加者にも見せる
 const meetingSchema = new mongoose.Schema(
   {
@@ -46,8 +55,34 @@ const kaigiRoomSchema = new mongoose.Schema(
       default: KAIGI_CAPACITIES[0],
     },
     overview: { type: overviewSchema, default: () => ({}) },
+    // AIメンバー3体の肩書き。名前と役割は固定で、お題に合わせた肩書きだけを持つ（空なら肩書きなし）
+    personas: {
+      member1: { type: personaSchema, default: undefined },
+      member2: { type: personaSchema, default: undefined },
+      member3: { type: personaSchema, default: undefined },
+    },
     // ホスト用の鍵のハッシュ。鍵そのものは作成時に一度だけホストへ返す
     // （この値が空のお題は、ホスト用の画面を使えない）
+    // お題に近い、いどばたのテーマ（services/kaigi/roomAxes.js）。AIが選び、ホストが外せる
+    themeLink: {
+      themeId: { type: mongoose.Schema.Types.ObjectId, default: null },
+      themeTitle: { type: String, default: "" },
+      // ホストが外したら、自動では紐づけ直さない
+      removedByHost: { type: Boolean, default: false },
+      // 最後にテーマを探した日時（見つからなかったときも記録する）
+      checkedAt: { type: Date, default: null },
+    },
+    // お題の軸カード：テーマの3軸のうち、お題に関係する軸をお題の言葉で言い直したもの
+    // （AIメンバー3体が立つ論点。各側のいどばたの声も添える）
+    axes: {
+      themeId: { type: mongoose.Schema.Types.ObjectId, default: null },
+      themeAxesVersion: { type: Number, default: null },
+      items: { type: [mongoose.Schema.Types.Mixed], default: [] },
+      builtAt: { type: Date, default: null },
+    },
+    // 3体の、お題ごとの経験・感情と、軸ごとの最初の判断（services/kaigi/cast.js）
+    // { axesBuiltAt, builtAt, members: { member1: { experiences: [{ episode, emotion }], judgments: { R1: { side, because } } } } }
+    cast: { type: mongoose.Schema.Types.Mixed, default: null },
     hostKeyHash: { type: String, default: "", select: false },
     meeting: { type: meetingSchema, default: () => ({}) },
     expiresAt: { type: Date, required: true },

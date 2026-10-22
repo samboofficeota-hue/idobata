@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import BreadcrumbView from "../components/common/BreadcrumbView";
+import IntensitySwitch from "../components/kaigi/IntensitySwitch";
 import KaigiChat from "../components/kaigi/KaigiChat";
 import MeetingLink from "../components/kaigi/MeetingLink";
 import OutputsCard from "../components/kaigi/OutputsCard";
@@ -410,6 +411,7 @@ const KaigiRoom = () => {
                 <KaigiChat
                   messages={session.messages}
                   nickname={session.nickname}
+                  members={room.members}
                   isSending={isBusy}
                   onSend={(content) =>
                     run(() => kaigiApi.sendMessage(sid, user.id, content))
@@ -426,15 +428,26 @@ const KaigiRoom = () => {
                     </p>
                   </div>
                 ) : (
-                  <OutputsCard
-                    outputs={session.outputs}
-                    missing={session.missingToLeave}
-                    editable={isActive}
-                    isSaving={isBusy}
-                    onSave={(outputs: KaigiOutputs) =>
-                      run(() => kaigiApi.updateOutputs(sid, user.id, outputs))
-                    }
-                  />
+                  <>
+                    <IntensitySwitch
+                      value={session.intensity}
+                      disabled={isBusy || !isActive}
+                      onChange={(intensity) =>
+                        run(() =>
+                          kaigiApi.setIntensity(sid, user.id, intensity)
+                        )
+                      }
+                    />
+                    <OutputsCard
+                      outputs={session.outputs}
+                      missing={session.missingToLeave}
+                      editable={isActive}
+                      isSaving={isBusy}
+                      onSave={(outputs: KaigiOutputs) =>
+                        run(() => kaigiApi.updateOutputs(sid, user.id, outputs))
+                      }
+                    />
+                  </>
                 )}
                 {advanceButton}
               </aside>

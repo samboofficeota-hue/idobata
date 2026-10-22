@@ -12,6 +12,9 @@ export const KAIGI_SPEAKERS = [
   "editor",
 ];
 
+// AIメンバーの問い詰める強さ。問い詰められるのは本人だけなので、本人がいつでも選び直せる
+export const KAIGI_INTENSITIES = ["gentle", "normal", "strict"];
+
 const messageSchema = new mongoose.Schema(
   {
     speaker: { type: String, enum: KAIGI_SPEAKERS, required: true },
@@ -40,6 +43,36 @@ const kaigiSessionSchema = new mongoose.Schema(
     startedAt: { type: Date, default: null },
     deadlineAt: { type: Date, default: null },
     messages: { type: [messageSchema], default: [] },
+    // 工程4に入った時点の論点（みんなの声の整理）。20分のあいだ、AIメンバーはこれに立ち続ける
+    // （お題の整理はほかの参加者の声で作り直されるが、この人の途中で立ち位置が変わらないように）
+    overviewAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 工程4に入った時点のお題の軸カード（あれば、こちらがメンバーの立つ論点になる）
+    axesAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 工程4に入った時点の、3体の経験・感情と最初の判断（20分のあいだ変わらない）
+    castAtStart: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 3体の今の判断 { member1: { R1: "affirmative" } }。新しい情報で変わることがある（価値観は変わらない）
+    judgments: { type: mongoose.Schema.Types.Mixed, default: null },
+    // 判断が変わった記録
+    judgmentLog: {
+      type: [
+        {
+          member: String,
+          axis: String,
+          from: String,
+          to: String,
+          because: String,
+          step: Number,
+          at: Date,
+          _id: false,
+        },
+      ],
+      default: [],
+    },
+    intensity: {
+      type: String,
+      enum: KAIGI_INTENSITIES,
+      default: "normal",
+    },
     // ダブルダイヤモンドの黄色の3点
     outputs: {
       domain: { type: String, default: "" },

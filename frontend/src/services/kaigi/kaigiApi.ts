@@ -1,6 +1,7 @@
 import type {
   CreateKaigiRoomPayload,
   KaigiHostView,
+  KaigiIntensity,
   KaigiMeetRecord,
   KaigiOutputs,
   KaigiRoom,
@@ -196,6 +197,15 @@ export const kaigiApi = {
       method: "PUT",
       body: JSON.stringify({ userId, ...outputs }),
     }),
+  setIntensity: (
+    sessionId: string,
+    userId: string,
+    intensity: KaigiIntensity
+  ) =>
+    request<KaigiSessionResponse>(`/sessions/${sessionId}/intensity`, {
+      method: "PUT",
+      body: JSON.stringify({ userId, intensity }),
+    }),
   reviseStory: (sessionId: string, userId: string, comment: string) =>
     post<KaigiSessionResponse>(`/sessions/${sessionId}/story/revise`, {
       userId,
@@ -249,6 +259,16 @@ export const kaigiApi = {
     request<KaigiHostView>(
       `/rooms/${encodeURIComponent(roomId)}/host/meeting`,
       { method: "DELETE", hostKey }
+    ),
+  removeTheme: (roomId: string, hostKey: string) =>
+    request<KaigiHostView>(`/rooms/${encodeURIComponent(roomId)}/host/theme`, {
+      method: "DELETE",
+      hostKey,
+    }),
+  relinkTheme: (roomId: string, hostKey: string) =>
+    request<KaigiHostView>(
+      `/rooms/${encodeURIComponent(roomId)}/host/theme/relink`,
+      { method: "POST", hostKey }
     ),
   getRecords: (roomId: string, hostKey: string) =>
     request<{ records: KaigiMeetRecord[] }>(

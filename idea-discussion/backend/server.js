@@ -14,6 +14,8 @@ import { attachUser } from "./middleware/userTokenMiddleware.js";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
 import { registerSocketHandlers } from "./services/socketHandlers.js";
+import { runThemeAxes } from "./services/themeAxes/builder.js";
+import { runVoiceProfiling } from "./services/voiceProfile/profiler.js";
 import { runDailyBatch } from "./workers/dailyBatchProcessor.js"; // Import daily batch processor
 
 // Load environment variables
@@ -309,6 +311,52 @@ cron.schedule(
 console.log(
   `[Scheduler] Daily batch processing scheduled with cron: ${BATCH_SCHEDULE} (${BATCH_TIMEZONE})`
 );
+
+// --- 声のプロフィール（docs/いどばたの声のプロフィール.md） ---
+// VOICE_PROFILE_SCHEDULE を設定したときだけ動く（既定では動かない）。本体のデータは書き換えない
+// OpenAI の利用枠は本体と共有なので、授業のない時間帯にする（例："*/30 0-6 * * *"）
+const VOICE_PROFILE_SCHEDULE = process.env.VOICE_PROFILE_SCHEDULE;
+if (VOICE_PROFILE_SCHEDULE) {
+  cron.schedule(
+    VOICE_PROFILE_SCHEDULE,
+    async () => {
+      try {
+        const summary = await runVoiceProfiling({
+          limit: Number(process.env.VOICE_PROFILE_LIMIT) || 20,
+        });
+        console.log("[Scheduler] voice profiling:", JSON.stringify(summary));
+      } catch (error) {
+        console.error("[Scheduler] voice profiling failed:", error.message);
+      }
+    },
+    { timezone: BATCH_TIMEZONE }
+  );
+  console.log(
+    `[Scheduler] Voice profiling scheduled with cron: ${VOICE_PROFILE_SCHEDULE} (${BATCH_TIMEZONE})`
+  );
+}
+
+// --- テーマの3軸（docs/いどばた会議室_キャラと論点カード.md 4章） ---
+// THEME_AXES_SCHEDULE を設定したときだけ動く（既定では動かない）。本体のデータは書き換えない
+// 元（問いごとの論点分析の版、声の数）が変わったテーマだけ作り直す。声のプロフィールの後に動かすとよい
+const THEME_AXES_SCHEDULE = process.env.THEME_AXES_SCHEDULE;
+if (THEME_AXES_SCHEDULE) {
+  cron.schedule(
+    THEME_AXES_SCHEDULE,
+    async () => {
+      try {
+        const summary = await runThemeAxes();
+        console.log("[Scheduler] theme axes:", JSON.stringify(summary));
+      } catch (error) {
+        console.error("[Scheduler] theme axes failed:", error.message);
+      }
+    },
+    { timezone: BATCH_TIMEZONE }
+  );
+  console.log(
+    `[Scheduler] Theme axes scheduled with cron: ${THEME_AXES_SCHEDULE} (${BATCH_TIMEZONE})`
+  );
+}
 
 // --- Start Server ---
 // Start HTTP server immediately for health checks

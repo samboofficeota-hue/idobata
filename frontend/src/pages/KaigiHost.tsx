@@ -7,6 +7,7 @@ import SectionHeading from "../components/common/SectionHeading";
 import MeetingLink, {
   formatMeetingTime,
 } from "../components/kaigi/MeetingLink";
+import ThemeAxesCard from "../components/kaigi/ThemeAxesCard";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import {
@@ -322,6 +323,15 @@ const KaigiHost = () => {
           >
             {error}
           </p>
+        )}
+
+        {view && (
+          <ThemeAxesCard
+            theme={view.theme}
+            isBusy={isBusy}
+            onRemove={() => run(() => kaigiApi.removeTheme(roomId, hostKey))}
+            onRelink={() => run(() => kaigiApi.relinkTheme(roomId, hostKey))}
+          />
         )}
 
         {view && !google?.available && (

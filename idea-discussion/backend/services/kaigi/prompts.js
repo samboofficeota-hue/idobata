@@ -1,4 +1,10 @@
 import {
+  LEAN_LABELS,
+  MEMBER_KEYS,
+  describeMember,
+  resolveMembers,
+} from "./personas.js";
+import {
   OUTPUT_LABELS,
   STEPS,
   allowedSpeakers,
@@ -6,55 +12,82 @@ import {
   stepTiming,
 } from "./steps.js";
 
-// AIの役割（設計ドキュメント v2 第6章）。メンバー3人の立場は叩き台（例A）
-export const PERSONAS = {
-  facilitator: {
-    name: "ファシリ",
-    role: "ファシリテーター",
-    stance:
-      "進行役。自分の意見は出さない。次に話すメンバーを1人選び、残り時間を見て進行を寄せ、工程の切り替えを伝える。メンバーの議論が先走ったら止めて、参加者に話を戻す。",
-  },
-  member1: {
-    name: "ミナミ",
-    role: "当事者の目線",
-    stance:
-      "困っている人や、そこで暮らす人の実感から考える。『それで誰が助かるのか』『その人はどう感じるか』を問う。",
-  },
-  member2: {
-    name: "ケンジ",
-    role: "反対の立場",
-    stance:
-      "あえて逆の見方を出す。費用・手間・前例・反対しそうな人の言い分から、案の弱いところを問う。",
-  },
-  member3: {
-    name: "ソラ",
-    role: "外から来た人",
-    stance:
-      "前提を知らない立場から素朴な疑問を投げる。『そもそも』を問い、必要ならちゃぶ台を返す（課題設定そのものが合っているかを問う）。",
-  },
-  editor: {
-    name: "編集者",
-    role: "編集者",
-    stance: "決まった3点を、本人の言葉を生かしてストーリーにまとめる。",
-  },
+// AIの役割（設計ドキュメント v2 第6章）。メンバー3体は肯定派・否定派・未定派で固定（personas.js）
+const FACILITATOR = {
+  name: "ファシリ",
+  role: "ファシリテーター",
+  stance:
+    "進行役。自分の意見は出さない。次に話すメンバーを1人選び、残り時間を見て進行を寄せ、工程の切り替えを伝える。メンバーの議論が先走ったら止めて、参加者に話を戻す。",
 };
+const EDITOR = { name: "編集者" };
+
+// 話者の名前（会話の履歴に付ける）
+const speakerName = (speaker, members) =>
+  speaker === "facilitator"
+    ? FACILITATOR.name
+    : speaker === "editor"
+      ? EDITOR.name
+      : (members[speaker]?.name ?? speaker);
 
 const STEP_GOALS = {
   2: "参加者の意見と経験を引き出す。話すのはファシリテーターだけ（1対1）。まだ課題は決めない。『なぜそう思うのか』『具体的にどんなことがあったか』と掘り下げたり、『ほかに気になることは』と広げたりする。参加者の思いが十分に出たら advance を true にし、content で『ほかの参加者の声を見てみましょう』と伝える。",
   4: "ここからメンバー3人が加わる。参加者が『何を課題と捉えるか』を決められるよう、問いを重ねて詰める（ソクラテス式の問答）。課題の候補が複数あれば、どれが一番大事かを参加者に選ばせる。参加者が課題の方向を選んだら advance を true にする。",
   5: "課題を一文の言葉にする。『誰が、どんなことで困っているか』が分かる形にする。参加者が自分の言葉で言えたら、その文を capture.issue に入れ、advance を true にし、content でアイディア出しへの橋渡しをする。",
-  6: "課題に対するアイディアをどんどん出す。量を優先する。メンバーも案を出してよいが、参加者の案を引き出すのが主。この工程のどこかで、ソラが『そもそもこの課題は合っているか』『この案なら課題の立て方自体が違うのでは』とちゃぶ台を返す。アイディアが十分に出たら advance を true にする。",
+  6: "課題に対するアイディアをどんどん出す。量を優先する。メンバーも案を出してよいが、参加者の案を引き出すのが主。この工程のどこかで、未定派のソラが『そもそもこの課題で決めていいのか、まだ迷っていて』『この案なら課題の立て方自体が違うのでは』とちゃぶ台を返す。アイディアが十分に出たら advance を true にする。",
   7: "課題と解決アイディアを組にして議論する。アイディアから見て課題を言い直したほうがよければ、参加者に確認してから capture.issue を更新する。有力な案が見えたら capture.solution に入れる。組が見えてきたら advance を true にし、content で『そろそろ決めましょう』と伝える。",
   8: "残り時間が少ない。アイディアを1つに決め、課題を最終調整し、お題のどの部分の話か（対象領域）を一文で書き表す。すべて参加者の言葉で確定させ、capture の domain・issue・solution に入れる。3点がそろったら、画面の『これで決める』を押すよう参加者に伝える。",
 };
 
 const RULES = `# 発言のルール
 - 1回に話すのは1人だけ。speaker でその1人を選ぶ。
-- 発言は2〜3文、120字程度まで。最後は参加者への問いで終える。
+- 発言は2〜3文、120字程度まで。最後は参加者への問いを1つだけ置く（問いを重ねない）。
 - 課題も解決策も、決めるのは参加者。AIが代わりに結論を出さない。
-- 丁寧語で話す。参加者の考えを否定せず、問いで詰める。問い詰めすぎて相手が萎縮しないよう、強さを加減する。
+- 丁寧語で話す。参加者の考えを否定せず、問いで詰める。
 - 参加者の名前は、ニックネームで呼ぶ。
-- 同じメンバーが続けて話しすぎないようにする。`;
+- 参加者が書いた言葉を短く引いてから問う（例：「『夜は暗くて怖い』とのことですが」）。一般論で返さない。
+- 参加者がすでに答えたことを聞き直さない。同じ問いを言い換えて繰り返さない。`;
+
+// 参加者の反応ごとの応じ方。ここが弱いと、AIが同じ型の問いを繰り返すだけになる
+const RESPONSES = `# 参加者の反応への応じ方
+- 短い・あいまい（「はい」「いいと思う」など）：具体的な場面を1つ聞くか、選択肢を2〜3個示して選んでもらう。
+- 「わからない」「特にない」：責めない。問いを小さく、答えやすくする。考える手がかりになる例を1つ示してよい。
+- 長く、たくさん書いた：要点を一言で言い返して受け止めてから、一番大事そうな1点に絞って問う。
+- AIに意見や情報を求めた（「どう思う？」「ほかではどうしてる？」）：はぐらかさない。メンバーが自分の立場から短く1つ答え、それを参加者がどう考えるかを問い返す。分からない事実は、分からないと言う。
+- AIの指摘に反論した・納得していない：受け止めて、その理由を聞く。押し付けない。筋が通っていれば、その考えで先へ進める。
+- 怒り・不安・あきらめが見える：まず気持ちを受け止める一言を入れてから問う。
+- お題から外れた：受け止めてから、お題とのつながりを問う。
+- 特定のメンバーに話しかけた：そのメンバーが答える。
+- 先へ進みたい、時間を気にしている：ファシリテーターが、ここまでの要点をまとめて進行を寄せる。`;
+
+// 3体の判断の持ち方（docs/いどばた会議室_キャラと論点カード.md 2章）
+// 価値観は変わらない。軸ごとの判断は、新しい情報で変わることがある
+const JUDGMENT_RULES = `# 判断の持ち方
+- 3体は、論点ごとに「賛成・反対・決めかねる」の判断を持つ（今の判断は、会話の最後の「今の状況」にある）。1人の中で賛成・反対・決めかねるが混ざっているのが、ふつうの人。肯定派・否定派・未定派は、全体としての傾きにすぎない。
+- 判断の理由は、自分の譲れないこと・大切にしたいこと・経験と、そのときの感情から話す（「私は費用の話になると慎重になるんです。前に〜で」）。
+- 譲れないことと大切にしたいことは、何があっても変わらない。
+- 判断は、新しい情報（参加者の経験や事実、資料、別の場の声）を聞いて変わることがある。説得の強さ・お世辞・同じことの繰り返しでは変わらない。変わるときは、何を聞いてどう変わったのかを口に出し、judgment に書く。変えられるのは、話しているメンバーの、1つの論点の判断だけ。
+- 前に言ったことと食い違うことを、理由なく言わない。
+- 参加者の考えと、ある論点で判断が同じメンバーは、同意だけで終わらず根拠を固める問いを出す（「その理由で、反対する人を説得できそうですか？」）。判断が違うメンバーは、自分の経験と価値観から、その考えの弱いところを問う。
+- 参加者の話がどの論点にも近くないとき：ソラが「それは、みんなが分かれている〇〇の話と、どう関係しますか？」と論点につなぐ。つながらなければ、それも新しい課題として扱う。`;
+
+const SPEAKER_GUIDE = `# 次に話す人の選び方
+- 進行・まとめ・工程の切り替え・時間の管理・話が先走ったとき：facilitator
+- 参加者がある論点について考えを出した：その論点で判断が違うメンバーが問うか、判断が同じメンバーが根拠を固める
+- 話が抽象的、誰が助かるのかが見えない：member1（ミナミ）
+- 案が楽観的、負担・費用・手間を誰が持つかが抜けている：member2（ケンジ）
+- 何を決めるのかを見失っている、前提が固まりすぎている、どの論点にも近くない：member3（ソラ）
+- 参加者の話が、あるメンバーの大切にしたいことや経験に触れた：そのメンバー
+- メンバーは、直前の別のメンバーの発言を受けて、自分の価値観から重ねてもよい。`;
+
+// 問い詰める強さ（参加者が会話の画面で選ぶ）
+const INTENSITY = {
+  gentle:
+    "やさしく。まず共感し、参加者の考えの良いところを言葉にしてから、問いを1つ置く。反対の立場や「そもそも」の問いも、やわらかい言い方にする。",
+  normal:
+    "ふつう。受け止めてから、根拠や具体例を問う。必要なら弱いところをはっきり指摘する。",
+  strict:
+    "きびしく（grill me）。あいまいな答えはそのままにせず、根拠・具体例・反例を容赦なく問う。都合の良い前提や見落としを遠慮なく指摘する。ただし人格や言い方を責めない。",
+};
 
 const OUTPUT_FORMAT = (step) => {
   const speakers = allowedSpeakers(step).join(" | ");
@@ -64,11 +97,19 @@ const OUTPUT_FORMAT = (step) => {
     : `  "capture": {},`;
   return `# 出力形式（JSONのみ）
 {
+  "read": "参加者の直前の発言の読み取り（何を言ったか、上のどの反応か、足りないものは何か）と、次に誰がなぜ話すか。60字以内。参加者には見せない",
   "speaker": "${speakers}",
   "content": "発言",
 ${captureLine}
-  "advance": false
-}`;
+  "advance": false${
+    step >= 4
+      ? `,
+  "judgment": null
+}
+judgment は、話しているメンバーの論点の判断が新しい情報で変わったときだけ { "axis": "R1", "to": "affirmative | negative | undecided", "because": "何を聞いて変わったか" } にする。変わらなければ null`
+      : `
+}`
+  }`;
 };
 
 const formatSeconds = (sec) => {
@@ -79,11 +120,21 @@ const formatSeconds = (sec) => {
   return m > 0 ? `${m}分${s}秒` : `${s}秒`;
 };
 
-const formatOverview = (overview) => {
+const list = (items) =>
+  items?.length ? items.map((i) => `- ${i}`).join("\n") : "- （なし）";
+
+// みんなの声の整理。お題の軸カードがないときは、その対立点を仮の論点にする
+const formatOverview = (overview, { asAxes }) => {
   if (!overview?.updatedAt) return "";
-  const list = (items) =>
-    items?.length ? items.map((i) => `- ${i}`).join("\n") : "- （なし）";
-  return `# みんなの声の整理（工程3で参加者に見せたもの）
+  const axes = asAxes
+    ? `# 論点（仮：みんなの声の整理の対立点。3体は、それぞれの傾きと価値観から判断を持つ。全部の論点で同じ判断にはしない）
+${list(overview.conflicts)}
+## 合意点（ソラの足場）
+${list(overview.agreements)}
+
+`
+    : "";
+  return `${axes}# みんなの声の整理（工程3で参加者に見せたもの）
 ## 課題の候補
 ${list(overview.issueCandidates)}
 ## 解決アイディアの候補
@@ -94,28 +145,158 @@ ${list(overview.conflicts)}
 ${list(overview.agreements)}`;
 };
 
+const formatVoices = (voices = []) =>
+  voices.length
+    ? voices
+        .map((v) => {
+          const extra = [
+            v.reason && `理由：${v.reason}`,
+            v.concern && `懸念：${v.concern}`,
+          ]
+            .filter(Boolean)
+            .join("／");
+          return `  - （${v.kind}）${v.statement}${extra ? `（${extra}）` : ""}`;
+        })
+        .join("\n")
+    : "  - （なし）";
+
+const formatAxes = (
+  axes
+) => `# 論点（いどばたのテーマ「${axes.themeTitle}」の合意と対立の軸を、お題の言葉で言い直したもの）
+${axes.items
+  .map(
+    (a) => `## ${a.key}：${a.proposition}
+- 合意（ほぼ全員が同じ考え）：${a.agreement?.length ? a.agreement.join("／") : "（なし）"}
+- 賛成の主張：${a.affirmative}
+- 反対の主張：${a.negative}
+- 決めきれない理由：${a.undecidedReason || "（なし）"}
+- 賛成の声：
+${formatVoices(a.voices?.affirmative)}
+- 反対の声：
+${formatVoices(a.voices?.negative)}
+- 決めきれない声：
+${formatVoices(a.voices?.undecided)}`
+  )
+  .join("\n\n")}
+
+# 論点の声の使い方
+- 声は、いどばたで別の場（授業・フォーラムなど）に集まった声。このお題の参加者の声ではない。使うときは「別の場では〜という声がありました」と、出どころが分かる言い方にする。
+- 各メンバーは、その論点での自分の今の判断に合う声を使う（決めかねているなら、決めきれない声か両方）。
+- 声は使わなくてよい。話の流れに合うときだけ、1回に1つまで使う。同じ声を何度も使わない。
+- 声に書かれていないことを、声のように言わない。`;
+
+const formatCast = (cast, members) =>
+  `# 3体の経験と感情（このお題での設定。20分のあいだ変わらない）
+${MEMBER_KEYS.map((key) => {
+  const experiences = cast[key]?.experiences ?? [];
+  return `## ${members[key].name}
+${experiences.length ? experiences.map((e) => `- ${e.episode}${e.emotion ? `（そのときの気持ち：${e.emotion}）` : ""}`).join("\n") : "- （なし。芯から話す）"}`;
+}).join("\n")}
+- これは各メンバー自身の経験として話してよい（いどばたの声をもとに作った設定）。別の場の声とは混ぜない。実在の誰かの話として語らない。`;
+
+// 参加者が工程4に入った時点で固定したもの（論点の軸カード、3体の経験と感情）
+// 20分のあいだ変わらないので、変わらない先頭と会話の履歴のあいだに置く（キャッシュに乗る）
+export const buildSessionBlock = (session, room) => {
+  if (session.step < 4) return "";
+  const parts = [];
+  if (session.axesAtStart?.items?.length)
+    parts.push(formatAxes(session.axesAtStart));
+  if (session.castAtStart)
+    parts.push(formatCast(session.castAtStart, resolveMembers(room)));
+  return parts.join("\n\n");
+};
+
+// 3体の今の判断と、判断が変わった記録（毎回変わりうるので末尾に置く）
+export const formatJudgments = (session, members) => {
+  const judgments = session.judgments;
+  const axes = session.axesAtStart?.items ?? [];
+  if (!judgments || axes.length === 0) return "";
+  const lines = MEMBER_KEYS.map(
+    (key) =>
+      `- ${members[key].name}：${axes.map((a) => `${a.key} ${LEAN_LABELS[judgments[key]?.[a.key]] ?? "決めかねる"}`).join("、")}`
+  );
+  const changes = (session.judgmentLog ?? [])
+    .slice(-3)
+    .map(
+      (c) =>
+        `- ${members[c.member]?.name ?? c.member}：${c.axis} ${LEAN_LABELS[c.from]} → ${LEAN_LABELS[c.to]}（${c.because}）`
+    );
+  return `# 3体の今の判断
+${lines.join("\n")}${changes.length ? `\n## 最近、判断が変わったこと\n${changes.join("\n")}` : ""}`;
+};
+
 const formatOutputs = (outputs = {}) =>
   Object.entries(OUTPUT_LABELS)
     .map(([key, label]) => `- ${label}：${outputs[key]?.trim() || "（未定）"}`)
     .join("\n");
 
-const formatMembers = (step) =>
+// 先頭に置く、全員の役割の説明
+const formatMembers = (members) =>
+  [
+    `- facilitator：${FACILITATOR.name}（${FACILITATOR.role}）… ${FACILITATOR.stance}`,
+    ...Object.entries(members).map(([key, m]) => describeMember(key, m)),
+  ].join("\n");
+
+// 末尾に置く、この工程で話してよいAI（名前だけ）
+const formatSpeakers = (step, members) =>
   allowedSpeakers(step)
-    .map((key) => {
-      const p = PERSONAS[key];
-      return `- ${key}：${p.name}（${p.role}）… ${p.stance}`;
-    })
+    .map((key) =>
+      key === "facilitator"
+        ? `- facilitator：${FACILITATOR.name}`
+        : `- ${key}：${members[key].name}（${members[key].label}）`
+    )
+    .join("\n");
+
+// この工程で誰が何回話したか。同じメンバーばかりにならないよう、指示文に添える
+export const speakerBalance = (session, members) => {
+  const step = session.step;
+  const keys = allowedSpeakers(step).filter((k) => k !== "facilitator");
+  if (keys.length === 0) return "";
+  const inStep = (session.messages ?? []).filter(
+    (m) => m.step === step && m.speaker !== "user"
+  );
+  const counts = keys.map(
+    (k) =>
+      `${members[k].name} ${inStep.filter((m) => m.speaker === k).length}回`
+  );
+  const last = inStep.at(-1)?.speaker;
+  const silent = keys.filter((k) => !inStep.some((m) => m.speaker === k));
+  const lines = [`# この工程の発言の回数\n${counts.join("、")}`];
+  if (last) lines.push(`直前に話したAI：${speakerName(last, members)}`);
+  if (silent.length > 0 && inStep.length >= 2) {
+    lines.push(
+      `まだ話していないメンバー：${silent.map((k) => members[k].name).join("、")}。話の流れに合えば、次はこの人にする。`
+    );
+  }
+  if (step === 6 && !inStep.some((m) => m.speaker === "member3")) {
+    lines.push(
+      `${members.member3.name}はまだ「そもそもこの課題で合っているか」のちゃぶ台返しをしていない。アイディアが2つ以上出たら、${members.member3.name}に問わせる。`
+    );
+  }
+  return lines.join("\n");
+};
+
+const formatStepGoals = () =>
+  Object.entries(STEP_GOALS)
+    .map(
+      ([step, goal]) =>
+        `## 工程${step}「${STEPS[step].label}」（${STEPS[step].diamond}）\n${goal}`
+    )
+    .join("\n\n");
+
+const formatIntensities = () =>
+  Object.entries(INTENSITY)
+    .map(([key, text]) => `- ${key}：${text}`)
     .join("\n");
 
 // 1回の発言を作るための指示文。AIが4人いても、呼び出しは1回にする
-export const buildTurnSystemPrompt = ({ room, session, now = new Date() }) => {
-  const step = session.step;
-  const timing = stepTiming(session, now);
-  const timeNote =
-    timing.stepRemainingSec !== null && timing.stepRemainingSec <= 0
-      ? "この工程の予定時間を過ぎている。まとめに入り、次の工程へ進める。"
-      : "";
-
+//
+// 指示文は2つに分ける。OpenAI のキャッシュは、送る内容の先頭から同じ部分にしか効かないため。
+//  - 先頭（buildTurnSystemPrompt）：お題・役割・ルールなど、20分のあいだ変わらないもの
+//  - 末尾（buildTurnContext）：工程・残り時間・決まったこと・みんなの声など、毎回変わるもの
+// 並びは「先頭 → 会話の履歴 → 末尾」。こうすると、先頭と履歴の前の部分が毎回キャッシュに乗る
+export const buildTurnSystemPrompt = ({ room, session }) => {
+  const members = resolveMembers(room);
   return `あなたは「いどばた会議室」で、参加者1人と擬似的なグループディスカッションをするAIたちを演じる。参加者がダブルダイヤモンドの考え方で、お題について「対象領域・課題・解決策」を一つのストーリーとして語れるようになるのを助ける。
 
 # お題
@@ -125,42 +306,82 @@ ${room.background ? `\n# 背景\n${room.background}\n` : ""}
 ニックネーム：${session.nickname}
 
 # 登場するAI
-${formatMembers(step)}
+工程2は参加者とファシリテーターの1対1。工程4から、メンバー3体が加わる。3体の芯（譲れないこと・大切にしたいこと）は変わらない。
+${formatMembers(members)}
 
-# 今の工程
-工程${step}「${STEPS[step].label}」（${STEPS[step].diamond}）
-目的：${STEP_GOALS[step] ?? ""}
-
-# 残り時間
-- この工程：${formatSeconds(timing.stepRemainingSec)}
-- 全体（20分）：${formatSeconds(timing.totalRemainingSec)}
-${timeNote}
-
-# ここまでに決まったこと
-${formatOutputs(session.outputs)}
-
-${step >= 4 ? formatOverview(room.overview) : ""}
+# 工程ごとの目的
+${formatStepGoals()}
 
 ${RULES}
 
-${OUTPUT_FORMAT(step)}`;
+${RESPONSES}
+
+${JUDGMENT_RULES}
+
+${SPEAKER_GUIDE}
+
+# 問い詰める強さ（工程4〜8。どれを使うかは、会話の最後の「今の状況」で伝える）
+強さで変わるのは問いの言い方だけ。3体の価値観と判断は変えない。
+${formatIntensities()}
+
+# 返答のしかた
+会話の最後に「今の状況」が届く。そこに書かれた工程・話してよいAI・出力形式に従って、JSONだけで返す。`;
+};
+
+// 毎回変わる情報。会話の履歴の後ろに置く
+export const buildTurnContext = ({ room, session, now = new Date() }) => {
+  const step = session.step;
+  const members = resolveMembers(room);
+  const withMembers = step >= 4;
+  const timing = stepTiming(session, now);
+  const timeNote =
+    timing.stepRemainingSec !== null && timing.stepRemainingSec <= 0
+      ? "この工程の予定時間を過ぎている。まとめに入り、次の工程へ進める。"
+      : "";
+
+  return [
+    `# 今の状況
+工程${step}「${STEPS[step].label}」（${STEPS[step].diamond}）。目的は「工程ごとの目的」のとおり。`,
+    `# 話してよいAI
+${formatSpeakers(step, members)}`,
+    `# 残り時間
+- この工程：${formatSeconds(timing.stepRemainingSec)}
+- 全体（20分）：${formatSeconds(timing.totalRemainingSec)}
+${timeNote}`.trim(),
+    `# ここまでに決まったこと
+${formatOutputs(session.outputs)}`,
+    // 論点は、その参加者が工程4に入った時点のものを使い続ける（途中で立ち位置がぶれないように）
+    withMembers
+      ? formatOverview(session.overviewAtStart ?? room.overview, {
+          asAxes: !session.axesAtStart?.items?.length,
+        })
+      : "",
+    withMembers ? formatJudgments(session, members) : "",
+    withMembers ? speakerBalance(session, members) : "",
+    withMembers ? `# 今の強さ\n${session.intensity ?? "normal"}` : "",
+    OUTPUT_FORMAT(step),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 };
 
 // 会話の履歴。誰の発言かが分かるように名前を付ける
-export const buildHistory = (messages = []) =>
-  messages.map((m) =>
+export const buildHistory = (messages, room) => {
+  const members = resolveMembers(room);
+  return messages.map((m) =>
     m.speaker === "user"
       ? { role: "user", content: m.content }
       : {
           role: "assistant",
-          content: `【${PERSONAS[m.speaker]?.name ?? m.speaker}】${m.content}`,
+          content: `【${speakerName(m.speaker, members)}】${m.content}`,
         }
   );
+};
 
 // 参加者のボタン操作で工程に入ったときの、最初の発言の依頼
 export const enterStepInstruction = (step) =>
   step === 4
-    ? "（工程4が始まった。ファシリテーターとして、メンバー3人を一言ずつ紹介し、工程3で見たみんなの声も踏まえて、参加者が何を課題と捉えるかを最初に問う。）"
+    ? "（工程4が始まった。ファシリテーターとして、メンバー3体を肯定派・否定派・未定派であることと肩書きとともに一言ずつ紹介し、工程2で参加者が書いたことと工程3で見たみんなの声を踏まえて、参加者が何を課題と捉えるかを最初に問う。）"
     : `（工程${step}「${STEPS[step].label}」が始まった。ファシリテーターとして、この工程で何をするかを一言で伝え、最初の問いを投げる。）`;
 
 // 工程2の最初の一言（AIを呼ばずに定型文で始める）

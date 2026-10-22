@@ -8,6 +8,16 @@ export type KaigiSpeaker =
   | "member3"
   | "editor";
 
+// AIメンバーの問い詰める強さ（参加者が選ぶ）
+export type KaigiIntensity = "gentle" | "normal" | "strict";
+
+export type KaigiMemberKey = "member1" | "member2" | "member3";
+// お題に合わせたAIメンバーの名前と立場
+export type KaigiMembers = Record<
+  KaigiMemberKey,
+  { name: string; role: string }
+>;
+
 export type KaigiOutputKey = "domain" | "issue" | "solution";
 export type KaigiOutputs = Record<KaigiOutputKey, string>;
 
@@ -19,6 +29,7 @@ export interface KaigiRoom {
   capacity: number;
   sessionMinutes: number;
   expiresAt: string;
+  members: KaigiMembers;
   // ホストが Google カレンダーに登録した会議（なければ null）
   meeting: KaigiMeeting | null;
 }
@@ -61,6 +72,7 @@ export interface KaigiSession {
   step: number;
   stepLabel: string;
   status: "active" | "submitted";
+  intensity: KaigiIntensity;
   messages: KaigiMessage[];
   outputs: KaigiOutputs;
   missingToLeave: KaigiOutputKey[];
@@ -112,10 +124,28 @@ export interface KaigiHostGoogle {
   canReadRecords?: boolean;
 }
 
+// お題に紐づいた、いどばたのテーマと、そこから作ったお題の軸カード（AIメンバー3体が立つ論点）
+export interface KaigiHostAxis {
+  proposition: string;
+  agreement: string[];
+  affirmative: string;
+  negative: string;
+  undecidedReason: string;
+}
+
+export interface KaigiHostTheme {
+  // 紐づいたテーマの名前（紐づいていなければ空）
+  themeTitle: string;
+  removedByHost: boolean;
+  checkedAt: string | null;
+  axes: KaigiHostAxis[];
+}
+
 export interface KaigiHostView {
   room: Pick<KaigiRoom, "id" | "title" | "hostName" | "capacity" | "expiresAt">;
   google: KaigiHostGoogle;
   meeting: KaigiHostMeeting | null;
+  theme: KaigiHostTheme;
 }
 
 export interface KaigiTranscriptEntry {

@@ -2,7 +2,11 @@ import { Loader2, Mic, Send, Square } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { cn } from "../../lib/utils";
-import type { KaigiMessage } from "../../services/kaigi/types";
+import type {
+  KaigiMembers,
+  KaigiMessage,
+  KaigiSpeaker,
+} from "../../services/kaigi/types";
 import { Button } from "../ui/button";
 import { SPEAKERS, STEP_LABELS } from "./labels";
 import {
@@ -14,6 +18,7 @@ import {
 interface KaigiChatProps {
   messages: KaigiMessage[];
   nickname: string;
+  members?: KaigiMembers;
   isSending: boolean;
   onSend: (content: string) => Promise<boolean>;
   // 録音を文字にする。渡されなければマイクのボタンを出さない
@@ -26,9 +31,20 @@ const formatSec = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 
 // 参加者とAIたちの会話。工程が変わったところに区切りを入れる
+// お題に合わせたメンバーの名前と立場があれば、既定のものより優先する
+const speakerOf = (speaker: KaigiSpeaker, members?: KaigiMembers) => {
+  const base = SPEAKERS[speaker];
+  const custom =
+    speaker === "member1" || speaker === "member2" || speaker === "member3"
+      ? members?.[speaker]
+      : undefined;
+  return custom ? { ...base, ...custom } : base;
+};
+
 const KaigiChat = ({
   messages,
   nickname,
+  members,
   isSending,
   onSend,
   onTranscribe,
@@ -72,7 +88,7 @@ const KaigiChat = ({
       >
         {messages.map((m, i) => {
           const isUser = m.speaker === "user";
-          const speaker = SPEAKERS[m.speaker];
+          const speaker = speakerOf(m.speaker, members);
           const stepChanged = i > 0 && messages[i - 1].step !== m.step;
           return (
             <div key={`${m.createdAt}-${i}`}>

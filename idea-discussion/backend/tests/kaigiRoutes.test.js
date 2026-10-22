@@ -20,7 +20,8 @@ const llm = vi.hoisted(() => ({
 vi.mock("../services/kaigi/llm.js", () => ({
   kaigiLLM: async (messages) => {
     const system = messages[0].content;
-    llm.calls.push(system);
+    // 指示文の先頭だけでなく、毎回変わる情報（末尾）も確かめられるよう、全体を残す
+    llm.calls.push(messages.map((m) => m.content).join("\n"));
     if (llm.fail) throw new Error("upstream down");
     if (system.includes("論点を整理する補助役")) {
       return {
@@ -28,6 +29,44 @@ vi.mock("../services/kaigi/llm.js", () => ({
         ideaCandidates: ["登録制にする"],
         conflicts: ["廃止か存続か"],
         agreements: [],
+      };
+    }
+    if (system.includes("お題に一番近いテーマを1つ選ぶ")) {
+      return { theme: "T1" };
+    }
+    if (system.includes("お題に関係する軸を選んで、お題の言葉で言い直す")) {
+      return {
+        axes: [
+          {
+            source: "A1",
+            proposition: "このマンションで共用自転車を残すべきか",
+            agreement: ["通路の安全は守る"],
+            affirmative: "高齢の住民の足になる",
+            negative: "放置と管理費の負担が大きい",
+            undecidedReason: "使っている人の数が分からない",
+          },
+        ],
+      };
+    }
+    if (
+      system.includes(
+        "それぞれの「経験と感情」と、論点ごとの「最初の判断」を作る"
+      )
+    ) {
+      return {
+        member2: {
+          experiences: [
+            { episode: "前の施策の後始末を背負った", emotion: "徒労感" },
+          ],
+          judgments: { R1: { side: "negative", because: "負担が残る" } },
+        },
+      };
+    }
+    if (system.includes("AIメンバー3体に、お題の場に合う「肩書き」を付ける")) {
+      return {
+        member1: "自転車を使う住民",
+        member2: "管理費を気にする理事",
+        member3: "最近越してきた住民",
       };
     }
     if (system.includes("1つのストーリーの文章にまとめる")) {
@@ -73,6 +112,9 @@ process.env.RATE_LIMIT_DISABLED = "true";
 const { default: kaigiRoutes } = await import("../routes/kaigiRoutes.js");
 const { attachUser } = await import("../middleware/userTokenMiddleware.js");
 const { signUserToken } = await import("../services/userToken.js");
+const { default: Theme } = await import("../models/Theme.js");
+const { default: Problem } = await import("../models/Problem.js");
+const { default: ThemeAxes } = await import("../models/ThemeAxes.js");
 
 // ローカルや CI に MongoDB がなければ、このテストは飛ばす
 const MONGO_URI =
@@ -125,6 +167,32 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
   beforeAll(async () => {
     await mongoose.connection.dropDatabase();
     await mongoose.model("KaigiSession").syncIndexes();
+
+    // いどばたのテーマと、その3軸（会議室はこれに立つ）
+    const theme = await Theme.create({ title: "共用自転車", slug: "bike" });
+    const voice = await Problem.create({
+      statement: "放置自転車で管理費がかさむ",
+      sourceOriginId: new mongoose.Types.ObjectId(),
+      sourceType: "chat",
+      themeId: theme._id,
+    });
+    await ThemeAxes.create({
+      themeId: theme._id,
+      version: 1,
+      fingerprint: "f",
+      schemaVersion: 1,
+      axes: [
+        {
+          key: "A1",
+          proposition: "共用自転車を残すべきか",
+          affirmative: "必要",
+          negative: "負担",
+          voices: [
+            { itemType: "problem", itemId: voice._id, side: "negative" },
+          ],
+        },
+      ],
+    });
     const app = express();
     app.use(express.json());
     app.use(attachUser);
@@ -255,15 +323,92 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
     });
     res = await call("POST", `/sessions/${id}/advance`, u);
     expect(res.body.session.step).toBe(4);
-    expect(llm.calls.at(-1)).toContain("ミナミ");
+    expect(llm.calls.at(-1)).toContain("ミナミ（肯定派・自転車を使う住民）");
+    // お題に合わせた立場は、お題1つにつき1回だけ作る
+    expect(
+      llm.calls.filter((c) =>
+        c.includes("AIメンバー3体に、お題の場に合う「肩書き」を付ける")
+      )
+    ).toHaveLength(1);
+    expect(res.body.room.members.member2).toEqual({
+      name: "ケンジ",
+      role: "否定派・管理費を気にする理事",
+    });
+
+    // この人の20分のあいだ、メンバーが立つ論点を固定する
+    const started = await mongoose.model("KaigiSession").findById(id).lean();
+    expect(started.axesAtStart).toMatchObject({
+      themeTitle: "共用自転車",
+      themeAxesVersion: 1,
+    });
+    expect(started.axesAtStart.items[0]).toMatchObject({
+      key: "R1",
+      source: "A1",
+      proposition: "このマンションで共用自転車を残すべきか",
+    });
+    // 否定側には、いどばたの元の声が付く
+    expect(started.axesAtStart.items[0].voices.negative).toEqual([
+      expect.objectContaining({ statement: "放置自転車で管理費がかさむ" }),
+    ]);
+    expect(llm.calls.at(-1)).toContain(
+      "R1：このマンションで共用自転車を残すべきか"
+    );
+    // 3体の経験と最初の判断も、この人の20分のあいだ固定する
+    expect(started.castAtStart.member2.experiences[0].episode).toBe(
+      "前の施策の後始末を背負った"
+    );
+    expect(started.judgments).toEqual({
+      member1: { R1: "affirmative" },
+      member2: { R1: "negative" },
+      member3: { R1: "undecided" },
+    });
+    expect(llm.calls.at(-1)).toContain("前の施策の後始末を背負った");
+    expect(llm.calls.at(-1)).toContain("- ケンジ：R1 反対");
+    expect(started.overviewAtStart.issueCandidates).toContain(
+      "放置自転車が通路をふさぐ"
+    );
+
+    // 問い詰める強さは参加者が選び、次の発言から効く
+    expect(res.body.session.intensity).toBe("normal");
+    expect(
+      (
+        await call("PUT", `/sessions/${id}/intensity`, {
+          ...u,
+          intensity: "harsh",
+        })
+      ).status
+    ).toBe(400);
+    res = await call("PUT", `/sessions/${id}/intensity`, {
+      ...u,
+      intensity: "strict",
+    });
+    expect(res.body.session.intensity).toBe("strict");
 
     llm.turnReplies.push({
       speaker: "member2",
-      content: "どれが一番ですか？",
+      content:
+        "毎日使う人がいると聞いて、少し迷い始めました。どれが一番ですか？",
+      judgment: {
+        axis: "R1",
+        to: "undecided",
+        because: "毎日使う人がいると聞いた",
+      },
       advance: true,
     });
     res = await say("通路の安全が一番気になります");
     expect(res.body.session.step).toBe(5);
+    // 新しい情報で、ケンジの判断が変わり、記録される（価値観は変わらない）
+    const afterTurn = await mongoose.model("KaigiSession").findById(id).lean();
+    expect(afterTurn.judgments.member2.R1).toBe("undecided");
+    expect(afterTurn.judgmentLog).toEqual([
+      expect.objectContaining({
+        member: "member2",
+        axis: "R1",
+        from: "negative",
+        to: "undecided",
+      }),
+    ]);
+    expect(llm.calls.at(-1)).toContain("# 今の強さ\nstrict");
 
     // 5：課題が書き留められるまで、ボタンでも進めない
     expect((await call("POST", `/sessions/${id}/advance`, u)).status).toBe(400);
@@ -331,6 +476,53 @@ describe.skipIf(!mongoAvailable)("kaigiRoutes", () => {
       solution: "登録制",
     });
     expect(JSON.stringify(wall.body)).not.toContain("flow");
+  });
+
+  it("shows the linked theme to the host and lets the host remove it", async () => {
+    const created = await call(
+      "POST",
+      "/host/rooms",
+      { title: "共用自転車をどうするか", capacity: 5 },
+      host
+    );
+    const { id: roomId, hostKey } = created.body;
+    const asHost = { "x-kaigi-host-key": hostKey };
+    // 作成のあとの準備（肩書き・軸カード・整理）は裏で進むので、少し待つ
+    let view;
+    for (let i = 0; i < 20; i += 1) {
+      view = (await call("GET", `/rooms/${roomId}/host`, undefined, asHost))
+        .body;
+      if (view.theme.axes.length > 0) break;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    expect(view.theme).toMatchObject({
+      themeTitle: "共用自転車",
+      removedByHost: false,
+    });
+    expect(view.theme.axes[0].proposition).toBe(
+      "このマンションで共用自転車を残すべきか"
+    );
+
+    const removed = await call(
+      "DELETE",
+      `/rooms/${roomId}/host/theme`,
+      undefined,
+      asHost
+    );
+    expect(removed.body.theme).toMatchObject({
+      themeTitle: "",
+      removedByHost: true,
+      axes: [],
+    });
+
+    const relinked = await call(
+      "POST",
+      `/rooms/${roomId}/host/theme/relink`,
+      undefined,
+      asHost
+    );
+    expect(relinked.body.theme.themeTitle).toBe("共用自転車");
+    expect(relinked.body.theme.axes).toHaveLength(1);
   });
 
   it("does not save the participant's message when the AI fails", async () => {
