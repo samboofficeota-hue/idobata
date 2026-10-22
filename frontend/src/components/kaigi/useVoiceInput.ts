@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { measureVoicedSec } from "./voiceLevel";
 
 // 音声入力：押して話す → もう一度押して止める → サーバーで文字にする
 // 文字は入力欄に入るだけで、送るのは本人（間違いを直してから送れる）
@@ -7,6 +8,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export const MAX_RECORDING_SEC = 60;
 // これより短い録音は押し間違いとみなして送らない
 const MIN_RECORDING_MS = 600;
+// 声のある区間がこれより短ければ、マイクに声が入っていないとみなして送らない
+const MIN_VOICED_SEC = 0.3;
+const MIC_SILENT_MESSAGE =
+  "マイクに声が入っていませんでした。Bluetooth のイヤホンを使っている場合は、スマホ本体のマイクに向かって話してください";
 
 export type VoiceState = "idle" | "recording" | "transcribing";
 
@@ -94,6 +99,11 @@ export const useVoiceInput = (
         const audio = new Blob(chunks, {
           type: recorder.mimeType || mimeType || "audio/webm",
         });
+        const voicedSec = await measureVoicedSec(audio);
+        if (voicedSec !== null && voicedSec < MIN_VOICED_SEC) {
+          setError(MIC_SILENT_MESSAGE);
+          return;
+        }
         const text = await transcribe(audio);
         if (text) onText(text);
         else setError("声が聞き取れませんでした。もう一度話してください");
