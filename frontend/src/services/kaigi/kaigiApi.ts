@@ -161,6 +161,29 @@ export const kaigiApi = {
       userId,
       content,
     }),
+  // 録音1回分を文字にする（発言としては保存しない）。JSON ではなくファイルで送る
+  transcribe: async (sessionId: string, audio: Blob): Promise<string> => {
+    const form = new FormData();
+    const ext = audio.type.includes("mp4") ? "mp4" : "webm";
+    form.append("audio", audio, `speech.${ext}`);
+    let response: Response;
+    try {
+      response = await fetch(`${BASE_URL}/sessions/${sessionId}/transcribe`, {
+        method: "POST",
+        headers: await userTokenHeader(),
+        body: form,
+      });
+    } catch {
+      throw new Error("サーバーに接続できませんでした。");
+    }
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(
+        data?.message ?? `音声を文字にできませんでした（${response.status}）`
+      );
+    }
+    return typeof data?.text === "string" ? data.text : "";
+  },
   advance: (sessionId: string, userId: string) =>
     post<KaigiSessionResponse>(`/sessions/${sessionId}/advance`, { userId }),
   prepareOverview: (sessionId: string, userId: string) =>

@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import express from "express";
 import mongoose from "mongoose";
-import { llmLimiter } from "../middleware/rateLimit.js";
+import multer from "multer";
+import { llmLimiter, transcribeLimiter } from "../middleware/rateLimit.js";
 import { requireUser } from "../middleware/userTokenMiddleware.js";
 import KaigiRoom, { KAIGI_CAPACITIES } from "../models/KaigiRoom.js";
 import KaigiSession, { KAIGI_INTENSITIES } from "../models/KaigiSession.js";
@@ -31,6 +32,12 @@ import {
   nextStep,
   stepTiming,
 } from "../services/kaigi/steps.js";
+import {
+  MAX_AUDIO_BYTES,
+  MIN_AUDIO_BYTES,
+  detectAudioExtension,
+  transcribeForSession,
+} from "../services/kaigi/transcribe.js";
 import { runTurn } from "../services/kaigi/turn.js";
 import { emitSlidePosted } from "../services/kaigi/wallEvents.js";
 import kaigiHostRoutes from "./kaigiHostRoutes.js";
@@ -338,52 +345,60 @@ router.get("/rooms/:roomId/wall", async (req, res) => {
 // 同じセッションへの操作が重なると会話の保存がぶつかるので、1つずつ処理する
 const busy = new Set();
 
-const withSession = (handler) => async (req, res) => {
-  const { sessionId } = req.params;
-  if (!isId(sessionId)) {
-    return res
-      .status(400)
-      .json({ message: "セッションのIDが正しくありません" });
-  }
-  // 本文の userId ではなく、利用者トークンで確かめた userId で本人かを判定する
-  const userId = req.verifiedUserId;
-  if (!userId) return requireUser(req, res, () => {});
-  const session = await KaigiSession.findById(sessionId);
-  if (!session) {
-    return res.status(404).json({ message: "セッションが見つかりません" });
-  }
-  if (session.userId !== userId) {
-    return res
-      .status(403)
-      .json({ message: "このセッションを操作する権限がありません" });
-  }
-  const room = await KaigiRoom.findById(session.roomId);
-  if (!room) {
-    return res.status(404).json({ message: "お題が見つかりません" });
-  }
+// lock: false の操作（音声を文字にするだけで、セッションを書き換えない）は、
+// AIの返答を待っている間でも受け付ける
+const withSession =
+  (handler, opts = {}) =>
+  async (req, res) => {
+    const { sessionId } = req.params;
+    if (!isId(sessionId)) {
+      return res
+        .status(400)
+        .json({ message: "セッションのIDが正しくありません" });
+    }
+    // 本文の userId ではなく、利用者トークンで確かめた userId で本人かを判定する
+    const userId = req.verifiedUserId;
+    if (!userId) return requireUser(req, res, () => {});
+    const session = await KaigiSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: "セッションが見つかりません" });
+    }
+    if (session.userId !== userId) {
+      return res
+        .status(403)
+        .json({ message: "このセッションを操作する権限がありません" });
+    }
+    const room = await KaigiRoom.findById(session.roomId);
+    if (!room) {
+      return res.status(404).json({ message: "お題が見つかりません" });
+    }
 
-  if (req.method === "GET") return handler(req, res, { session, room });
+    if (req.method === "GET" || opts.lock === false) {
+      return handler(req, res, { session, room });
+    }
 
-  if (busy.has(sessionId)) {
-    return res.status(409).json({
-      message: "前の操作を処理しています。少し待ってからもう一度試してください",
-    });
-  }
-  busy.add(sessionId);
-  try {
-    return await handler(req, res, { session, room });
-  } catch (error) {
-    console.error(
-      `[kaigiRoutes] ${req.method} ${req.path} failed:`,
-      error.message
-    );
-    return res.status(502).json({
-      message: "AIの応答に失敗しました。少し待ってから、もう一度試してください",
-    });
-  } finally {
-    busy.delete(sessionId);
-  }
-};
+    if (busy.has(sessionId)) {
+      return res.status(409).json({
+        message:
+          "前の操作を処理しています。少し待ってからもう一度試してください",
+      });
+    }
+    busy.add(sessionId);
+    try {
+      return await handler(req, res, { session, room });
+    } catch (error) {
+      console.error(
+        `[kaigiRoutes] ${req.method} ${req.path} failed:`,
+        error.message
+      );
+      return res.status(502).json({
+        message:
+          "AIの応答に失敗しました。少し待ってから、もう一度試してください",
+      });
+    } finally {
+      busy.delete(sessionId);
+    }
+  };
 
 const requireActive = (session, res) => {
   if (session.status !== "active") {
@@ -470,6 +485,69 @@ router.post(
     }
     return sendSession(res, session, room);
   })
+);
+
+// 音声入力：録音1回分を文字にして返す（発言としては保存しない。送るのは本人）
+// 音声はメモリの上だけで扱い、ディスクにもデータベースにも残さない
+const parseAudio = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_AUDIO_BYTES, files: 1, fields: 5 },
+}).single("audio");
+
+const audioUpload = (req, res, next) =>
+  parseAudio(req, res, (error) => {
+    if (!error) return next();
+    const tooLarge = error.code === "LIMIT_FILE_SIZE";
+    return res.status(tooLarge ? 413 : 400).json({
+      message: tooLarge
+        ? "録音が長すぎます。1回60秒までにしてください"
+        : "音声を受け取れませんでした。もう一度録音してください",
+    });
+  });
+
+const AUDIO_TYPE_ERROR =
+  "音声の形式に対応していません。もう一度録音してください";
+
+router.post(
+  "/sessions/:sessionId/transcribe",
+  transcribeLimiter,
+  audioUpload,
+  withSession(
+    async (req, res, { session, room }) => {
+      if (!requireActive(session, res)) return;
+      if (!isChatStep(session.step)) return wrongStep(res, session);
+      const audio = req.file?.buffer;
+      if (!audio || audio.length < MIN_AUDIO_BYTES) {
+        return res.status(400).json({
+          message: "声が聞き取れませんでした。もう少し長く話してください",
+        });
+      }
+      // ブラウザが申告する形式は偽れるので、中身の先頭で判定する
+      const extension = detectAudioExtension(audio);
+      if (!extension) {
+        return res.status(400).json({ message: AUDIO_TYPE_ERROR });
+      }
+      try {
+        const text = await transcribeForSession(
+          room,
+          session,
+          audio,
+          extension
+        );
+        return res.json({ text });
+      } catch (error) {
+        console.error(
+          `[kaigiRoutes] transcribe failed session=${session._id}:`,
+          error.message
+        );
+        return res.status(502).json({
+          message:
+            "音声を文字にできませんでした。少し待ってから、もう一度試してください",
+        });
+      }
+    },
+    { lock: false }
+  )
 );
 
 // 参加者のボタン操作で次の工程へ進む

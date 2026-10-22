@@ -1,5 +1,5 @@
-import { Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Loader2, Mic, Send, Square } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { cn } from "../../lib/utils";
 import type {
@@ -9,6 +9,11 @@ import type {
 } from "../../services/kaigi/types";
 import { Button } from "../ui/button";
 import { SPEAKERS, STEP_LABELS } from "./labels";
+import {
+  MAX_RECORDING_SEC,
+  useVoiceInput,
+  voiceInputSupported,
+} from "./useVoiceInput";
 
 interface KaigiChatProps {
   messages: KaigiMessage[];
@@ -16,7 +21,14 @@ interface KaigiChatProps {
   members?: KaigiMembers;
   isSending: boolean;
   onSend: (content: string) => Promise<boolean>;
+  // 録音を文字にする。渡されなければマイクのボタンを出さない
+  onTranscribe?: (audio: Blob) => Promise<string>;
 }
+
+const MAX_LABEL = `${MAX_RECORDING_SEC}秒`;
+
+const formatSec = (sec: number) =>
+  `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 
 // 参加者とAIたちの会話。工程が変わったところに区切りを入れる
 // お題に合わせたメンバーの名前と立場があれば、既定のものより優先する
@@ -35,9 +47,20 @@ const KaigiChat = ({
   members,
   isSending,
   onSend,
+  onTranscribe,
 }: KaigiChatProps) => {
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+
+  // 文字にした声は、書きかけの文章の後ろに足す（送るのは本人）
+  const appendText = useCallback((text: string) => {
+    setDraft((prev) => (prev.trim() ? `${prev.trimEnd()}\n${text}` : text));
+  }, []);
+  const noTranscribe = useCallback(async () => "", []);
+  const voice = useVoiceInput(onTranscribe ?? noTranscribe, appendText);
+  const [canUseVoice] = useState(
+    () => Boolean(onTranscribe) && voiceInputSupported()
+  );
 
   // 発言が増えたら、会話の枠の中だけを一番下へ（ページ全体は動かさない）
   useEffect(() => {
@@ -120,18 +143,64 @@ const KaigiChat = ({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="思ったことを書いてください（音声入力も使えます）"
+          placeholder={
+            canUseVoice
+              ? "思ったことを書くか、マイクを押して話してください"
+              : "思ったことを書いてください（音声入力も使えます）"
+          }
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
-        <Button
-          type="submit"
-          disabled={isSending || !draft.trim()}
-          className="shrink-0 gap-1 whitespace-nowrap"
-        >
-          <Send className="h-4 w-4" />
-          送る
-        </Button>
+        <div className="flex min-w-[5.5rem] shrink-0 flex-col gap-2">
+          {canUseVoice && (
+            <Button
+              type="button"
+              variant={voice.state === "recording" ? "destructive" : "outline"}
+              disabled={voice.state === "transcribing"}
+              onClick={voice.state === "recording" ? voice.stop : voice.start}
+              aria-label={
+                voice.state === "recording" ? "録音を止める" : "話して入力する"
+              }
+              className="gap-1 whitespace-nowrap"
+            >
+              {voice.state === "recording" ? (
+                <>
+                  <Square className="h-4 w-4" />
+                  {formatSec(voice.elapsedSec)}
+                </>
+              ) : voice.state === "transcribing" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Mic className="h-4 w-4" />
+                  話す
+                </>
+              )}
+            </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={isSending || !draft.trim()}
+            className="gap-1 whitespace-nowrap"
+          >
+            <Send className="h-4 w-4" />
+            送る
+          </Button>
+        </div>
       </form>
+      {canUseVoice && (
+        <p className="mt-1 min-h-5 text-sm" aria-live="polite">
+          {voice.state === "recording" ? (
+            <span className="text-rose-700">
+              録音しています。話し終えたら、もう一度押してください（{MAX_LABEL}
+              まで）
+            </span>
+          ) : voice.state === "transcribing" ? (
+            <span className="text-neutral-600">文字にしています…</span>
+          ) : voice.error ? (
+            <span className="text-rose-700">{voice.error}</span>
+          ) : null}
+        </p>
+      )}
     </div>
   );
 };

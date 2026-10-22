@@ -18,6 +18,11 @@ import {
   stepTiming,
 } from "../services/kaigi/steps.js";
 import {
+  buildTranscribePrompt,
+  cleanTranscript,
+  detectAudioExtension,
+} from "../services/kaigi/transcribe.js";
+import {
   applyJudgment,
   applyTurn,
   buildMessages,
@@ -529,5 +534,69 @@ describe("applyJudgment", () => {
     );
     applyTurn(session, turn);
     expect(session.judgments.member2.R2).toBe("undecided");
+  });
+});
+
+describe("transcribe", () => {
+  const head = (...parts) =>
+    Buffer.concat([
+      ...parts.map((p) =>
+        typeof p === "string" ? Buffer.from(p, "latin1") : Buffer.from(p)
+      ),
+      Buffer.alloc(16),
+    ]);
+
+  it("detects the recording formats phones produce from the file contents", () => {
+    // Android Chrome（webm）と iPhone Safari（mp4）
+    expect(detectAudioExtension(head([0x1a, 0x45, 0xdf, 0xa3]))).toBe("webm");
+    expect(detectAudioExtension(head([0, 0, 0, 0x1c], "ftypM4A "))).toBe("mp4");
+    expect(detectAudioExtension(head("OggS"))).toBe("ogg");
+    expect(detectAudioExtension(head("RIFF", [0, 0, 0, 0], "WAVE"))).toBe(
+      "wav"
+    );
+    // 画像や短すぎるものは断る
+    expect(detectAudioExtension(head([0x89, 0x50, 0x4e, 0x47]))).toBeNull();
+    expect(detectAudioExtension(Buffer.from([0x1a, 0x45]))).toBeNull();
+  });
+
+  it("gives the topic and the last AI question as hints", () => {
+    const prompt = buildTranscribePrompt(
+      { title: "共用自転車をどうするか", background: "利用が減っている" },
+      makeSession({
+        messages: [
+          { speaker: "facilitator", content: "最初の問い" },
+          { speaker: "member1", content: "駐輪場で困ったことは？" },
+          { speaker: "user", content: "あります" },
+        ],
+      })
+    );
+    expect(prompt).toContain("共用自転車をどうするか");
+    expect(prompt).toContain("利用が減っている");
+    expect(prompt).toContain("駐輪場で困ったことは？");
+    expect(prompt).not.toContain("最初の問い");
+    expect(prompt).not.toContain("あります");
+  });
+
+  it("keeps the hint short even with a long background", () => {
+    const prompt = buildTranscribePrompt(
+      { title: "お題", background: "あ".repeat(4000) },
+      makeSession()
+    );
+    expect(prompt.length).toBeLessThan(400);
+  });
+
+  it("drops phrases returned for silence, but keeps real speech", () => {
+    expect(cleanTranscript("ご視聴ありがとうございました。")).toBe("");
+    expect(cleanTranscript("  。 ")).toBe("");
+    expect(
+      cleanTranscript("以下は、参加者がこれについて話した内容です。")
+    ).toBe("");
+    expect(cleanTranscript(" 駐輪場が狭いと思います。 ")).toBe(
+      "駐輪場が狭いと思います。"
+    );
+    // 定型文を含んでいても、ほかに話した内容があれば残す
+    expect(
+      cleanTranscript("動画のご視聴ありがとうございましたと言われても困る")
+    ).toBe("動画のご視聴ありがとうございましたと言われても困る");
   });
 });
