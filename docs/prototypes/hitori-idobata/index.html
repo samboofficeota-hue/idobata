@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Inter:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=BIZ+UDPGothic:wght@400;700&family=Inter:wght@400;600&display=swap">
 <style>
 /* 配置：スマホ1画面のアプリ。上から 見出し → 段階 → ボードと会話（上下 or タブ）→ 操作と「押して話す」。広い画面ではボードと会話を左右に並べる */
 /* 色・書体・行間は、いどばたの frontend/src/index.css と tailwind.config.js に合わせる（明るい画面だけ。いどばたに暗い画面の設定はない） */
@@ -236,6 +236,25 @@ textarea { width: 100%; min-height: 72px; border: 1px solid var(--line); border-
 @media (prefers-reduced-motion: reduce) {
   .note.fresh, .btn.pulse, .mic.rec, .typing i { animation: none; }
 }
+
+/* 手元に残るドキュメント：いどばたの全画面レポート（full-screen-report-modal）に合わせる。レポート本体の見た目は script の REPORT_CSS */
+.report-modal { position: fixed; inset: 0; z-index: 55; background: var(--bg); display: flex; flex-direction: column; }
+.rm-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line);
+  padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.rm-title { font-weight: 700; font-size: 16px; line-height: 1.6; color: var(--fg); }
+.rm-body { flex: 1; min-height: 0; overflow: auto; padding-top: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.rm-tools { max-width: 880px; margin: 0 auto 8px; display: grid; gap: 8px; }
+.rm-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.rm-check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.dl-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--primary); background: var(--surface); color: var(--primary-dark); font-weight: 700; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.dl-btn:hover { background: rgba(210, 231, 255, 0.35); }
+@media (min-width: 768px) {
+  .rm-head { padding-left: 32px; padding-right: 32px; }
+  .rm-title { font-size: 20px; }
+  .rm-body { padding-left: 32px; padding-right: 32px; }
+}
 </style>
 
 <div class="app">
@@ -388,7 +407,7 @@ function searchDocs(query, k) {
 const uniqChunks = (list) => { const seen = new Set(); return list.filter((c) => c && !seen.has(c.id) && seen.add(c.id)); };
 const WIDEN = ['ほかの立場の人、たとえば子ども本人や地域の人は、どう感じていそうですか？', 'ほかに、気になっていることはありますか？'];
 const ISSUE_POINTS = ['誰が', 'どんな場面で', 'どれくらい', 'なぜ', '解決策が混ざっていない', '根拠の付箋'];
-const GOAL_POINTS = ['誰が', 'どうなる', 'いつ', '指標'];
+const GOAL_POINTS = ['誰が', 'どうなる', 'いつ', '指標', '手段が混ざっていない'];
 const Q_ISSUE = {
   '誰が': 'この課題で、一番困っているのは誰ですか？',
   'どんな場面で': 'それは、どんな場面で起きていますか？',
@@ -401,7 +420,8 @@ const Q_GOAL = {
   '誰が': 'その姿では、誰がどうなっていますか？',
   'どうなる': 'そのとき、どんな状態になっていますか？',
   'いつ': 'いつごろまでに実現したいですか？',
-  '指標': 'どうなったら「良くなった」とわかりますか？ 数や回数で言えると、あとで効果を確かめやすくなります。'
+  '指標': 'どうなったら「良くなった」とわかりますか？ 数や回数で言えると、あとで効果を確かめやすくなります。',
+  '手段が混ざっていない': '望ましい姿に、解決のやり方が入っていませんか？ やり方を抜くと、どんな姿になりますか？'
 };
 
 /* ───────── 状態 ───────── */
@@ -544,7 +564,7 @@ const STAGE_GUIDE = [
   '課題整理。課題の答えは示さない。課題の案がまだなければ「ボードを見て、一番なんとかしたいのはどれか」を問う。本人が課題を言ったら、点検の結果で「不足」の点を1つだけ問う（誰が・どんな場面で・どれくらい・なぜ・解決策が混ざっていない・根拠の付箋）。点検の結果がまだなければ、誰が一番困っているかを問う。「不足」を埋める手がかりになる事実が資料にあれば、事実を1つだけ示してから、本人の考えを問う。どれも ok なら〔これで決める〕で課題を確定するよう促す。課題が確定していれば〔次へ〕を案内する（suggestAdvance を true）。',
   'ゴール設定。課題が解決したときの望ましい姿を描くのを支える。望ましい姿は本人が決める。点検の結果で「不足」の点（誰が・どうなる・いつ・指標）を1つだけ問う。指標を考えるときは、資料に今の数値があれば1つ示してよい。つながりの点検が「確かめたい」なら、課題とのつながりを問う。そろったら〔これで決める〕を促す。確定していれば〔次へ〕を案内する（suggestAdvance を true）。',
   'アイデア出し。まず本人のアイデアを広げる。本人のアイデアが1つ以上出たら、〔ほかの人のアイデアも聞く〕でAI参加者の案も見られることを伝えてよい。本人が聞いたら、資料にある似た事例を示してよい。AI参加者が課題を問い直していたら、それを短く本人に渡し、本人の考えを問う。AI参加者の案が出たあとは、付箋を押して〔解決案に選ぶ〕で選び、〔これで決める〕で確定するよう促す。解決案は本人が選ぶ。',
-  'まとめ。ストーリーの下書きは、編集者が本人の求めに合わせて直している。本人の求めを短く受け止め、ほかに直したい点があるか問う。よければ〔これで決める〕でストーリーを確定するよう促す。'
+  'まとめ。ストーリーの下書きは、編集者が本人の求めに合わせて直している。新しい掘り下げの問いはしない。本人の求めを短く受け止め、ほかに直したい点があるかだけを問い、よければ〔これで決める〕でストーリーを確定するよう促す。'
 ];
 const SCRIBE_KINDS = [
   'seed（気になったこと）だけ。質問なら「？」で始まる短い文にする。',
@@ -573,9 +593,9 @@ const P = {
 
 # 守ること
 - 結論や意見を言わない。課題も望ましい姿も解決案も、決めるのは本人。
-- 返事は1〜2文（事実を示すときは3文まで）。問いは1回に1つ。
+- 返事は1〜2文、全体で120字以内（事実を示すときは200字以内）。問いは1回に1つ。
 - 本人の言葉を「」で短く引いてから問う。本人がすでに答えたことを聞き直さない。
-- 受け止めの言い方（「〜ですね」「〜とのことですね」など）を毎回同じにしない。受け止めは省いてもよい。ほめ言葉は使わない。
+- 受け止めは短く、毎回言い方を変える。「〜とのことですね」は使わない。受け止めを省いて、すぐ問いに入ってもよい。ほめ言葉は使わない。
 - 付箋や決めたことを、自分で書き直すと申し出ない。直すときは、本人がカードの〔直す〕や〔これで決める〕で直せることを伝える。
 - 次の段階への案内は、返事の最後に1文で添える。問いの前に挟まない。
 - 付箋に触れるときは、下の「ボード」にある付箋のIDだけを refs に入れる。
@@ -583,6 +603,7 @@ const P = {
 
 # 事実の扱い（資料係が探した、関連する調査やレポート）
 - 事実を言うときは、「資料の抜粋」と「資料係のメモ」にあることだけを使い、使った抜粋の記号（例：d2-1）を docRefs に入れる。返事の中では「（資料：資料名）」と出典を短く添える。
+- 今回示せる事実は「事実の上限」の数まで。抜粋が渡されていないときは、事実を言わない。
 - 抜粋にないことは「関連資料には見当たりません」と言う。推測で数字を作らない。
 - 事実で本人の考えを決めつけない。「だから〜が課題です」とは言わない。事実を示したら、本人の考えを問う。
 
@@ -606,6 +627,9 @@ ${adviceText(ctx.stage)}
 
 # 資料の抜粋（記号｜資料名｜本文）
 ${passagesText(ctx.passages)}
+
+# 事実の上限
+${ctx.factLimit}つ${ctx.factLimit ? '' : '（今回は事実を言わない）'}
 
 # 最近の会話
 ${chatText(10, ctx.msgId)}
@@ -641,7 +665,7 @@ ${SCRIBE_KINDS[ctx.stage]}
 - 「食い違い」：ほかの付箋と食い違う。relatedNoteId と confidence（1〜10）を付ける。7以上のときだけ付ける
 
 # 既存の付箋を直すとき（update）
-直前のファシリテーターの問いが既存の付箋について聞いていて、本人の発言がその答えになっているときだけ、その付箋の本文に短く書き足してよい。印が解消したら removeFlags に入れる。baseVersion にはボードの版の数字を入れる。
+本人の発言が、既存の付箋の理由や具体例になっているとき（直前の問いがその付箋についてでなくても）は、新しい付箋を作らず、その付箋の本文に短く書き足す。印が解消したら removeFlags に入れる。baseVersion にはボードの版の数字を入れる。
 
 # ボード（ID｜種類｜作った人｜版｜印｜掘り下げた回数｜本文）
 ${boardText(ctx.snapshot)}
@@ -691,7 +715,8 @@ ${goal}${ind}
       : `- 誰が：誰が良くなっているかがあるか
 - どうなる：どんな状態になっているかがあるか
 - いつ：いつごろまでに、があるか
-- 指標：どうなったら良くなったとわかるか（数や回数など）があるか`;
+- 指標：どうなったら良くなったとわかるか（数や回数など）があるか
+- 手段が混ざっていない：望ましい姿に、解決のやり方（「〜が見守る」「〜を開く」など、誰が何をするか）が入っていないか。入っていれば不足（やり方はアイデア出しで決めるため）`;
     return `あなたは「ひとりいどばた」の点検係です。本人が言った${isIssue ? '課題' : '望ましい姿'}の案を点検します。直さず、足りないかどうかだけを判定します。付箋の本文だけでなく、元の発言と補足もあわせて読み、本人が言ったことは「ある」とみなします。
 
 # ${isIssue ? '課題' : '望ましい姿'}の案
@@ -842,7 +867,7 @@ function candidateFlow(target, ctx) {
 const Fake = {
   facilitator(ctx) {
     const { stage, text, snapshot, turn } = ctx;
-    if (isQuestion(text) && ctx.passages && ctx.passages.length) {
+    if (isQuestion(text) && ctx.factLimit && ctx.passages && ctx.passages.length) {
       const c = ctx.passages[0];
       return { content: `資料では「${short(c.text, 60)}」とあります（資料：${c.doc.title}）。` + (stage === 0 ? ' ほかにも聞きたいことがあれば、どうぞ。' : ' あなたの身近ではどうですか？'), refs: [], docRefs: [c.id], questionType: '資料の質問に答える' };
     }
@@ -933,7 +958,7 @@ const Fake = {
         ['どうなる', /(なる|なって|できる|ている|状態)/],
         ['いつ', /(年|月|までに|以内|年後)/],
         ['指標', /(以下|以上|割|減|増|ゼロ|日|回|人)/]
-      ].map(([point, re]) => ({ point, status: re.test(all) ? 'ok' : '不足' })) };
+      ].map(([point, re]) => ({ point, status: re.test(all) ? 'ok' : '不足' })).concat([{ point: '手段が混ざっていない', status: /(見守|開放|開く|つくる|作る|設置|配置)/.test(cand.text) ? '不足' : 'ok' }]) };
     }
     if (target === 'link') {
       const issue = S.confirmed.issue ? S.confirmed.issue.text : (activeNotes().find((n) => n.kind === 'issue') || {}).text;
@@ -1148,13 +1173,19 @@ function send(text, via) {
   const turn = S.messages.filter((m) => m.who === 'user' && m.stage === stage).length;
   const msg = addMsg('user', text, { via });
   const snapshot = activeNotes().map((n) => Object.assign({}, n));
-  /* 資料の抜粋：意見出しでは、本人が質問したときだけ渡す（自分の考えを出し切る前に、事実で寄せないため） */
-  const wantDocs = stage !== 1 || isQuestion(text);
+  /* 資料の抜粋を渡す場面をプログラムで絞る：
+     下準備と、本人が質問したときは渡す。課題整理・ゴール設定は、点検で「不足」が残っているときだけ渡す。
+     意見出し・アイデア出し・まとめは、本人が質問したときだけ（自分の考えを出し切る前に、事実で寄せないため） */
+  const asked = isQuestion(text);
+  const chk = stage === 2 ? S.checks.issue : stage === 3 ? S.checks.goal : null;
+  const gap = !!(chk && chk.items && chk.items.some((i) => i.status !== 'ok'));
+  const wantDocs = stage === 0 || asked || ((stage === 2 || stage === 3) && gap);
+  const factLimit = !wantDocs ? 0 : (asked || stage === 0 ? 2 : 1);
   const found = wantDocs ? searchDocs(isQuestion(text) ? text : text + ' ' + candidateText(stage), 3) : [];
   const advised = S.advice && S.advice.stage === stage ? S.advice.facts.map((f) => CHUNK[f.docRef]) : [];
   const passages = uniqChunks(found.concat(wantDocs ? advised : [])).slice(0, 5);
   const plannedType = stage === 1 && !isQuestion(text) ? (turn % 3 === 2 ? '広げる（ほかの立場や場面に目を向ける問い）' : '掘り下げ（今の発言か、掘り下げの候補の上の付箋について）') : null;
-  const ctx = { stage, text, snapshot, turn, msgId: msg.id, lastFacil: lastFacilBefore(stage, msg.id), passages, plannedType };
+  const ctx = { stage, text, snapshot, turn, msgId: msg.id, lastFacil: lastFacilBefore(stage, msg.id), passages, plannedType, factLimit };
   render();
   runAgent('ファシリ', '本人の発言', { delay: 900, prompt: () => P.facilitator(ctx), shape: Shape.facilitator, fake: () => Fake.facilitator(ctx), apply: (out) => applyFacil(out, ctx) });
   if (stage <= 4) {
@@ -1181,14 +1212,15 @@ function applyFacil(out, ctx) {
   const dropped = asked.length - refs.length;
   const given = new Set(ctx.passages.map((c) => c.id));
   const askedDocs = out.docRefs || [];
-  const docRefs = askedDocs.filter((id) => given.has(id));
+  const docRefs = askedDocs.filter((id) => given.has(id)).slice(0, ctx.factLimit);
   const droppedDocs = askedDocs.length - docRefs.length;
+  const tooLong = out.content.length > (docRefs.length ? 200 : 120);
   refs.forEach((id) => { const n = getNote(id); n.dug = (n.dug || 0) + 1; });
   const fm = addMsg('facil', out.content, { refs, docRefs, qt: out.questionType, replyTo: ctx.msgId });
   docRefs.forEach((id) => { S.cited = S.cited || []; if (!S.cited.includes(id)) S.cited.push(id); });
   attributeDug(fm, ctx.msgId);
   if (out.suggestAdvance) S.suggest = true;
-  return { ok: true, note: (out.questionType || '返事') + (fm.refs.length ? `・付箋${fm.refs.length}枚に触れた` : '・付箋には触れない') + (dropped ? `・実在しない付箋を${dropped}件外した` : '') + (docRefs.length ? `・資料${docRefs.length}件を示した（${docRefs.join('、')}）` : '') + (droppedDocs ? `・渡していない資料を${droppedDocs}件外した` : '') + (out.read ? `・読み取り：${out.read}` : '') };
+  return { ok: true, note: (out.questionType || '返事') + (fm.refs.length ? `・付箋${fm.refs.length}枚に触れた` : '・付箋には触れない') + (dropped ? `・実在しない付箋を${dropped}件外した` : '') + (docRefs.length ? `・資料${docRefs.length}件を示した（${docRefs.join('、')}）` : '') + (droppedDocs ? `・渡していない資料か上限を超えた資料を${droppedDocs}件外した` : '') + (tooLong ? `・長すぎる（${out.content.length}字）` : '') + (out.read ? `・読み取り：${out.read}` : '') };
 }
 
 function applyScribe(out, ctx, msg) {
@@ -1545,6 +1577,7 @@ function closeSheet() { sheet = null; renderSheet(); }
 function renderSheet() {
   const root = $('#sheetRoot');
   if (!sheet) { root.innerHTML = ''; return; }
+  if (sheet.type === 'doc') { root.innerHTML = reportModal(!!sheet.data.appendix); const sc = root.querySelector('.rm-body'); if (sc) sc.scrollTop = sheet.data.scroll || 0; return; }
   root.innerHTML = `<div class="backdrop" id="backdrop"><div class="sheet" role="dialog" aria-modal="true">${SHEETS[sheet.type](sheet.data)}</div></div>`;
   const first = root.querySelector('textarea');
   if (first && !demo) first.focus();
@@ -1623,17 +1656,22 @@ const SHEETS = {
   },
   back(d) {
     return `<h2>${esc(STAGES[d.stage])}に戻りますか？</h2><p>ボードと、決めたことはそのまま残ります。戻ったあと、もう一度〔次へ〕で進めます。</p><div class="row"><button class="btn primary" data-act="back-do" data-stage="${d.stage}">戻る</button>${closeBtn}</div>`;
-  },
-  doc(d) {
-    const md = docText(!!d.appendix);
-    return `<h2>手元に残るドキュメント</h2>
-      <div class="doc">${docSections(!!d.appendix).map((s) => `<section><h3>${esc(s.h)}</h3><div class="v">${esc(s.v)}</div>${s.by ? `<span class="by">${esc(s.by)}</span>` : ''}</section>`).join('')}</div>
-      <label class="row" for="appx"><input type="checkbox" id="appx" ${d.appendix ? 'checked' : ''}> 付録（ボードの付箋）を含める</label>
-      <p class="fine">付箋には、経験や個人的な事情が入りやすいので、はじめは含めない設定にしています（案）。壁やホストに届けるかは、あなたが決めます。試作では、届ける操作は作っていません。</p>
-      <div class="row"><button class="btn primary" data-act="copy">テキストをコピー</button>${downloadsNs ? '<button class="btn" data-act="download">ファイルに保存（.md）</button>' : ''}${closeBtn}</div>
-      <textarea id="docRaw" class="sr" aria-hidden="true" tabindex="-1">${esc(md)}</textarea>`;
   }
 };
+function reportModal(appendix) {
+  return `<div class="report-modal" role="dialog" aria-modal="true" aria-label="手元に残るドキュメント">
+    <div class="rm-head"><span class="rm-title">手元に残るドキュメント</span><button class="iconbtn sm" data-act="close" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="rm-body">
+      <div class="rm-tools">
+        <label class="rm-check" for="appx"><input type="checkbox" id="appx" ${appendix ? 'checked' : ''}> 付録（ボードの付箋）を含める</label>
+        <div class="rm-btns"><button class="dl-btn" data-act="copy">テキストをコピー</button>${downloadsNs ? '<button class="dl-btn" data-act="download-html">HTMLで保存</button><button class="dl-btn" data-act="download">Markdownで保存</button>' : ''}</div>
+        <p class="fine">付箋には、経験や個人的な事情が入りやすいので、はじめは含めない設定にしています（案）。壁やホストに届けるかは、あなたが決めます。試作では、届ける操作は作っていません。</p>
+      </div>
+      ${reportBody(appendix)}
+      <textarea id="docRaw" class="sr" aria-hidden="true" tabindex="-1">${esc(docText(appendix))}</textarea>
+    </div>
+  </div>`;
+}
 function confirmFields(key) {
   const C = S.confirmed;
   const val = (k) => (C[k] && C[k].text) || '';
@@ -1700,6 +1738,113 @@ function saveConfirm(id) {
   confirmFields(id).items.forEach((f) => { const el = document.getElementById('f-' + f.key); vals[f.key] = el ? el.value.trim() : ''; });
   if (applyConfirm(id, vals)) { closeSheet(); render(); }
 }
+/* ───────── 手元に残るドキュメント（いどばたのレポートの見た目） ─────────
+   いどばたのレポート画面（QuestionDetail・MarkdownRenderer・markdown.css・OtherOpinionCard・full-screen-report-modal・download-button）に合わせる。
+   画面に出すときも、HTML で保存するときも、同じ REPORT_CSS を使う */
+const REPORT_CSS = `
+.report { --r-fg: #09090b; --r-text: #404040; --r-sub: #4b5563; --r-muted: #71717a; --r-line: #e4e4e7; --r-quote: #d4d4d4;
+  --r-p: #2b80ff; --r-p-dark: #2066ce; --r-p-ink: #154c9e; --r-p-weak: #d2e7ff; --r-p-100: #bad8ff; --r-p-tint: rgba(210, 231, 255, 0.35);
+  --r-a-weak: #baf0e7; --r-a-ink: #00826d; --r-gray-50: #f9fafb; --r-gray-300: #d1d5db;
+  max-width: 880px; margin: 0 auto; padding: 16px 0 32px; background: #fff; color: var(--r-text);
+  font-family: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; font-size: 16px; line-height: 2; letter-spacing: 0.025em; }
+.report * { box-sizing: border-box; }
+.report p { margin: 0; }
+.rp-hero { display: grid; gap: 8px; padding: 24px; border: 1px solid var(--r-p-100); border-radius: 8px; background: var(--r-p-tint);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04); }
+.rp-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; line-height: 1.6; font-weight: 700; color: var(--r-p-ink); }
+.rp-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--r-p); }
+.rp-title { margin: 0; font-family: "BIZ UDGothic", "BIZ UDPGothic", sans-serif; font-weight: 700; font-size: 26px; line-height: 1.62; color: var(--r-fg); text-wrap: balance; }
+.rp-lead { color: var(--r-sub); }
+.rp-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.8; color: var(--r-muted); }
+.rp-meta li { display: inline-flex; align-items: center; gap: 6px; }
+.rp-meta svg { width: 16px; height: 16px; color: var(--r-p); flex: 0 0 auto; }
+.rp-sec { margin-top: 32px; display: grid; gap: 12px; }
+.rp-h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; padding: 8px 0 0; font-size: 20px; line-height: 1.6; font-weight: 700; color: var(--r-fg); }
+.rp-h2::before { content: ""; width: 4px; height: 24px; border-radius: 9999px; background: var(--r-p); flex: 0 0 auto; }
+.rp-by { margin-left: auto; font-size: 12px; font-weight: 400; line-height: 1.8; padding: 0 10px; border-radius: 9999px; background: var(--r-gray-50); color: var(--r-muted); border: 1px solid var(--r-line); white-space: nowrap; }
+.rp-by.ai { border-style: dashed; border-color: var(--r-gray-300); }
+.rp-grid { display: grid; gap: 24px 16px; padding-top: 12px; }
+@media (min-width: 640px) { .rp-grid.two { grid-template-columns: 1fr 1fr; } }
+.rp-card { position: relative; display: grid; gap: 8px; align-content: start; padding: 24px 20px 20px; border: 1px solid rgba(0, 0, 0, 0.16); border-radius: 16px; background: #fff; }
+.rp-card .main { color: var(--r-fg); font-size: 17px; font-weight: 700; line-height: 1.85; }
+.rp-card .sub { font-size: 14px; line-height: 1.9; color: var(--r-sub); }
+.rp-card .sub b { color: var(--r-fg); }
+.rp-card.dashed { border-style: dashed; border-color: var(--r-gray-300); background: var(--r-gray-50); }
+.rp-label { position: absolute; top: -13px; left: 16px; padding: 0 12px; border-radius: 9999px; background: var(--r-p-weak); border: 1px solid var(--r-p-100); color: var(--r-p-ink); font-size: 12px; font-weight: 700; line-height: 24px; letter-spacing: 0.025em; }
+.rp-label.goal { background: var(--r-a-weak); border-color: var(--r-a-weak); color: var(--r-a-ink); }
+.rp-tag { justify-self: start; font-size: 12px; line-height: 1.8; padding: 0 10px; border-radius: 9999px; background: var(--r-gray-50); color: var(--r-muted); border: 1px dashed var(--r-gray-300); }
+.rp-story { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.rp-story li { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--r-line); }
+.rp-story li:first-child { border-top: 0; }
+.rp-step { align-self: start; margin-top: 4px; padding: 0 10px; border-radius: 9999px; background: var(--r-p-weak); color: var(--r-p-ink); font-size: 12px; font-weight: 700; line-height: 24px; white-space: nowrap; }
+.rp-story p { color: var(--r-text); }
+.rp-sources { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.rp-sources blockquote { margin: 0 0 4px; padding-left: 16px; border-left: 4px solid var(--r-quote); color: var(--r-text); }
+.rp-sources cite { display: block; font-style: normal; font-size: 13px; line-height: 1.8; color: var(--r-muted); }
+.rp-notes { display: grid; gap: 4px; margin: 0; padding-left: 20px; }
+.rp-notes .k { color: var(--r-muted); font-size: 13px; margin-right: 6px; }
+.rp-foot { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--r-line); text-align: center; font-size: 12px; line-height: 1.8; color: var(--r-muted); }
+`;
+(() => { const st = document.createElement('style'); st.id = 'report-css'; st.textContent = REPORT_CSS; document.head.appendChild(st); })();
+
+const RP_ICON = {
+  date: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 11h6M9 15h6"/></svg>'
+};
+const todayJa = () => { const d = new Date(); return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`; };
+function storySteps(text) {
+  const parts = String(text || '').split(/【([^】]+)】/);
+  const steps = [];
+  for (let i = 1; i < parts.length; i += 2) steps.push({ h: parts[i].trim(), v: (parts[i + 1] || '').trim() });
+  return steps.length ? steps : [{ h: 'ストーリー', v: String(text || '').trim() }];
+}
+function citedChunks() { return (S.cited || []).map((id) => CHUNK[id]).filter(Boolean); }
+function reportBody(appendix) {
+  const C = S.confirmed;
+  const v = (k) => (C[k] && C[k].text) || '（まだ決まっていません）';
+  const ai = C.solution && C.solution.ai;
+  const sources = citedChunks();
+  const by = (t, isAi) => `<span class="rp-by${isAi ? ' ai' : ''}">${esc(t)}</span>`;
+  const h = [];
+  h.push(`<header class="rp-hero">
+    <span class="rp-badge"><span class="dot"></span>ひとりいどばた レポート</span>
+    <h1 class="rp-title">${esc(DEMO.title)}</h1>
+    ${C.understanding ? `<p class="rp-lead">本人の一言：${esc(C.understanding.text)}</p>` : ''}
+    <ul class="rp-meta"><li>${RP_ICON.date}${esc(todayJa())}</li><li>${RP_ICON.person}本人がまとめ、AIが下書きと資料の確認を手伝った</li>${sources.length ? `<li>${RP_ICON.doc}参考にした資料 ${sources.length}件</li>` : ''}</ul>
+  </header>`);
+  h.push(`<section class="rp-sec"><h2 class="rp-h2">課題と望ましい姿${by('本人', false)}</h2>
+    <div class="rp-grid two">
+      <div class="rp-card"><span class="rp-label">課題</span><p class="main">${esc(v('issue'))}</p>${C.current && C.current.text ? `<p class="sub"><b>現状：</b>${esc(C.current.text)}</p>` : ''}</div>
+      <div class="rp-card"><span class="rp-label goal">望ましい姿</span><p class="main">${esc(v('goal'))}</p>${C.indicator && C.indicator.text ? `<p class="sub"><b>指標：</b>${esc(C.indicator.text)}</p>` : ''}</div>
+    </div></section>`);
+  h.push(`<section class="rp-sec"><h2 class="rp-h2">解決案${by(ai ? '本人（AI参加者の案を含む）' : '本人', false)}</h2>
+    <div class="rp-grid"><div class="rp-card"><span class="rp-label">解決案</span><p class="main">${esc(v('solution'))}</p>${C.reason && C.reason.text ? `<p class="sub"><b>選んだ理由：</b>${esc(C.reason.text)}</p>` : ''}${ai ? '<span class="rp-tag">AI参加者の案を含む</span>' : ''}</div></div></section>`);
+  h.push(`<section class="rp-sec"><h2 class="rp-h2">ストーリー${by('AIの下書きを本人が確定', false)}</h2>
+    <ol class="rp-story">${storySteps(C.story ? C.story.text : S.story).map((st) => `<li><span class="rp-step">${esc(st.h)}</span><p>${esc(st.v)}</p></li>`).join('')}</ol></section>`);
+  h.push(`<section class="rp-sec"><h2 class="rp-h2">効果の見通し${by('AIが作る項目', true)}</h2>
+    <div class="rp-card dashed"><p class="sub">関連資料をもとに、似た事例と効果の幅を出典つきで示す欄です。RAG の設計と合わせて、あとで加えます。</p></div></section>`);
+  if (sources.length) {
+    h.push(`<section class="rp-sec"><h2 class="rp-h2">参考にした資料${by('ファシリテーターが示した事実', true)}</h2>
+      <ul class="rp-sources">${sources.map((c) => `<li><blockquote>${esc(c.text)}</blockquote><cite>${esc(c.doc.title)}（${esc(c.doc.org)}・${esc(c.doc.year)}・${esc(c.doc.kind)}）</cite></li>`).join('')}</ul></section>`);
+  }
+  if (appendix) {
+    const notes = activeNotes();
+    h.push(`<section class="rp-sec"><h2 class="rp-h2">付録：ボードの付箋${by('本人の言葉から書記が作成', false)}</h2>
+      <ul class="rp-notes">${notes.map((n) => `<li><span class="k">${esc((KIND[n.kind] || {}).label || '')}${isAI(n) ? '・AI参加者' : ''}</span>${esc(n.text)}</li>`).join('') || '<li>（なし）</li>'}</ul></section>`);
+  }
+  h.push('<footer class="rp-foot">ひとりいどばた（試作）・試作用の架空のお題と資料です</footer>');
+  return `<article class="report">${h.join('')}</article>`;
+}
+function reportHtmlFile(appendix) {
+  return `<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ひとりいどばた：${esc(DEMO.title)}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=BIZ+UDPGothic:wght@400;700&display=swap">
+<style>body { margin: 0; padding: 16px; background: #fff; } ${REPORT_CSS}</style></head>
+<body>${reportBody(appendix)}</body></html>`;
+}
+
 function docSections(appendix) {
   const C = S.confirmed;
   const v = (k) => (C[k] && C[k].text) || '（未確定）';
@@ -1712,6 +1857,8 @@ function docSections(appendix) {
     { h: 'ストーリー', v: v('story'), by: 'AIの下書きを本人が確定' },
     { h: '効果の見通し', v: 'RAG の設計と合わせて、あとで加えます。', by: 'AIが作る項目' }
   ];
+  const src = citedChunks();
+  if (src.length) s.push({ h: '参考にした資料', v: src.map((c) => `・${c.text}\n　（${c.doc.title}／${c.doc.org}・${c.doc.year}）`).join('\n'), by: 'ファシリテーターが示した事実' });
   if (appendix) {
     s.push({ h: '付録：ボードの付箋', v: activeNotes().map((n) => `・[${(KIND[n.kind] || {}).label}${isAI(n) ? '・AI参加者' : ''}] ${n.text}`).join('\n') || '（なし）', by: '本人の言葉から書記が作成' });
   }
@@ -1925,6 +2072,12 @@ const ACTIONS = {
     const fallback = () => { const ta = $('#docRaw'); if (ta) { ta.classList.remove('sr'); ta.select(); } toast('コピーできませんでした。選んだ文字を長押しでコピーしてください。'); };
     try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
   },
+  'download-html': () => {
+    if (!downloadsNs) return;
+    downloadsNs.save({ filename: 'ひとりいどばた.html', data: reportHtmlFile(!!(sheet && sheet.data.appendix)) })
+      .then((r) => { if (r && r.status === 'saved') toast('保存しました。'); })
+      .catch((e) => { if (e && e.code === 'declined') return; toast('保存できませんでした。テキストをコピーしてください。'); });
+  },
   download: () => {
     if (!downloadsNs) return;
     downloadsNs.save({ filename: 'ひとりいどばた.md', data: docText(!!(sheet && sheet.data.appendix)) })
@@ -1941,7 +2094,7 @@ document.addEventListener('click', (e) => {
   if (fn) fn(t, e);
 });
 document.addEventListener('change', (e) => {
-  if (e.target.id === 'appx' && sheet && sheet.type === 'doc') { sheet.data.appendix = e.target.checked; renderSheet(); }
+  if (e.target.id === 'appx' && sheet && sheet.type === 'doc') { const sc = document.querySelector('.rm-body'); sheet.data.scroll = sc ? sc.scrollTop : 0; sheet.data.appendix = e.target.checked; renderSheet(); }
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'txt' && !e.isComposing) { e.preventDefault(); sendTyped(); }
