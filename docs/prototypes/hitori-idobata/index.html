@@ -1,0 +1,1960 @@
+<title>ひとりいどばた</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Inter:wght@400;600&display=swap">
+<style>
+/* 配置：スマホ1画面のアプリ。上から 見出し → 段階 → ボードと会話（上下 or タブ）→ 操作と「押して話す」。広い画面ではボードと会話を左右に並べる */
+/* 色・書体・行間は、いどばたの frontend/src/index.css と tailwind.config.js に合わせる（明るい画面だけ。いどばたに暗い画面の設定はない） */
+:root {
+  --bg: hsl(0 0% 100%);                 /* background */
+  --canvas: hsl(210 20% 98%);           /* neutral-50：ボードの地 */
+  --surface: hsl(0 0% 100%);            /* card */
+  --surface-2: hsl(240 4.8% 95.9%);     /* muted */
+  --fg: hsl(240 10% 3.9%);              /* foreground */
+  --muted: hsl(240 3.8% 46.1%);         /* muted-foreground */
+  --line: hsl(240 5.9% 90%);            /* border */
+  --gray-50: hsl(210 20% 98%);
+  --gray-100: hsl(220 14.3% 95.9%);
+  --gray-300: hsl(216 12.2% 83.9%);
+  --dots: hsl(220 13% 91%);
+  --primary: hsl(216 100% 58.4%);       /* primary（DEFAULT = 700） */
+  --primary-dark: hsl(216 73.1% 46.7%); /* primary-800 */
+  --primary-ink: hsl(216 76.5% 35.1%);  /* primary-900：薄い青の上の文字 */
+  --primary-weak: hsl(212 100% 91.2%);  /* primary-50 */
+  --primary-100: hsl(214 100% 86.5%);
+  --primary-fg: hsl(0 0% 100%);
+  --accent: hsl(170 100% 38.2%);        /* accent（DEFAULT = 700） */
+  --accent-ink: hsl(170 100% 25.5%);    /* accent-900：薄い青緑の上の文字 */
+  --accent-weak: hsl(170 64.3% 83.5%);  /* accent-50 */
+  --destructive: hsl(0 84.2% 60.2%);
+  --scrim: rgba(9, 9, 11, 0.45);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04); /* subtle-shadow */
+  --font-ui: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  --font-num: "Inter", "BIZ UDPGothic", sans-serif;
+  --ls: 0.025em;
+  --lh-body: 2;
+  --lh-heading: 1.62;
+  --lh-compact: 1.375;
+  --r-sm: 6px;   /* rounded-md */
+  --r-md: 8px;   /* rounded-lg */
+  color-scheme: light;
+}
+
+html { box-sizing: border-box; height: 100%; }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: var(--ls);
+  -webkit-font-smoothing: antialiased;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, .note:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.app { height: 100%; max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; padding-block: 10px 10px; }
+
+/* 見出し */
+.top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand { font-weight: 700; font-size: 18px; line-height: var(--lh-heading); white-space: nowrap; }
+.theme-btn { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 4px 0; color: var(--muted); font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.theme-btn b { color: var(--fg); font-weight: 700; }
+.iconbtn { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; cursor: pointer; }
+.iconbtn.sm { width: 36px; height: 36px; }
+.iconbtn svg { width: 20px; height: 20px; }
+.modechip { flex: 0 0 auto; font-size: 11px; line-height: 1.8; padding: 0 8px; border-radius: 999px; background: var(--accent-weak); color: var(--accent-ink); font-weight: 700; white-space: nowrap; }
+.modechip.fake { background: var(--gray-100); color: var(--muted); }
+
+/* 段階 */
+.stepper { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.step { background: none; border: 0; padding: 0; font-size: 11px; line-height: 1.6; color: var(--muted); text-align: center; cursor: default; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step .bar { display: block; height: 4px; border-radius: 2px; background: var(--gray-100); margin-bottom: 3px; }
+.step.done { cursor: pointer; }
+.step.done .bar { background: var(--accent); }
+.step.cur { color: var(--fg); font-weight: 700; }
+.step.cur .bar { background: var(--primary); }
+
+.hint { display: flex; gap: 8px; align-items: flex-start; background: var(--gray-100); border-radius: var(--r-md); padding: 6px 10px; font-size: 12px; line-height: 1.7; }
+.hint.demo { background: var(--primary-weak); color: var(--primary-ink); }
+.hint p { margin: 0; flex: 1; min-width: 0; }
+.linkbtn { background: none; border: 0; padding: 2px 4px; color: var(--primary-dark); cursor: pointer; font-size: 12px; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ボードと会話 */
+.main { flex: 1; min-height: 0; display: grid; gap: 8px; }
+.main.split { grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr); }
+.main.tabs { grid-template-rows: auto minmax(0, 1fr); }
+.tabbar { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--surface-2); border-radius: var(--r-md); padding: 3px; }
+.tabbar button { border: 0; background: none; border-radius: var(--r-sm); padding: 6px; cursor: pointer; font-size: 14px; color: var(--muted); }
+.tabbar button[aria-selected="true"] { background: var(--surface); color: var(--fg); font-weight: 700; box-shadow: var(--shadow); }
+.badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--primary); color: var(--primary-fg); font-size: 11px; line-height: 18px; margin-left: 4px; font-family: var(--font-num); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow); min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.panel-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); min-height: 36px; }
+.panel-head .title { font-weight: 700; color: var(--fg); font-size: 14px; }
+.panel-head .status { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--primary-dark); }
+.panel-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+.board { background-color: var(--canvas); background-image: radial-gradient(var(--dots) 1px, transparent 1px); background-size: 20px 20px; }
+@media (min-width: 820px) {
+  .main.split, .main.tabs { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .main .tabbar { display: none; }
+  .main .panel[hidden] { display: flex !important; }
+}
+
+/* ボードの中身 */
+.sec { display: grid; gap: 8px; margin-bottom: 18px; }
+.sec-h { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--muted); }
+.sec-h b { color: var(--fg); font-size: 14px; }
+.empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 8px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.note { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 84px; padding: 8px 10px 10px; border: 1px solid transparent; border-radius: 4px; background: var(--primary-weak); color: var(--fg); box-shadow: var(--shadow); text-align: left; cursor: pointer; transform: rotate(var(--r, 0deg)); font-size: 14px; line-height: 1.6; font-weight: 700; }
+.note .meta { display: flex; justify-content: space-between; gap: 6px; font-weight: 400; font-size: 11px; line-height: 1.5; color: var(--primary-ink); }
+.note .meta .n { font-family: var(--font-num); }
+.note .txt { overflow-wrap: anywhere; }
+.note .flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+.chip { font-weight: 400; font-size: 11px; line-height: 1.7; padding: 0 6px; border-radius: 999px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); }
+.note.k-seed { background: var(--gray-100); }
+.note.k-seed .meta { color: var(--muted); }
+.note.k-issue { background: var(--primary-100); }
+.note.k-goal { background: var(--accent-weak); }
+.note.k-goal .meta { color: var(--accent-ink); }
+.note.k-idea { background: var(--surface); border-color: var(--primary-100); }
+.note.k-ai { background: var(--gray-50); border: 1px dashed var(--gray-300); box-shadow: none; }
+.note.k-ai .meta { color: var(--muted); }
+.note.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
+.note.flash { outline: 3px solid var(--primary); outline-offset: 2px; }
+.note.fresh { animation: pop 0.35s ease-out; }
+@keyframes pop { from { opacity: 0; transform: rotate(var(--r, 0deg)) translateY(6px); } to { opacity: 1; transform: rotate(var(--r, 0deg)) translateY(0); } }
+.group { display: grid; gap: 8px; padding: 10px; border: 1px dashed var(--gray-300); border-radius: var(--r-md); background: var(--surface); }
+.group-h { font-size: 14px; font-weight: 700; }
+.group-h span { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 6px; }
+
+.card { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); text-align: left; }
+.card .lab { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.card .body { font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+.card .sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.card.cand { background: var(--primary-weak); border-color: var(--primary-100); }
+.card.cand.goal { background: var(--accent-weak); border-color: transparent; }
+.card.cand .lab { color: var(--primary-ink); }
+.card.cand.goal .lab { color: var(--accent-ink); }
+.card.dashed { border-style: dashed; background: transparent; box-shadow: none; }
+.card.fact { cursor: pointer; font: inherit; color: inherit; }
+.card.fact .body { font-size: 14px; }
+.tag { font-size: 11px; padding: 0 8px; border-radius: 999px; line-height: 1.8; white-space: nowrap; }
+.tag.fixed { background: var(--accent-weak); color: var(--accent-ink); font-weight: 700; }
+.tag.ai { background: var(--gray-100); color: var(--muted); border: 1px dashed var(--gray-300); }
+.tag.src { background: var(--primary-weak); color: var(--primary-ink); font-weight: 700; }
+.checks { display: flex; flex-wrap: wrap; gap: 4px; }
+.chk { font-size: 11px; padding: 0 8px; border-radius: 999px; line-height: 1.9; }
+.chk.ok { background: var(--accent-weak); color: var(--accent-ink); }
+.chk.ng { background: var(--surface); color: var(--fg); border: 1px dashed var(--gray-300); }
+.chk.wait { background: var(--gray-100); color: var(--muted); }
+.cards { display: grid; gap: 8px; }
+
+.slides { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+.slide { flex: 0 0 86%; max-width: 420px; scroll-snap-align: start; display: grid; gap: 6px; align-content: start; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); }
+.slide .no { font-size: 11px; color: var(--muted); font-family: var(--font-num); }
+.slide h3 { margin: 0; font-size: 16px; line-height: var(--lh-heading); text-wrap: balance; }
+.slide p { margin: 0; font-size: 14px; line-height: 1.8; }
+.fine { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.docrow { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.6; padding: 6px 0; border-top: 1px solid var(--line); }
+
+/* 会話 */
+.msgs { display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 88%; display: grid; gap: 2px; }
+.msg .who { font-size: 11px; color: var(--muted); font-weight: 700; }
+.msg .bubble { padding: 8px 12px; border-radius: var(--r-md); background: var(--surface-2); line-height: 1.75; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; }
+.msg.user .who { text-align: right; }
+.msg.user .bubble { background: var(--primary-weak); }
+.msg.persona .bubble { background: var(--gray-50); border: 1px dashed var(--gray-300); }
+.msg.system { align-self: center; max-width: 100%; font-size: 12px; color: var(--muted); }
+.refs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.ref { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; font-size: 11px; padding: 1px 8px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref.src { border-color: var(--primary-100); color: var(--primary-ink); background: var(--primary-weak); }
+.typing { align-self: flex-start; color: var(--muted); font-size: 13px; padding: 6px 12px; background: var(--surface-2); border-radius: var(--r-md); }
+.typing i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); margin: 0 1px; animation: blink 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: 0.2s; } .typing i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+/* 操作 */
+.foot { display: grid; gap: 8px; }
+.actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 1px; }
+.actions::-webkit-scrollbar { display: none; }
+.btn { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-sm); padding: 8px 14px; font-size: 14px; line-height: 1.5; white-space: nowrap; cursor: pointer; }
+.btn:hover { background: var(--gray-50); }
+.btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); font-weight: 700; }
+.btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+.btn.good { background: var(--accent-weak); color: var(--accent-ink); border-color: transparent; font-weight: 700; }
+.btn.pulse { animation: glow 1.6s ease-in-out infinite; }
+@keyframes glow { 0%, 100% { box-shadow: 0 0 0 0 var(--primary-weak); } 50% { box-shadow: 0 0 0 6px var(--primary-weak); } }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.spacer { flex: 1 0 8px; }
+.composer { display: flex; gap: 8px; align-items: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.mic { flex: 1; min-width: 0; height: 56px; border: 0; border-radius: 999px; background: var(--primary); color: var(--primary-fg); font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: var(--shadow); }
+.mic svg { width: 22px; height: 22px; }
+.mic.rec { background: var(--destructive); animation: ring 1.4s ease-in-out infinite; }
+.mic.busy { opacity: 0.7; cursor: default; }
+@keyframes ring { 0%, 100% { box-shadow: 0 0 0 0 var(--gray-100); } 50% { box-shadow: 0 0 0 8px var(--gray-100); } }
+.txtin { flex: 1; min-width: 0; height: 46px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); padding: 0 14px; }
+
+/* シート */
+.backdrop { position: fixed; inset: 0; z-index: 50; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 640px; max-height: 88%; overflow: auto; background: var(--surface); border-radius: 12px 12px 0 0; padding-block: 16px calc(18px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 12px; }
+.sheet h2 { margin: 0; font-size: 18px; line-height: var(--lh-heading); text-wrap: balance; }
+.sheet p { margin: 0; }
+.sheet .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 14px; font-weight: 700; }
+.field .help { font-size: 12px; color: var(--muted); }
+textarea { width: 100%; min-height: 72px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); padding: 8px 10px; resize: vertical; line-height: 1.75; }
+.quote { font-size: 13px; line-height: 1.75; padding: 8px 10px; background: var(--gray-50); border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--muted); }
+.quote.hit { background: var(--primary-weak); border-color: var(--primary-100); color: var(--fg); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.opt { display: flex; gap: 8px; flex-wrap: wrap; }
+.opt button[aria-pressed="true"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.log { display: grid; gap: 6px; font-size: 12px; }
+.log .e { display: grid; grid-template-columns: 5.5em 1fr; gap: 2px 8px; padding: 6px 8px; border-radius: var(--r-sm); background: var(--gray-50); border: 1px solid var(--line); }
+.log .e .r { font-weight: 700; }
+.log .e.ng { border-style: dashed; border-color: var(--gray-300); }
+.log .e .t { color: var(--muted); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.doc { display: grid; gap: 12px; }
+.doc section { display: grid; gap: 2px; }
+.doc h3 { margin: 0; font-size: 12px; color: var(--muted); }
+.doc .v { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
+.doc .by { font-size: 11px; color: var(--muted); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); z-index: 60; max-width: min(90%, 480px); background: var(--fg); color: var(--bg); border-radius: var(--r-md); padding: 8px 14px; font-size: 13px; box-shadow: var(--shadow); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: reduce) {
+  .note.fresh, .btn.pulse, .mic.rec, .typing i { animation: none; }
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">ひとりいどばた</div>
+    <span class="modechip" id="modeChip">AI：台本</span>
+    <button class="theme-btn" data-act="slides" id="themeBtn" aria-label="お題の資料を見る"></button>
+    <button class="iconbtn sm" data-act="log" aria-label="AIの動きを見る" title="AIの動き">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+    </button>
+    <button class="iconbtn sm" data-act="settings" aria-label="設定" title="設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+    </button>
+  </header>
+  <nav class="stepper" id="stepper" aria-label="段階"></nav>
+  <div class="hint" id="hint" hidden></div>
+  <main class="main split" id="main">
+    <div class="tabbar" id="tabbar" role="tablist">
+      <button role="tab" data-act="view" data-view="board" id="tabBoard">ボード</button>
+      <button role="tab" data-act="view" data-view="chat" id="tabChat">会話</button>
+    </div>
+    <section class="panel" id="boardPanel" aria-label="ボード">
+      <div class="panel-head"><span class="title">ボード</span><span class="status" id="boardStatus" aria-live="polite"></span><button class="linkbtn" data-act="trash" id="trashBtn">ごみ箱</button></div>
+      <div class="panel-body board" id="board"></div>
+    </section>
+    <section class="panel" id="chatPanel" aria-label="会話">
+      <div class="panel-head"><span class="title">会話</span><span class="status" id="chatStatus"></span></div>
+      <div class="panel-body" id="chat"><div class="msgs" id="msgs" aria-live="polite"></div></div>
+    </section>
+  </main>
+  <footer class="foot">
+    <div class="actions" id="actions"></div>
+    <div class="composer" id="composer"></div>
+  </footer>
+</div>
+<div id="sheetRoot"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ───────── 試作用のお題と台本 ───────── */
+const KEY = 'hitori-idobata-proto-v3';
+const STAGES = ['下準備', '意見出し', '課題整理', 'ゴール設定', 'アイデア出し', 'まとめ'];
+const STEP_SHORT = ['下準備', '意見', '課題', 'ゴール', 'アイデア', 'まとめ'];
+const DEMO = {
+  title: '放課後の子どもの居場所',
+  slides: [
+    { h: 'お題', b: '放課後、小学生が安心して過ごせる場所を、みどり市でどうつくるか。' },
+    { h: '背景', b: '共働きの家庭が増え、学童保育は申し込みが定員を上回っています。地域の子ども会は、ここ10年で半分ほどになりました。' },
+    { h: '考えてほしいこと', b: 'あなたの経験や身近な様子から、何が一番の問題か、どうなるとよいかを考えてください。' }
+  ],
+  qa: [
+    { k: ['学童', '定員', '空き', '待'], a: '資料では、みどり市の学童保育は、申し込みが定員を上回っているとされています。何人が待っているかは、資料には書かれていません。' },
+    { k: ['子ども会', '地域', '町内'], a: '資料では、地域の子ども会は、ここ10年で半分ほどになったとされています。' },
+    { k: ['対象', '誰', '何年生', '小学生', '中学'], a: '資料では、対象は小学生とされています。学年の区切りは書かれていません。' },
+    { k: ['予算', 'お金', '費用'], a: '予算や費用については、資料には書かれていません。' }
+  ]
+};
+const SCRIPT = {
+  0: ['学童って、いまどれくらい足りていないんですか？', 'つまり、放課後に子どもが一人にならない場所を、地域でどうつくるか、ということだと思います。'],
+  1: ['うちは共働きで、週に3日くらいは子どもが放課後一人で家にいます。正直ちょっと心配です。',
+      '学童は申し込んだけど、空きがなくて入れませんでした。',
+      '高齢の人で、子どもと関わりたい人は結構いると思う。',
+      '退職した近所の人が、子どもに声をかけてくれると助かるからです。',
+      '子どもは友だちと公園で遊びたがるけど、見守る大人がいない。'],
+  2: ['共働きの家庭の小学生が、週に3日ほど、放課後に見守る大人のいない時間を過ごしていることが、一番の問題だと思います。',
+      '学童に入れていない子どもは、市全体でどれくらいいるんですか？',
+      '学童に入れないのは、定員が足りないからです。',
+      '定員が足りないことで、親が仕事中に子どもの様子がわからず、不安なまま働いています。'],
+  3: ['3年後には、放課後に一人で過ごす子どもがいなくなって、地域の大人が自然に見守っている状態にしたいです。',
+      '一人で過ごす日が週1日以下になれば、良くなったとわかると思います。'],
+  4: ['公民館を放課後に開放して、地域の高齢者が見守り役になる仕組みはどうでしょう。',
+      'ほかの市では、どんなことをしているんですか？',
+      '公園に、見守りボランティアの当番表をつくる。'],
+  5: ['最後に、地域のつながりも強くなる、と書き足したいです。']
+};
+const ENTRY = [
+  'こんにちは。ファシリテーターです。まずは、上の資料を見てください。わからないことがあれば、何でも聞いてください。資料に書かれている範囲でお答えします。',
+  'では、意見出しです。このお題について、あなたの経験や気持ち、考えを自由に話してください。話したことは付箋になって、ボードに貼られます。',
+  '課題整理に入ります。ボードを見て、一番なんとかしたいのはどれですか？ 〔まとめる〕を押すと、付箋をグループに分けた案も見られます。',
+  '課題が解決したら、誰がどうなっていますか？ 望ましい姿を、声で描いてみてください。',
+  'では、解決のアイデアを広げます。まずは、あなたのアイデアから聞かせてください。思いついた順で大丈夫です。',
+  'まとめに入ります。これまで決めたことから、ストーリーの下書きを作ります。'
+];
+const KIND = {
+  seed: { label: '気になったこと', cls: 'k-seed' },
+  exp: { label: '経験', cls: 'k-op' },
+  feel: { label: '気持ち', cls: 'k-op' },
+  trouble: { label: '困りごと', cls: 'k-op' },
+  thought: { label: '考え', cls: 'k-op' },
+  sup: { label: '課題の補足', cls: 'k-issue' },
+  issue: { label: '課題の案', cls: 'k-issue' },
+  goal: { label: '望ましい姿の案', cls: 'k-goal' },
+  goalsup: { label: '望ましい姿の補足', cls: 'k-goal' },
+  idea: { label: 'アイデア', cls: 'k-idea' }
+};
+const STAGE_KINDS = { 0: ['seed'], 1: ['exp', 'feel', 'trouble', 'thought'], 2: ['issue', 'sup'], 3: ['goal', 'goalsup'], 4: ['idea'], 5: [] };
+const OPINION = new Set(['exp', 'feel', 'trouble', 'thought']);
+const KIND_ALIAS = Object.assign(Object.fromEntries(Object.entries(KIND).map(([k, v]) => [v.label, k])), { '課題': 'issue', '望ましい姿': 'goal', '補足': null, '困りごと': 'trouble' });
+const PERSONAS = {
+  minami: { name: 'ミナミ', role: '肯定派（仮）', core: '譲れないこと：困っている人を置き去りにしない。大切にしたいこと：つながり、便利さ。' },
+  kenji: { name: 'ケンジ', role: '否定派（仮）', core: '譲れないこと：引き受けた負担は、誰かが必ず背負う。大切にしたいこと：費用、手間、公平。' },
+  sora: { name: 'ソラ', role: '未定派（仮）', core: '譲れないこと：自分が納得しないまま決めない。大切にしたいこと：公平、将来。' }
+};
+/* 関連資料（試作用の架空の資料）。本番では、お題ごとにホストが調査やレポートを入れる */
+const DOCS = [
+  { id: 'd1', title: 'みどり市 放課後の過ごし方に関する保護者アンケート', org: 'みどり市こども家庭課', year: '2025年度', kind: '調査', chunks: [
+    '市内の小学生の保護者1,200人が回答した。共働きの世帯は62%だった。',
+    '放課後に子どもが大人のいない場所で一人で過ごす日が「ある」と答えた保護者は41%。そのうち「週3日以上」は18%だった。学年が上がるほど多い。',
+    '子どもが一人で過ごすときの心配は、「事故やけが」58%、「不審者」52%、「様子がわからない」47%の順に多かった（複数回答）。'
+  ] },
+  { id: 'd2', title: 'みどり市 学童保育の利用状況', org: 'みどり市こども家庭課', year: '2025年4月', kind: '統計', chunks: [
+    '学童保育の定員は1,480人に対し、申し込みは1,720人で、240人が利用できていない（待機）。',
+    '待機している児童は、3・4年生が全体の7割を占める。1・2年生を優先して受け入れているため。',
+    '定員を増やすには、場所と指導員の確保が課題とされている。指導員の求人に対する応募は少ない。'
+  ] },
+  { id: 'd3', title: 'みどり市 地域活動団体の現況調査', org: 'みどり市市民協働課', year: '2024年', kind: '調査', chunks: [
+    '地域の子ども会は、2014年の86団体から2024年は41団体に減った。役員のなり手不足が主な理由とされる。',
+    '60歳以上の市民のうち、「子どもと関わる地域活動に参加したい」と答えた人は32%。一方で、実際に参加している人は6%にとどまる。',
+    '参加しない理由は「きっかけがない」44%、「責任が重そう」29%、「体力に不安」18%だった。'
+  ] },
+  { id: 'd4', title: '事例レポート：あおば市 公民館を使った放課後の居場所', org: 'あおば市生涯学習課', year: '2024年', kind: '事例', chunks: [
+    'あおば市では、公民館3館を放課後に週3日開放し、地域のボランティアが見守っている。登録ボランティアは45人で、6割が60歳以上。',
+    '利用する子どもは1日平均28人。開始から2年たち、保護者の満足度は高いが、利用者の多くは公民館の近くに住む子どもに限られる。',
+    '続けるうえでの課題は、ボランティアの高齢化、けがのときの保険、まとめ役（コーディネーター）の確保とされている。'
+  ] },
+  { id: 'd5', title: '子どもの見守り活動に関する調査（要約）', org: 'こども地域研究所', year: '2023年', kind: '研究', chunks: [
+    '商店や事業所が「子どもが立ち寄れる場所」の目印を掲げる見守りスポット制度がある地域では、子どもが「困ったときに頼れる大人がいる」と答えた割合が高かった。ただし、制度が原因かどうかは、この調査からはわからない。',
+    '見守り活動が5年以上続いている地域の多くには、活動をまとめる担当者（コーディネーター）が置かれていた。'
+  ] }
+];
+const CHUNKS = DOCS.flatMap((d) => d.chunks.map((t, i) => ({ id: `${d.id}-${i + 1}`, doc: d, text: t })));
+const CHUNK = Object.fromEntries(CHUNKS.map((c) => [c.id, c]));
+const CJK = /[一-龥ァ-ヴー]/;
+function bigrams(s) {
+  const t = String(s || '').replace(/[\s、。，．,.！？!?「」『』（）()・…]/g, '');
+  const out = new Set();
+  for (let i = 0; i < t.length - 1; i++) { const b = t.slice(i, i + 2); if (CJK.test(b[0]) && CJK.test(b[1])) out.add(b); }
+  return out;
+}
+/* 試作の検索：漢字・カタカナの2文字の重なりで点数を付ける。本番は文の意味で探す仕組み（RAG）に置き換える */
+function searchDocs(query, k) {
+  const q = bigrams(query);
+  if (!q.size) return [];
+  return CHUNKS.map((c) => { const b = bigrams(c.doc.title + c.text); let sc = 0; q.forEach((x) => { if (b.has(x)) sc += 1; }); return { c, sc }; })
+    .filter((x) => x.sc >= 1).sort((a, b) => b.sc - a.sc).slice(0, k || 3).map((x) => x.c);
+}
+const uniqChunks = (list) => { const seen = new Set(); return list.filter((c) => c && !seen.has(c.id) && seen.add(c.id)); };
+const WIDEN = ['ほかの立場の人、たとえば子ども本人や地域の人は、どう感じていそうですか？', 'ほかに、気になっていることはありますか？'];
+const ISSUE_POINTS = ['誰が', 'どんな場面で', 'どれくらい', 'なぜ', '解決策が混ざっていない', '根拠の付箋'];
+const GOAL_POINTS = ['誰が', 'どうなる', 'いつ', '指標'];
+const Q_ISSUE = {
+  '誰が': 'この課題で、一番困っているのは誰ですか？',
+  'どんな場面で': 'それは、どんな場面で起きていますか？',
+  'どれくらい': 'どれくらいの頻度や人数で起きていますか？',
+  'なぜ': 'それは、なぜ起きていると思いますか？',
+  '解決策が混ざっていない': '「〜が足りない」は、解決策の裏返しかもしれません。足りないことで、誰が何に困っていますか？',
+  '根拠の付箋': 'ボードの付箋のうち、この課題の根拠になるのはどれですか？'
+};
+const Q_GOAL = {
+  '誰が': 'その姿では、誰がどうなっていますか？',
+  'どうなる': 'そのとき、どんな状態になっていますか？',
+  'いつ': 'いつごろまでに実現したいですか？',
+  '指標': 'どうなったら「良くなった」とわかりますか？ 数や回数で言えると、あとで効果を確かめやすくなります。'
+};
+
+/* ───────── 状態 ───────── */
+const newRunId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function fresh() {
+  return {
+    v: 3, runId: newRunId(), cited: [], advice: null, stage: 0, maxStage: 0, seq: 0, round: 0,
+    messages: [], notes: [], groups: null, proposal: null,
+    checks: {}, confirmed: {}, story: '',
+    script: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    personasDone: false, suggest: false, log: [], logSeq: 0,
+    settings: { layout: 'split', scribeDelay: 1500, ai: 'claude', speed: 'fast' },
+    view: 'board', seenNotes: 0, seenMsgs: 0, hintClosed: false
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return s && s.v === 3 ? s : null;
+  } catch (e) { return null; }
+}
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 保存できなくても動く */ } }, 150);
+}
+
+let S = load();
+if (!S) { S = fresh(); addMsg('facil', ENTRY[0], { stage: 0 }); }
+const pending = {};
+let rec = null;
+let busy = false;
+let composerMode = 'voice';
+let sheet = null;
+let downloadsNs = null;
+let sampleFn = null;
+let dbNs = null;
+let demo = null;
+let runDocReady = false;
+let lastMsgCount = S.messages.length;
+
+/* ───────── 小さな道具 ───────── */
+const $ = (sel) => document.querySelector(sel);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const short = (s, n) => { s = String(s).replace(/[。．]$/, ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+const clean = (t) => String(t).replace(/(えーと|えっと|えー|あのー|あの、|なんか|まあ、|うーん)[、,]?/g, '').trim();
+const sentences = (t) => String(t).replace(/([。！？!?])/g, '$1\n').split('\n').map((s) => s.trim()).filter(Boolean);
+const isQuestion = (t) => /[？?]\s*$/.test(t) || /(ですか|ますか|でしょうか|んですか)[。]?\s*$/.test(t);
+const activeNotes = () => S.notes.filter((n) => n.status === 'active');
+const getNote = (id) => S.notes.find((n) => n.id === id);
+const STOP = new Set(['問題', '一番', '自分', '正直', '結構', '本当', '感じ', '状態', '仕組', '大人']);
+const tokens = (t) => (String(t).match(/[一-龥ァ-ヴー]{2,}/g) || []).filter((w) => !STOP.has(w));
+const norm = (t) => String(t || '').replace(/[\s、。，．,.！？!?「」『』（）()・…]/g, '');
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+const isAI = (n) => n.author.startsWith('persona:');
+function addMsg(who, text, extra = {}) {
+  const m = Object.assign({ id: 'm' + (++S.seq), who, text, stage: S.stage, at: Date.now() }, extra);
+  S.messages.push(m);
+  return m;
+}
+function addNote(o) {
+  const n = {
+    id: 'n' + (++S.seq), kind: o.kind, text: o.text, quote: o.quote || '', msgId: o.msgId || null,
+    author: o.author || 'scribe', userEdited: false, flags: o.flags || [], round: o.round || S.round,
+    group: null, status: 'active', stage: o.stage != null ? o.stage : S.stage, dug: 0, selected: false, version: 1, fresh: true
+  };
+  S.notes.push(n);
+  return n;
+}
+function toast(text) {
+  const el = $('#toast');
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { el.hidden = true; }, 3000);
+}
+function hashRot(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 997; return ((h % 5) - 2) * 0.35; }
+function parseJson(t) {
+  if (!t) return null;
+  try { return JSON.parse(t); } catch (e) { /* 次へ */ }
+  /* 返事の中のJSONを全部拾い、最後に読めたものを使う（途中で書き直す返事に備える） */
+  const found = [];
+  let depth = 0, start = -1, inStr = false, escp = false;
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (inStr) { if (escp) escp = false; else if (ch === '\\') escp = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') { if (depth > 0) inStr = true; continue; }
+    if (ch === '{') { if (depth === 0) start = i; depth += 1; }
+    else if (ch === '}' && depth > 0) { depth -= 1; if (depth === 0 && start >= 0) { found.push(t.slice(start, i + 1)); start = -1; } }
+  }
+  for (let i = found.length - 1; i >= 0; i--) { try { return JSON.parse(found[i]); } catch (e) { /* 次へ */ } }
+  return null;
+}
+function digCandidates(snapshot) {
+  const live = snapshot.filter((n) => OPINION.has(n.kind)).map((n) => getNote(n.id) || n).filter((n) => n.status === 'active');
+  live.sort((a, b) => (b.flags.length - a.flags.length) || (a.dug - b.dug) || (b.round - a.round));
+  return live;
+}
+const quoteOf = (s) => '「' + short(s, 22) + '」';
+
+/* ───────── AIに渡す文脈 ───────── */
+function boardText(notes) {
+  if (!notes.length) return '（まだ付箋はありません）';
+  return notes.map((n) => [
+    n.id, (KIND[n.kind] || {}).label, isAI(n) ? PERSONAS[n.author.slice(8)].name + '（AI参加者）' : '本人', '版' + n.version,
+    n.userEdited ? '本人が直した' : '', n.flags.length ? '印：' + n.flags.join('、') : '', '掘り下げ' + (n.dug || 0) + '回', n.text
+  ].filter(Boolean).join('｜')).join('\n');
+}
+function confirmedText() {
+  const C = S.confirmed;
+  const rows = [['お題の理解', 'understanding'], ['現状', 'current'], ['課題', 'issue'], ['望ましい姿', 'goal'], ['指標', 'indicator'], ['解決案', 'solution'], ['選んだ理由', 'reason'], ['ストーリー', 'story']]
+    .filter(([, k]) => C[k] && C[k].text).map(([l, k]) => `- ${l}：${C[k].text}`);
+  return rows.length ? rows.join('\n') : '（まだ決めたことはありません）';
+}
+function materialText() { return `お題：${DEMO.title}\n` + DEMO.slides.map((s, i) => `スライド${i + 1}「${s.h}」：${s.b}`).join('\n') + '\n（試作用の架空のお題です）'; }
+function chatText(limit, beforeId) {
+  const idx = beforeId ? S.messages.findIndex((m) => m.id === beforeId) : S.messages.length;
+  const list = S.messages.slice(0, idx < 0 ? S.messages.length : idx).filter((m) => m.who !== 'system').slice(-limit);
+  if (!list.length) return '（まだ会話はありません）';
+  return list.map((m) => {
+    const who = m.who === 'user' ? '本人' : m.who === 'facil' ? 'ファシリテーター' : (PERSONAS[m.who.slice(8)] || {}).name + '（AI参加者）';
+    return `${who}：${m.text}`;
+  }).join('\n');
+}
+function checksText() {
+  const out = [];
+  ['issue', 'goal'].forEach((t) => {
+    const c = S.checks[t];
+    if (c && c.items) out.push(`- ${t === 'issue' ? '課題' : '望ましい姿'}：` + c.items.map((i) => `${i.point}=${i.status === 'ok' ? 'ok' : '不足' + (i.hint ? '（' + i.hint + '）' : '')}`).join('、'));
+  });
+  if (S.checks.link) out.push(`- 課題と望ましい姿のつながり：${S.checks.link.status}${S.checks.link.reason ? '（' + S.checks.link.reason + '）' : ''}`);
+  return out.length ? out.join('\n') : '（まだ点検の結果はありません）';
+}
+
+const STAGE_GUIDE = [
+  '下準備。本人はお題の資料を見ている。質問には、お題の資料と「資料の抜粋」に書かれている範囲だけで、短く答える（出典を添える）。どちらにもないことは「関連資料には見当たりません」と言う。意見は言わない。質問が出尽くしたら、お題を自分の言葉で一言にするよう促す。本人が一言にしたら、〔これで決める〕で残せることと、〔次へ〕で意見出しに進めることを伝える（このときは suggestAdvance を true）。',
+  '意見出し。本人の経験・気持ち・困りごと・考えを、広げたり掘り下げたりする。問いの種類は「今回の問いの種類」に従う。掘り下げなら、今の発言か「掘り下げの候補」の上の付箋について、理由・具体的な場面・気持ちのどれか1つを問う。広げるなら、ほかの立場（子ども本人、地域の人など）やほかの場面に目を向ける問いにし、特定の付箋は指さなくてよい。事実は、本人が聞いたときだけ示す。意見の付箋が4〜5枚以上になったら、返事の最後に〔次へ〕で課題整理に進めることを1文で伝えてよい（このときは suggestAdvance を true）。',
+  '課題整理。課題の答えは示さない。課題の案がまだなければ「ボードを見て、一番なんとかしたいのはどれか」を問う。本人が課題を言ったら、点検の結果で「不足」の点を1つだけ問う（誰が・どんな場面で・どれくらい・なぜ・解決策が混ざっていない・根拠の付箋）。点検の結果がまだなければ、誰が一番困っているかを問う。「不足」を埋める手がかりになる事実が資料にあれば、事実を1つだけ示してから、本人の考えを問う。どれも ok なら〔これで決める〕で課題を確定するよう促す。課題が確定していれば〔次へ〕を案内する（suggestAdvance を true）。',
+  'ゴール設定。課題が解決したときの望ましい姿を描くのを支える。望ましい姿は本人が決める。点検の結果で「不足」の点（誰が・どうなる・いつ・指標）を1つだけ問う。指標を考えるときは、資料に今の数値があれば1つ示してよい。つながりの点検が「確かめたい」なら、課題とのつながりを問う。そろったら〔これで決める〕を促す。確定していれば〔次へ〕を案内する（suggestAdvance を true）。',
+  'アイデア出し。まず本人のアイデアを広げる。本人のアイデアが1つ以上出たら、〔ほかの人のアイデアも聞く〕でAI参加者の案も見られることを伝えてよい。本人が聞いたら、資料にある似た事例を示してよい。AI参加者が課題を問い直していたら、それを短く本人に渡し、本人の考えを問う。AI参加者の案が出たあとは、付箋を押して〔解決案に選ぶ〕で選び、〔これで決める〕で確定するよう促す。解決案は本人が選ぶ。',
+  'まとめ。ストーリーの下書きは、編集者が本人の求めに合わせて直している。本人の求めを短く受け止め、ほかに直したい点があるか問う。よければ〔これで決める〕でストーリーを確定するよう促す。'
+];
+const SCRIBE_KINDS = [
+  'seed（気になったこと）だけ。質問なら「？」で始まる短い文にする。',
+  'exp（経験）、feel（気持ち）、trouble（困りごと）、thought（考え）のどれか。',
+  'ボードに issue（課題の案）がなく、本人が課題を言っているなら issue を1枚（本人の言葉に近い1文で、短くしすぎない）。issue がすでにあるなら sup（課題の補足）。',
+  'ボードに goal（望ましい姿の案）がなく、本人が望ましい姿を言っているなら goal を1枚（本人の言葉に近い1文で）。goal がすでにあるなら goalsup（望ましい姿の補足）。',
+  'idea（アイデア）だけ。',
+  '（この段階では付箋を作らない）'
+];
+const passagesText = (list) => list.length ? list.map((c) => `- ${c.id}｜${c.doc.title}（${c.doc.org}・${c.doc.year}）｜${c.text}`).join('\n') : '（なし）';
+function adviceText(stage) {
+  const a = S.advice && S.advice.stage === stage ? S.advice : null;
+  if (!a || !a.facts.length) return '（なし）';
+  return a.facts.map((f) => `- ${f.docRef}｜${f.fact}${f.use ? '（使いどころ：' + f.use + '）' : ''}`).join('\n');
+}
+function citedText() {
+  const list = (S.cited || []).map((id) => CHUNK[id]).filter(Boolean);
+  return list.length ? list.map((c) => `- ${c.id}｜${c.doc.title}｜${c.text}`).join('\n') : '（なし）';
+}
+const msgText = (id) => { const m = S.messages.find((x) => x.id === id); return m ? m.text : ''; };
+
+const P = {
+  facilitator(ctx) {
+    const cands = ctx.stage === 1 ? digCandidates(ctx.snapshot).slice(0, 3).map((n) => `- ${n.id}｜${n.text}${n.flags.length ? '｜印：' + n.flags.join('、') : ''}`).join('\n') : '';
+    return `あなたは「ひとりいどばた」のファシリテーターです。本人が一人で、お題について考え、課題・望ましい姿・解決案を自分の言葉で決めるのを、問いで支えます。
+
+# 守ること
+- 結論や意見を言わない。課題も望ましい姿も解決案も、決めるのは本人。
+- 返事は1〜2文（事実を示すときは3文まで）。問いは1回に1つ。
+- 本人の言葉を「」で短く引いてから問う。本人がすでに答えたことを聞き直さない。
+- 受け止めの言い方（「〜ですね」「〜とのことですね」など）を毎回同じにしない。受け止めは省いてもよい。ほめ言葉は使わない。
+- 付箋や決めたことを、自分で書き直すと申し出ない。直すときは、本人がカードの〔直す〕や〔これで決める〕で直せることを伝える。
+- 次の段階への案内は、返事の最後に1文で添える。問いの前に挟まない。
+- 付箋に触れるときは、下の「ボード」にある付箋のIDだけを refs に入れる。
+- 本人が、やめたい・進みたいと言ったら従う。
+
+# 事実の扱い（資料係が探した、関連する調査やレポート）
+- 事実を言うときは、「資料の抜粋」と「資料係のメモ」にあることだけを使い、使った抜粋の記号（例：d2-1）を docRefs に入れる。返事の中では「（資料：資料名）」と出典を短く添える。
+- 抜粋にないことは「関連資料には見当たりません」と言う。推測で数字を作らない。
+- 事実で本人の考えを決めつけない。「だから〜が課題です」とは言わない。事実を示したら、本人の考えを問う。
+
+# いまの段階：${STAGES[ctx.stage]}
+${STAGE_GUIDE[ctx.stage]}
+${ctx.plannedType ? `\n# 今回の問いの種類（プログラムが決めた）\n${ctx.plannedType}\n` : ''}
+# お題の資料
+${materialText()}
+
+# 決めたこと
+${confirmedText()}
+
+# ボード（ID｜種類｜作った人｜版｜印｜掘り下げた回数｜本文）
+${boardText(ctx.snapshot)}
+${cands ? `\n# 掘り下げの候補（プログラムが選んだ順。上から優先）\n${cands}\n` : ''}
+# 点検の結果
+${checksText()}
+
+# 資料係のメモ（前の発言のあとに作られた）
+${adviceText(ctx.stage)}
+
+# 資料の抜粋（記号｜資料名｜本文）
+${passagesText(ctx.passages)}
+
+# 最近の会話
+${chatText(10, ctx.msgId)}
+
+# 本人の今の発言
+「${ctx.text}」
+
+# 返し方
+次の形のJSONだけを返す。
+{"read":"本人の発言の読み取り。本人には見せない。1文","content":"本人への返事","refs":["付箋のID"],"docRefs":["抜粋の記号"],"questionType":"問いの種類（例：掘り下げ:理由、広げる、点検:誰が、資料の質問に答える、確定の提案、案内）","suggestAdvance":false}`;
+  },
+
+  scribe(ctx) {
+    const lastQ = ctx.lastFacil ? `「${ctx.lastFacil.text}」${ctx.lastFacil.refs && ctx.lastFacil.refs.length ? `（触れた付箋：${ctx.lastFacil.refs.join('、')}）` : ''}` : '（なし）';
+    return `あなたは「ひとりいどばた」の書記です。本人の発言を、ボードの付箋にします。あなたは話しません。
+
+# 守ること
+- 本人が言ったことだけを書く。言っていないこと、推測、意味が変わる言い換えは書かない。
+- 付箋は短い一文（30字前後まで。課題・望ましい姿は50字前後まで）。主語が本人なら主語は書かない。言いよどみは省く。
+- 数（週3日、240人など）、時期（3年後など）、頻度、人数は、省かずに残す。
+- 1回の発言から付箋は0〜3枚。ボードにすでにある付箋と同じ内容は作らない。
+- 質問だけの発言からは、付箋を作らない（下準備の段階を除く）。
+- quote には、その付箋のもとになった部分を、本人の発言からそのまま抜き出して入れる（必須。言い換えない）。
+- 本人が直した付箋の本文は変えない。
+- kind には、下に書いたキー（英字）をそのまま入れる。
+
+# いまの段階で作る付箋の種類（kind）
+${SCRIBE_KINDS[ctx.stage]}
+
+# 印（flags）
+- 「理由？」：考え（thought）に理由が書かれていない
+- 「具体例？」：困りごと（trouble）に、具体的な場面や数がない
+- 「食い違い」：ほかの付箋と食い違う。relatedNoteId と confidence（1〜10）を付ける。7以上のときだけ付ける
+
+# 既存の付箋を直すとき（update）
+直前のファシリテーターの問いが既存の付箋について聞いていて、本人の発言がその答えになっているときだけ、その付箋の本文に短く書き足してよい。印が解消したら removeFlags に入れる。baseVersion にはボードの版の数字を入れる。
+
+# ボード（ID｜種類｜作った人｜版｜印｜掘り下げた回数｜本文）
+${boardText(ctx.snapshot)}
+
+# 直前のファシリテーターの問い
+${lastQ}
+
+# 本人の発言
+「${ctx.text}」
+
+# 返し方
+次の形のJSONだけを返す。付箋を作らないときは {"ops":[]}。
+{"ops":[{"op":"add","kind":"種類のキー","text":"付箋の本文","quote":"発言からそのまま抜き出した部分","flags":[]},{"op":"update","noteId":"n3","baseVersion":1,"text":"書き足した本文","removeFlags":["理由？"]}]}`;
+  },
+
+  check(target) {
+    if (target === 'link') {
+      const issue = S.confirmed.issue ? S.confirmed.issue.text : (activeNotes().find((n) => n.kind === 'issue') || {}).text;
+      const goal = S.confirmed.goal ? S.confirmed.goal.text : (activeNotes().find((n) => n.kind === 'goal') || {}).text;
+      const ind = S.confirmed.indicator && S.confirmed.indicator.text ? `\n（指標：${S.confirmed.indicator.text}）` : '';
+      return `あなたは「ひとりいどばた」の点検係です。課題と望ましい姿がつながっているかを点検します。直さず、判定だけします。
+
+# 課題
+${issue}
+
+# 望ましい姿
+${goal}${ind}
+
+# 点検すること
+課題が解決すると、望ましい姿に近づくか。課題で困っている人と、望ましい姿で良くなる人が同じか。
+
+# 返し方
+次の形のJSONだけを返す。
+{"status":"ok または 確かめたい","reason":"短く"}`;
+    }
+    const isIssue = target === 'issue';
+    const cand = activeNotes().find((n) => n.kind === target);
+    const sups = activeNotes().filter((n) => n.kind === (isIssue ? 'sup' : 'goalsup')).map((n) => `- ${n.text}（元の発言：「${n.quote || n.text}」）`).join('\n') || '（なし）';
+    const ops = activeNotes().filter((n) => OPINION.has(n.kind)).map((n) => `- ${n.id}｜${n.text}`).join('\n') || '（なし）';
+    const points = isIssue
+      ? `- 誰が：誰が困っているかが具体的か（「住民」のように広すぎるのは不足）
+- どんな場面で：いつ・どこで起きるかがあるか
+- どれくらい：頻度・人数・程度があるか
+- なぜ：原因や理由があるか
+- 解決策が混ざっていない：「〜が足りない」「〜を増やす」のように、解決策の裏返しになっていないか。なっていれば不足
+- 根拠の付箋：ボードの意見か、示された資料の事実に、この課題の根拠になるものがあるか`
+      : `- 誰が：誰が良くなっているかがあるか
+- どうなる：どんな状態になっているかがあるか
+- いつ：いつごろまでに、があるか
+- 指標：どうなったら良くなったとわかるか（数や回数など）があるか`;
+    return `あなたは「ひとりいどばた」の点検係です。本人が言った${isIssue ? '課題' : '望ましい姿'}の案を点検します。直さず、足りないかどうかだけを判定します。付箋の本文だけでなく、元の発言と補足もあわせて読み、本人が言ったことは「ある」とみなします。
+
+# ${isIssue ? '課題' : '望ましい姿'}の案
+${cand ? `${cand.text}\n（元の発言：「${msgText(cand.msgId) || cand.quote}」）` : '（なし）'}
+
+# 補足
+${sups}
+${isIssue ? `\n# ボードの意見（根拠の候補）\n${ops}\n\n# 示された資料の事実（根拠の候補）\n${citedText()}\n` : ''}
+# 点検すること（point はこの名前のまま使う）
+${points}
+
+# 返し方
+次の形のJSONだけを返す。
+{"items":[{"point":"誰が","status":"ok または 不足","hint":"不足のとき、何が足りないかを短く"}]}`;
+  },
+
+  advisor(purpose, query, passages) {
+    const what = {
+      issue: '課題の案の点検（誰が・どんな場面で・どれくらい・なぜ）の手がかりになる事実',
+      goal: '望ましい姿の指標の目安になる事実（今の数値など）',
+      idea: '本人のアイデアに近い事例と、続けるうえでの課題'
+    }[purpose];
+    return `あなたは「ひとりいどばた」の資料係です。関連する調査やレポートから、ファシリテーターに事実を助言します。本人とは話しません。
+
+# 守ること
+- 下の「資料の抜粋」に書いてあることだけを使う。抜粋にない事実や数字を作らない。
+- 事実ごとに、使った抜粋の記号（docRef）と、抜粋からそのまま抜き出した部分（quote）を付ける。
+- 意見や「こうすべき」は書かない。抜粋に原因と結果がはっきり書かれていないときは、そう添える（例：関係はあるが、原因かはわからない）。
+- 役に立つ事実がなければ facts は空にする。多くても3つ。
+
+# いま助言したいこと
+${what}
+
+# 対象
+${query}
+
+# 決めたこと
+${confirmedText()}
+
+# 資料の抜粋（記号｜資料名｜本文）
+${passagesText(passages)}
+
+# 返し方
+次の形のJSONだけを返す。
+{"facts":[{"docRef":"d2-1","quote":"抜粋からそのまま抜き出した部分","fact":"ファシリテーター向けの短い説明","use":"どの問いに使えるか"}]}`;
+  },
+
+  organizer() {
+    const ops = activeNotes().filter((n) => OPINION.has(n.kind)).map((n) => `- ${n.id}｜${n.text}`).join('\n');
+    return `あなたは「ひとりいどばた」の整理係です。ボードの意見の付箋を、グループに分ける「案」を作ります。使うかどうかは本人が決めます。
+
+# 守ること
+- 2〜4グループ。1枚だけのグループは作らず「その他」に入れる。付箋が少なくて2グループにできないときは、1グループと「その他」でよい。
+- グループ名は、なるべく付箋に出てくる本人の言葉を使う（例：「学童の空き」のこと）。本人の言葉が使えないときだけ、自分で短く付ける。nameSource は "本人の言葉" か "AI"。
+- すべての付箋を、どれか1つのグループか「その他」に、1回だけ入れる。
+- 考えた結果だけを、最後にJSONを1つだけ返す。途中の案や訂正は書かない。
+
+# 意見の付箋（ID｜本文）
+${ops}
+
+# 返し方
+次の形のJSONだけを返す。
+{"groups":[{"name":"…","nameSource":"本人の言葉","noteIds":["n1","n4"]}],"other":["n9"]}`;
+  },
+
+  persona(key) {
+    const p = PERSONAS[key];
+    const mine = activeNotes().filter((n) => n.kind === 'idea' && !isAI(n)).map((n) => '- ' + n.text).join('\n') || '（なし）';
+    return `あなたは「ひとりいどばた」のAI参加者「${p.name}」です。${p.role}の立場で、本人と一緒にアイデアを出す、別の参加者です。
+
+# あなたの芯（変わらない）
+${p.core}
+
+# 守ること
+- 本人のアイデアと同じものは出さない。あなたの芯から見た、別の角度のアイデアを1つだけ出す。
+- アイデアは1文（40字前後まで）。
+- 実在の人の話として語らない。資料にない数字を作らない。
+- コメントは1〜2文。本人を説得しない。決めるのは本人。
+${key === 'sora' ? '- 課題の「誰が」や「なぜ」が本当に合っているか、問い直す一言を challenge に入れてよい。\n' : ''}
+# お題
+${DEMO.title}
+
+# 決めたこと
+${confirmedText()}
+
+# 本人のアイデア
+${mine}
+
+# 返し方
+次の形のJSONだけを返す。
+{"ideas":["アイデア"],"comment":"一言のコメント","challenge":""}`;
+  },
+
+  editor(request) {
+    return `あなたは「ひとりいどばた」の編集者です。本人が決めたことから、ストーリーの下書きを作ります。下書きを直して確定するのは本人です。
+
+# 守ること
+- 5つの見出しで書く：【現状】【望ましい姿】【課題】【解決案】【それでどうなるか】
+- 決めたことに書かれていない事実や数字を足さない。本人の言葉をなるべくそのまま使う。
+- 【それでどうなるか】は、解決案が課題にどう効き、望ましい姿にどう近づくかを、決めたことの範囲で2文以内で書く。効果の大きさは書かない（あとで根拠をもとに別に示す）。
+- 全体で400字以内。見出しごとに改行する。
+${request ? `- 今の下書きを、本人の求めに合わせて直す。求められていないところは変えない。\n\n# 今の下書き\n${S.story}\n\n# 本人の求め\n「${request}」\n` : ''}
+# 決めたこと
+${confirmedText()}
+
+# 返し方
+次の形のJSONだけを返す。
+{"story":"【現状】…\\n【望ましい姿】…\\n【課題】…\\n【解決案】…\\n【それでどうなるか】…"}`;
+  }
+};
+
+/* ───────── 台本の返事（Claude を使わないとき・失敗したとき） ───────── */
+function classify(s) {
+  if (/(心配|不安|つらい|大変|うれしい|嬉しい|焦|怖|さみしい|寂しい|助かる)/.test(s)) return 'feel';
+  if (/(足りな|ない|なく|入れ|いない|困)/.test(s)) return 'trouble';
+  if (/(ました|でした|ている|ていた|あった|毎日|週に|昔は)/.test(s)) return 'exp';
+  return 'thought';
+}
+function flagsFor(kind, s) {
+  const f = [];
+  if (kind === 'thought' && !/(から|ので|ため)/.test(s)) f.push('理由？');
+  if (kind === 'trouble' && !/([0-9０-９一二三四五六七八九十]|毎|週|月|回|人)/.test(s)) f.push('具体例？');
+  return f;
+}
+function answerFromDoc(text) {
+  const hit = DEMO.qa.find((q) => q.k.some((k) => text.includes(k)));
+  return hit ? hit.a : 'そのことは、資料には書かれていません。';
+}
+function candidateFlow(target, ctx) {
+  const label = target === 'issue' ? '課題' : '望ましい姿';
+  const nextLabel = target === 'issue' ? 'ゴール設定' : 'アイデア出し';
+  if (S.confirmed[target]) return { content: `${label}は確定しています。直したいときは、カードを押してください。〔次へ〕で${nextLabel}に進めます。`, refs: [], questionType: '案内', suggestAdvance: true };
+  const cand = ctx.snapshot.find((n) => n.kind === target);
+  if (!cand) {
+    return target === 'issue'
+      ? { content: `${quoteOf(ctx.text)}を、課題の案として受け止めました。まず、誰が一番困っているのかを、もう少し具体的に教えてください。`, refs: [], questionType: '点検:誰が' }
+      : { content: `${quoteOf(ctx.text)}を、望ましい姿の案として受け止めました。それは、いつごろまでに実現したいですか？`, refs: [], questionType: '点検:いつ' };
+  }
+  const chk = S.checks[target];
+  if (!chk) return { content: 'ありがとうございます。続けて、もう少し聞かせてください。', refs: [cand.id], questionType: '点検待ち' };
+  const miss = chk.items.find((i) => i.status !== 'ok');
+  if (miss) return { content: (target === 'issue' ? Q_ISSUE : Q_GOAL)[miss.point] || 'もう少し具体的に教えてください。', refs: [cand.id], questionType: '点検:' + miss.point };
+  if (target === 'goal' && S.checks.link && S.checks.link.status !== 'ok' && S.confirmed.issue) {
+    return { content: `この望ましい姿は、課題「${short(S.confirmed.issue.text, 24)}」が解決した姿とつながっていますか？`, refs: [cand.id], questionType: '点検:つながり' };
+  }
+  return { content: `${label}の案が、だいぶ具体的になりました。〔これで決める〕で確定しましょう。直してから決めても大丈夫です。`, refs: [cand.id], questionType: '確定の提案' };
+}
+const Fake = {
+  facilitator(ctx) {
+    const { stage, text, snapshot, turn } = ctx;
+    if (isQuestion(text) && ctx.passages && ctx.passages.length) {
+      const c = ctx.passages[0];
+      return { content: `資料では「${short(c.text, 60)}」とあります（資料：${c.doc.title}）。` + (stage === 0 ? ' ほかにも聞きたいことがあれば、どうぞ。' : ' あなたの身近ではどうですか？'), refs: [], docRefs: [c.id], questionType: '資料の質問に答える' };
+    }
+    if (stage === 0) {
+      if (isQuestion(text)) {
+        const extra = turn >= 1 ? ' ほかに気になることはありますか？ なければ、このお題を自分の言葉で一言にしてみてください。' : ' ほかにも聞きたいことがあれば、どうぞ。';
+        return { content: answerFromDoc(text) + extra, refs: [], questionType: '資料の質問に答える' };
+      }
+      return { content: `${quoteOf(text)}と受け止めました。〔これで決める〕で、お題の理解として残せます。準備ができたら〔次へ〕で意見出しに進みましょう。`, refs: [], questionType: '理解の確認', suggestAdvance: true };
+    }
+    if (stage === 1) {
+      const ops = snapshot.filter((n) => OPINION.has(n.kind));
+      if (!ops.length) return { content: '話してくれてありがとうございます。そのとき、どんな気持ちでしたか？', refs: [], questionType: '掘り下げ:気持ち' };
+      let content; let refs = []; let type;
+      if (ctx.plannedType && ctx.plannedType.startsWith('広げる')) {
+        content = WIDEN[Math.floor(turn / 3) % WIDEN.length]; type = '広げる';
+      } else {
+        const c = digCandidates(snapshot)[0]; refs = [c.id];
+        if (c.flags.includes('理由？')) { content = `${quoteOf(c.text)}と思うのは、どうしてですか？`; type = '掘り下げ:理由'; }
+        else if (c.flags.includes('具体例？')) { content = `${quoteOf(c.text)}について、具体的にどんな場面がありましたか？`; type = '掘り下げ:具体例'; }
+        else if (c.kind === 'exp') { content = `${quoteOf(c.text)}のとき、どんな気持ちでしたか？`; type = '掘り下げ:気持ち'; }
+        else if (c.kind === 'feel') { content = `${quoteOf(c.text)}という気持ちは、どんなときに強くなりますか？`; type = '掘り下げ:場面'; }
+        else { content = `${quoteOf(c.text)}について、もう少し詳しく教えてください。`; type = '掘り下げ'; }
+      }
+      const adv = ops.length >= 4;
+      if (adv) content += ' 意見がだいぶ出てきました。〔次へ〕で課題整理に進むこともできます。';
+      return { content, refs, questionType: type, suggestAdvance: adv };
+    }
+    if (stage === 2) return candidateFlow('issue', ctx);
+    if (stage === 3) return candidateFlow('goal', ctx);
+    if (stage === 4) {
+      const mine = snapshot.filter((n) => n.kind === 'idea' && n.author === 'scribe');
+      const last = mine[mine.length - 1];
+      if (!mine.length) return { content: 'ありがとうございます。ほかにも思いつくことはありますか？', refs: [], questionType: '広げる' };
+      if (!S.personasDone) return { content: 'ほかにもありますか？ 〔ほかの人のアイデアも聞く〕を押すと、AIの参加者の案も見られます。', refs: last ? [last.id] : [], questionType: '広げる' };
+      return { content: '気になる付箋を押して〔解決案に選ぶ〕を押してください。いくつか組み合わせても大丈夫です。', refs: last ? [last.id] : [], questionType: '選ぶ' };
+    }
+    return { content: '下書きに書き足しました。ほかに直したいところはありますか？ よければ〔これで決める〕でストーリーを確定してください。', refs: [], questionType: '確かめ' };
+  },
+  scribe(ctx) {
+    const { stage, text, snapshot } = ctx;
+    const t = clean(text);
+    const ops = [];
+    if (stage >= 1 && isQuestion(text)) return { ops };
+    if (stage === 0) {
+      ops.push({ op: 'add', kind: 'seed', text: (isQuestion(text) ? '？ ' : '') + short(t, 40), quote: text });
+    } else if (stage === 1) {
+      const lastQ = ctx.lastFacil;
+      if (lastQ && lastQ.qt === '掘り下げ:理由' && lastQ.refs && lastQ.refs[0] && /(から|ので|ため)/.test(t)) {
+        const target = snapshot.find((n) => n.id === lastQ.refs[0]);
+        if (target) ops.push({ op: 'update', noteId: target.id, baseVersion: target.version, text: short(target.text, 30) + '（' + short(sentences(t)[0], 22) + '）', removeFlags: ['理由？'] });
+      }
+      sentences(t).slice(0, 3).forEach((s) => { const k = classify(s); ops.push({ op: 'add', kind: k, text: short(s, 46), quote: s, flags: flagsFor(k, s) }); });
+    } else if (stage === 2 || stage === 3) {
+      const target = stage === 2 ? 'issue' : 'goal';
+      const supKind = stage === 2 ? 'sup' : 'goalsup';
+      const cand = snapshot.find((n) => n.kind === target);
+      if (!cand && !S.confirmed[target]) ops.push({ op: 'add', kind: target, text: short(t, 80), quote: text });
+      else sentences(t).slice(0, 2).forEach((s) => ops.push({ op: 'add', kind: supKind, text: short(s, 46), quote: s }));
+    } else if (stage === 4) {
+      sentences(t).slice(0, 2).forEach((s) => ops.push({ op: 'add', kind: 'idea', text: short(s, 46), quote: s }));
+    }
+    return { ops };
+  },
+  check(target) {
+    if (target === 'issue') {
+      const cand = activeNotes().find((n) => n.kind === 'issue');
+      if (!cand) return null;
+      const all = [cand.text].concat(activeNotes().filter((n) => n.kind === 'sup').map((n) => n.text)).join(' ');
+      const hasOps = activeNotes().some((n) => OPINION.has(n.kind));
+      const items = [
+        ['誰が', /(家庭|親|保護者|子ども|小学生|住民|高齢|世帯|学生|うち)/],
+        ['どんな場面で', /(放課後|とき|場面|朝|夜|帰り|仕事中|間)/],
+        ['どれくらい', /([0-9０-９]|一|二|三|毎日|毎週|週|月|割|半分|ほど)/],
+        ['なぜ', /(から|ので|ため|原因|せい|によって)/]
+      ].map(([point, re]) => ({ point, status: re.test(all) ? 'ok' : '不足' }));
+      const mixed = /(足りない|がない|を増やす|すべき|をつくる|を作る|設置)/.test(all) && !/(ことで|ため、|不安|困って)/.test(all);
+      items.push({ point: '解決策が混ざっていない', status: mixed ? '不足' : 'ok' });
+      items.push({ point: '根拠の付箋', status: hasOps ? 'ok' : '不足' });
+      return { items };
+    }
+    if (target === 'goal') {
+      const cand = activeNotes().find((n) => n.kind === 'goal');
+      if (!cand) return null;
+      const all = [cand.text].concat(activeNotes().filter((n) => n.kind === 'goalsup').map((n) => n.text)).join(' ');
+      return { items: [
+        ['誰が', /(子ども|親|家庭|大人|地域|住民|誰も)/],
+        ['どうなる', /(なる|なって|できる|ている|状態)/],
+        ['いつ', /(年|月|までに|以内|年後)/],
+        ['指標', /(以下|以上|割|減|増|ゼロ|日|回|人)/]
+      ].map(([point, re]) => ({ point, status: re.test(all) ? 'ok' : '不足' })) };
+    }
+    if (target === 'link') {
+      const issue = S.confirmed.issue ? S.confirmed.issue.text : (activeNotes().find((n) => n.kind === 'issue') || {}).text;
+      const goal = S.confirmed.goal ? S.confirmed.goal.text : (activeNotes().find((n) => n.kind === 'goal') || {}).text;
+      if (!issue || !goal) return null;
+      const a = new Set(tokens(issue));
+      const shared = tokens(goal).filter((w) => a.has(w));
+      return { status: shared.length ? 'ok' : '確かめたい', reason: shared.length ? '共通する言葉：' + shared.slice(0, 3).join('、') : '共通する言葉がない' };
+    }
+    return null;
+  },
+  advisor(purpose, query, passages) {
+    return { facts: passages.slice(0, 2).map((c) => ({ docRef: c.id, quote: c.text.slice(0, 24), fact: c.text, use: '参考' })) };
+  },
+  organizer(variant) {
+    const ops = activeNotes().filter((n) => OPINION.has(n.kind));
+    const df = {};
+    const toks = ops.map((n) => { const set = new Set(tokens(n.text + ' ' + n.quote)); set.forEach((w) => { df[w] = (df[w] || 0) + 1; }); return set; });
+    const tooCommon = (w) => df[w] > Math.max(2, ops.length * 0.6);
+    const groups = [];
+    ops.forEach((n, i) => {
+      const mine = [...toks[i]].filter((w) => !tooCommon(w) && df[w] >= 2);
+      if (variant % 2 === 1) mine.reverse();
+      let g = groups.find((gr) => mine.some((w) => gr.words.has(w)));
+      if (!g) { g = { words: new Set(), noteIds: [] }; groups.push(g); }
+      mine.forEach((w) => g.words.add(w));
+      g.noteIds.push(n.id);
+    });
+    const out = []; const other = [];
+    groups.forEach((g) => {
+      if (g.noteIds.length < 2) { other.push(...g.noteIds); return; }
+      const count = {};
+      g.noteIds.forEach((id) => tokens(getNote(id).text + ' ' + getNote(id).quote).forEach((w) => { if (g.words.has(w)) count[w] = (count[w] || 0) + 1; }));
+      const top = Object.keys(count).sort((a, b) => count[b] - count[a])[0];
+      out.push({ name: top ? `「${top}」のこと` : 'まとまり', nameSource: top ? '本人の言葉' : 'AI', noteIds: g.noteIds });
+    });
+    if (out.length < 2) {
+      const byKind = {};
+      ops.forEach((n) => { (byKind[n.kind] = byKind[n.kind] || []).push(n.id); });
+      return { groups: Object.keys(byKind).map((k) => ({ name: KIND[k].label, nameSource: '付箋の種類', noteIds: byKind[k] })), other: [] };
+    }
+    return { groups: out, other };
+  },
+  persona(key) {
+    const bank = {
+      minami: { ideas: ['公民館や集会所を、放課後だけ子どもの居場所として開く'], comment: 'まずは今ある場所を使えば、すぐに始められそうです。' },
+      kenji: { ideas: ['見守る人の謝礼や保険の費用を、誰が持つかを先に決める'], comment: 'ボランティア頼みだと続かない心配があります。費用の出どころも考えたいです。' },
+      sora: { ideas: ['子ども自身に、放課後どこで過ごしたいかを聞く場をつくる'], comment: 'どこで過ごしたいかを、子どもにも聞いてみたくなりました。', challenge: 'そもそも、一番困っているのは親でしょうか、子どもでしょうか。' }
+    };
+    return bank[key];
+  },
+  editor(request) {
+    if (request) return { story: (S.story ? S.story + '\n' : '') + '【書き足し】' + clean(request) };
+    const c = S.confirmed;
+    const v = (k, d) => (c[k] && c[k].text) || d;
+    return { story: [
+      `【現状】${v('current', '（現状はまだ決まっていません）')}`,
+      `【望ましい姿】${v('goal', '（まだ決まっていません）')}` + (c.indicator && c.indicator.text ? `（指標：${c.indicator.text}）` : ''),
+      `【課題】${v('issue', '（まだ決まっていません）')}`,
+      `【解決案】${v('solution', '（まだ決まっていません）')}` + (c.reason && c.reason.text ? `（理由：${c.reason.text}）` : ''),
+      `【それでどうなるか】${v('solution', '解決案')}によって、${v('goal', '望ましい姿')}に近づく。`
+    ].join('\n') };
+  }
+};
+
+/* ───────── 出力の形をそろえる ───────── */
+const Shape = {
+  facilitator(o) {
+    if (!o || typeof o.content !== 'string' || !o.content.trim()) return null;
+    return { content: o.content.trim(), refs: Array.isArray(o.refs) ? o.refs.map(String) : [], docRefs: Array.isArray(o.docRefs) ? o.docRefs.map(String) : [], questionType: String(o.questionType || ''), suggestAdvance: o.suggestAdvance === true, read: String(o.read || '') };
+  },
+  scribe(o) { return o && Array.isArray(o.ops) ? { ops: o.ops.filter((x) => x && typeof x === 'object') } : null; },
+  advisor(o) { return o && Array.isArray(o.facts) ? { facts: o.facts.filter((x) => x && typeof x === 'object') } : null; },
+  check(target, o) {
+    if (!o) return null;
+    if (target === 'link') return { status: /^ok$/i.test(String(o.status || '').trim()) ? 'ok' : '確かめたい', reason: String(o.reason || '') };
+    const pts = target === 'issue' ? ISSUE_POINTS : GOAL_POINTS;
+    const got = Array.isArray(o.items) ? o.items : [];
+    return { items: pts.map((p) => {
+      const it = got.find((x) => x && String(x.point || '').trim() === p);
+      if (!it) return { point: p, status: '不足', hint: '判定がなかった' };
+      return { point: p, status: /^ok$/i.test(String(it.status || '').trim()) ? 'ok' : '不足', hint: String(it.hint || '') };
+    }) };
+  },
+  organizer(o) {
+    if (!o || !Array.isArray(o.groups)) return null;
+    const valid = new Set(activeNotes().filter((n) => OPINION.has(n.kind)).map((n) => n.id));
+    const used = new Set();
+    const groups = o.groups.map((g) => ({
+      name: String(g.name || 'まとまり'), nameSource: String(g.nameSource || 'AI'),
+      noteIds: (Array.isArray(g.noteIds) ? g.noteIds.map(String) : []).filter((id) => valid.has(id) && !used.has(id) && used.add(id))
+    })).filter((g) => g.noteIds.length >= 1);
+    const other = [...valid].filter((id) => !used.has(id));
+    return { groups, other };
+  },
+  persona(o) {
+    if (!o) return null;
+    const ideas = (Array.isArray(o.ideas) ? o.ideas : [o.idea]).map((s) => String(s || '').trim()).filter(Boolean).slice(0, 1);
+    if (!ideas.length) return null;
+    return { ideas: ideas.map((s) => short(s, 70)), comment: String(o.comment || '').trim(), challenge: String(o.challenge || '').trim() };
+  },
+  editor(o) { return o && typeof o.story === 'string' && o.story.trim() ? { story: o.story.trim() } : null; }
+};
+
+/* ───────── 進行役（プログラム） ───────── */
+const tierFor = (role) => {
+  if (['整理係', 'AI参加者', '編集者', '点検係', '資料係'].includes(role)) return 'default';
+  return S.settings.speed === 'quality' ? 'default' : 'quick';
+};
+const useClaude = () => S.settings.ai === 'claude' && !!sampleFn;
+
+async function callClaude(role, prompt, shape) {
+  const t0 = performance.now();
+  try {
+    const r = await sampleFn(prompt, { modelTier: tierFor(role), cache: false });
+    const obj = parseJson(r.text);
+    const out = obj == null ? null : shape(obj);
+    if (!out) return { out: null, raw: r.text, tier: r.modelTierApplied, ms: Math.round(performance.now() - t0), err: obj == null ? 'invalid_json' : 'shape' };
+    return { out, raw: r.text, tier: r.modelTierApplied, ms: Math.round(performance.now() - t0) };
+  } catch (e) {
+    const code = (e && e.code) || 'unknown';
+    if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) {
+      S.settings.ai = 'fake';
+      toast('Claude を使えないため、台本の返事に切り替えました。');
+    } else if (code === 'rate_limited') {
+      toast('Claude の利用が混み合っています。この返事は台本で代わりにします。');
+    }
+    return { out: null, raw: (e && e.text) || '', ms: Math.round(performance.now() - t0), err: code };
+  }
+}
+
+function runAgent(role, trigger, o) {
+  const t0 = performance.now();
+  pending[role] = (pending[role] || 0) + 1;
+  renderStatus();
+  const stage = S.stage;
+  const claude = useClaude() && o.prompt;
+  const prompt = claude ? o.prompt() : null;
+  const work = claude
+    ? callClaude(role, prompt, o.shape).then((r) => (r.out ? Object.assign(r, { mode: 'Claude' }) : Object.assign(r, { out: o.fake(), mode: '台本（Claude の失敗：' + r.err + '）' })))
+    : pause(Math.max(150, o.delay + Math.round((Math.random() - 0.5) * 400))).then(() => ({ out: o.fake(), mode: '台本' }));
+  return work.then((r) => {
+    let result;
+    try { result = r.out == null ? { ok: false, note: '出力なし' } : o.apply(r.out); } catch (e) { result = { ok: false, note: 'エラー：' + e.message }; }
+    const entry = {
+      seq: ++S.logSeq, at: Date.now(), role, trigger, stage, mode: r.mode, tier: r.tier || null,
+      ms: Math.round(performance.now() - t0), ok: !result || result.ok !== false, note: (result && result.note) || '', err: r.err || null
+    };
+    S.log.unshift(entry);
+    S.log = S.log.slice(0, 150);
+    dbLog(Object.assign({}, entry, { prompt: prompt ? prompt.slice(0, 14000) : null, raw: r.raw ? String(r.raw).slice(0, 8000) : null }));
+  }).finally(() => {
+    pending[role] = Math.max(0, (pending[role] || 1) - 1);
+    save();
+    render();
+  });
+}
+function logLocal(role, trigger, note) {
+  const entry = { seq: ++S.logSeq, at: Date.now(), role, trigger, stage: S.stage, mode: 'プログラム', tier: null, ms: 0, ok: true, note, err: null };
+  S.log.unshift(entry);
+  dbLog(Object.assign({}, entry, { prompt: null, raw: null }));
+}
+
+/* 実行の記録（このページの持ち主だけが読める） */
+function ensureRunDoc() {
+  if (!dbNs || runDocReady) return;
+  runDocReady = true;
+  try {
+    dbNs.doc('runs/' + S.runId).set({ startedAt: Date.now(), ai: S.settings.ai, speed: S.settings.speed, demo: !!demo, status: 'running' }).catch(() => { runDocReady = false; });
+  } catch (e) { runDocReady = false; }
+}
+function dbLog(entry) {
+  if (!dbNs) return;
+  ensureRunDoc();
+  try { dbNs.collection('runs/' + S.runId + '/events').add(entry).catch(() => {}); } catch (e) { /* 記録できなくても動く */ }
+}
+function finishRunDoc(status) {
+  if (!dbNs) return;
+  const C = {};
+  Object.keys(S.confirmed).forEach((k) => { C[k] = S.confirmed[k].text; });
+  try {
+    dbNs.doc('runs/' + S.runId).set({
+      startedAt: S.messages[0] ? S.messages[0].at : Date.now(), finishedAt: Date.now(), ai: S.settings.ai, speed: S.settings.speed,
+      demo: true, status, confirmed: C, story: S.story || '', cited: S.cited || [],
+      notes: activeNotes().map((n) => ({ id: n.id, kind: n.kind, author: n.author, text: n.text, quote: n.quote, flags: n.flags, dug: n.dug || 0, userEdited: n.userEdited })),
+      messages: S.messages.map((m) => ({ who: m.who, stage: m.stage, text: m.text, refs: m.refs || [], docRefs: m.docRefs || [], qt: m.qt || null }))
+    }).catch(() => {});
+  } catch (e) { /* 記録できなくても動く */ }
+}
+
+function lastFacilBefore(stage, msgId) {
+  const idx = S.messages.findIndex((m) => m.id === msgId);
+  for (let i = idx - 1; i >= 0; i--) {
+    const m = S.messages[i];
+    if (m.who === 'facil' && m.stage === stage) return m;
+    if (m.who === 'system') break;
+  }
+  return null;
+}
+
+function candidateText(stage) {
+  const t = stage === 2 ? 'issue' : stage === 3 ? 'goal' : null;
+  if (!t) return '';
+  const c = S.confirmed[t] ? S.confirmed[t].text : (activeNotes().find((n) => n.kind === t) || {}).text;
+  return c || '';
+}
+function send(text, via) {
+  text = String(text || '').trim();
+  if (!text) return;
+  const stage = S.stage;
+  S.round += 1;
+  const turn = S.messages.filter((m) => m.who === 'user' && m.stage === stage).length;
+  const msg = addMsg('user', text, { via });
+  const snapshot = activeNotes().map((n) => Object.assign({}, n));
+  /* 資料の抜粋：意見出しでは、本人が質問したときだけ渡す（自分の考えを出し切る前に、事実で寄せないため） */
+  const wantDocs = stage !== 1 || isQuestion(text);
+  const found = wantDocs ? searchDocs(isQuestion(text) ? text : text + ' ' + candidateText(stage), 3) : [];
+  const advised = S.advice && S.advice.stage === stage ? S.advice.facts.map((f) => CHUNK[f.docRef]) : [];
+  const passages = uniqChunks(found.concat(wantDocs ? advised : [])).slice(0, 5);
+  const plannedType = stage === 1 && !isQuestion(text) ? (turn % 3 === 2 ? '広げる（ほかの立場や場面に目を向ける問い）' : '掘り下げ（今の発言か、掘り下げの候補の上の付箋について）') : null;
+  const ctx = { stage, text, snapshot, turn, msgId: msg.id, lastFacil: lastFacilBefore(stage, msg.id), passages, plannedType };
+  render();
+  runAgent('ファシリ', '本人の発言', { delay: 900, prompt: () => P.facilitator(ctx), shape: Shape.facilitator, fake: () => Fake.facilitator(ctx), apply: (out) => applyFacil(out, ctx) });
+  if (stage <= 4) {
+    runAgent('書記', '本人の発言', { delay: S.settings.scribeDelay, prompt: () => P.scribe(ctx), shape: Shape.scribe, fake: () => Fake.scribe(ctx), apply: (out) => applyScribe(out, ctx, msg) });
+  } else {
+    runAgent('編集者', '本人の発言', { delay: 1300, prompt: () => P.editor(text), shape: Shape.editor, fake: () => Fake.editor(text), apply: (out) => { S.story = out.story; return { ok: true, note: '下書きを直した' }; } });
+  }
+}
+
+/* 直前の発言を掘り下げたとき、その発言から書記が作った付箋に「掘り下げた」を数える（ファシリと書記は同時に動くため） */
+function attributeDug(fm, msgId) {
+  if (!fm || (fm.refs && fm.refs.length) || !/^掘り下げ/.test(fm.qt || '')) return;
+  const n = activeNotes().find((x) => x.msgId === msgId);
+  if (!n) return;
+  fm.refs = [n.id];
+  n.dug = (n.dug || 0) + 1;
+}
+function applyFacil(out, ctx) {
+  if (S.stage !== ctx.stage) return { ok: false, note: '段階が変わったので、返事を捨てた' };
+  const live = new Set(activeNotes().map((n) => n.id));
+  const snap = new Set(ctx.snapshot.map((n) => n.id));
+  const asked = out.refs || [];
+  const refs = asked.filter((id) => live.has(id) && snap.has(id));
+  const dropped = asked.length - refs.length;
+  const given = new Set(ctx.passages.map((c) => c.id));
+  const askedDocs = out.docRefs || [];
+  const docRefs = askedDocs.filter((id) => given.has(id));
+  const droppedDocs = askedDocs.length - docRefs.length;
+  refs.forEach((id) => { const n = getNote(id); n.dug = (n.dug || 0) + 1; });
+  const fm = addMsg('facil', out.content, { refs, docRefs, qt: out.questionType, replyTo: ctx.msgId });
+  docRefs.forEach((id) => { S.cited = S.cited || []; if (!S.cited.includes(id)) S.cited.push(id); });
+  attributeDug(fm, ctx.msgId);
+  if (out.suggestAdvance) S.suggest = true;
+  return { ok: true, note: (out.questionType || '返事') + (fm.refs.length ? `・付箋${fm.refs.length}枚に触れた` : '・付箋には触れない') + (dropped ? `・実在しない付箋を${dropped}件外した` : '') + (docRefs.length ? `・資料${docRefs.length}件を示した（${docRefs.join('、')}）` : '') + (droppedDocs ? `・渡していない資料を${droppedDocs}件外した` : '') + (out.read ? `・読み取り：${out.read}` : '') };
+}
+
+function applyScribe(out, ctx, msg) {
+  let add = 0, upd = 0;
+  const rej = [];
+  let check = null;
+  const allowed = new Set(STAGE_KINDS[ctx.stage] || []);
+  const src = norm(msg.text);
+  (out.ops || []).forEach((op) => {
+    if (op.op === 'add') {
+      let kind = String(op.kind || '').trim();
+      if (!allowed.has(kind) && KIND_ALIAS[kind] !== undefined) {
+        const mapped = KIND_ALIAS[kind] || (ctx.stage === 2 ? 'sup' : ctx.stage === 3 ? 'goalsup' : '');
+        if (mapped) kind = mapped;
+      }
+      const text = String(op.text || '').trim();
+      const quote = String(op.quote || '').trim();
+      if (!allowed.has(kind)) { rej.push('この段階では作れない種類'); return; }
+      if (!text) { rej.push('本文がない'); return; }
+      if (!quote) { rej.push('引用がない'); return; }
+      if (!src.includes(norm(quote))) { rej.push('引用が発言の中にない'); return; }
+      if (add >= 3) { rej.push('4枚目以降'); return; }
+      if ((kind === 'issue' || kind === 'goal') && (S.confirmed[kind] || activeNotes().some((n) => n.kind === kind))) kind = kind === 'issue' ? 'sup' : 'goalsup';
+      const flags = (Array.isArray(op.flags) ? op.flags : []).map(String).filter((f) => ['理由？', '具体例？', '食い違い'].includes(f));
+      if (flags.includes('食い違い') && !(Number(op.confidence) >= 7 && getNote(String(op.relatedNoteId || '')))) flags.splice(flags.indexOf('食い違い'), 1);
+      addNote({ kind, text: short(text, 90), quote, msgId: msg.id, flags, stage: ctx.stage, round: S.round });
+      add += 1;
+      if (kind === 'issue' || kind === 'sup') check = 'issue';
+      if (kind === 'goal' || kind === 'goalsup') check = 'goal';
+      return;
+    }
+    if (op.op !== 'update') { rej.push('不明な操作'); return; }
+    const n = getNote(String(op.noteId || ''));
+    if (!n || n.status !== 'active') { rej.push('付箋がない'); return; }
+    if (Number(op.baseVersion) !== n.version) { rej.push('版が古い'); return; }
+    const removeFlags = Array.isArray(op.removeFlags) ? op.removeFlags.map(String) : [];
+    if (n.userEdited) {
+      if (removeFlags.length) { n.flags = n.flags.filter((f) => !removeFlags.includes(f)); n.version += 1; }
+      rej.push('本人が直した付箋の本文は上書きしない');
+      return;
+    }
+    if (op.text && String(op.text).trim()) n.text = short(String(op.text).trim(), 90);
+    n.flags = n.flags.filter((f) => !removeFlags.includes(f));
+    n.version += 1;
+    upd += 1;
+  });
+  if (add) attributeDug(S.messages.find((m) => m.who === 'facil' && m.replyTo === msg.id), msg.id);
+  if (check) { runCheck(check); runAdvisor(check); }
+  if (add && ctx.stage === 4 && activeNotes().some((n) => n.msgId === msg.id && n.kind === 'idea')) runAdvisor('idea');
+  return { ok: true, note: `追加${add}・更新${upd}` + (rej.length ? `・捨てた${rej.length}（${[...new Set(rej)].join('、')}）` : '') };
+}
+
+function runCheck(target) {
+  const trig = target === 'issue' ? '課題の案が出た' : target === 'goal' ? '望ましい姿の案が出た' : 'つながりの確認';
+  runAgent('点検係', trig, {
+    delay: 1300, prompt: () => P.check(target), shape: (o) => Shape.check(target, o), fake: () => Fake.check(target),
+    apply: (out) => {
+      S.checks[target] = out;
+      if (target === 'goal' && (S.confirmed.issue || activeNotes().some((n) => n.kind === 'issue'))) runCheck('link');
+      const ng = out.items ? out.items.filter((i) => i.status !== 'ok').map((i) => i.point) : (out.status !== 'ok' ? ['つながり'] : []);
+      return { ok: true, note: ng.length ? '足りない：' + ng.join('、') : 'そろっている' };
+    }
+  });
+}
+
+function runAdvisor(purpose) {
+  const query = purpose === 'idea'
+    ? activeNotes().filter((n) => n.kind === 'idea' && !isAI(n)).map((n) => n.text).join('\n')
+    : candidateText(purpose === 'issue' ? 2 : 3) + '\n' + activeNotes().filter((n) => n.kind === (purpose === 'issue' ? 'sup' : 'goalsup')).map((n) => n.text).join('\n');
+  const passages = searchDocs(query + (purpose === 'goal' ? ' ' + candidateText(2) : ''), 4);
+  const stage = S.stage;
+  if (!passages.length) { logLocal('資料係', '検索', '関係しそうな資料は見つからなかった'); return; }
+  runAgent('資料係', purpose === 'issue' ? '課題の案が出た' : purpose === 'goal' ? '望ましい姿の案が出た' : 'アイデアが出た', {
+    delay: 1500, prompt: () => P.advisor(purpose, query, passages), shape: Shape.advisor, fake: () => Fake.advisor(purpose, query, passages),
+    apply: (out) => {
+      const given = new Set(passages.map((c) => c.id));
+      const rej = [];
+      const facts = out.facts.slice(0, 3).filter((f) => {
+        const id = String(f.docRef || '');
+        if (!given.has(id)) { rej.push('渡していない資料'); return false; }
+        if (!f.quote || !norm(CHUNK[id].text).includes(norm(f.quote))) { rej.push('引用が資料の中にない'); return false; }
+        return true;
+      }).map((f) => ({ docRef: String(f.docRef), quote: String(f.quote), fact: String(f.fact || ''), use: String(f.use || '') }));
+      if (S.stage === stage) S.advice = { stage, purpose, facts };
+      return { ok: true, note: `事実${facts.length}件をファシリテーターに渡した` + (facts.length ? '（' + facts.map((f) => f.docRef).join('、') + '）' : '') + (rej.length ? `・捨てた${rej.length}（${[...new Set(rej)].join('、')}）` : '') };
+    }
+  });
+}
+function canLeave(st) {
+  const C = S.confirmed;
+  if (st === 1 && !activeNotes().some((n) => OPINION.has(n.kind))) return '意見の付箋が1枚以上になると進めます。';
+  if (st === 2 && !C.issue) return '課題を〔これで決める〕で確定すると進めます。';
+  if (st === 3 && !C.goal) return '望ましい姿を〔これで決める〕で確定すると進めます。';
+  if (st === 4 && !C.solution) return '解決案を〔これで決める〕で確定すると進めます。';
+  if (st === 5 && !C.story) return 'ストーリーを〔これで決める〕で確定すると、ドキュメントになります。';
+  return null;
+}
+function goStage(st, back) {
+  S.stage = st;
+  S.maxStage = Math.max(S.maxStage, st);
+  S.suggest = false;
+  addMsg('system', back ? `${STAGES[st]}に戻りました` : `${STAGES[st]}に進みました`);
+  addMsg('facil', back ? `${STAGES[st]}に戻りました。直したいところや、足したいことを話してください。` : ENTRY[st]);
+  logLocal('進行役', back ? '〔戻る〕' : '〔次へ〕', `${STAGES[st]}へ。ボードの写しを保存（試作では省略）`);
+  if (st === 5 && !back) runEditor();
+  save();
+  render();
+}
+function runEditor() {
+  runAgent('編集者', 'まとめに入った', {
+    delay: 1600, prompt: () => P.editor(''), shape: Shape.editor, fake: () => Fake.editor(''),
+    apply: (out) => {
+      S.story = out.story;
+      if (S.stage === 5) addMsg('facil', 'ストーリーの下書きを作りました。ボードで読めます。直したいところを話すか、カードを押して直してください。');
+      return { ok: true, note: '下書きを作った' };
+    }
+  });
+}
+function runOrganizer() {
+  const ops = activeNotes().filter((n) => OPINION.has(n.kind));
+  if (ops.length < 2) { toast('意見の付箋が2枚以上になると、まとめられます。'); return null; }
+  S.organizeCount = (S.organizeCount || 0) + 1;
+  const variant = S.organizeCount;
+  return runAgent('整理係', '〔まとめる〕', {
+    delay: 1400, prompt: () => P.organizer(), shape: Shape.organizer, fake: () => Fake.organizer(variant),
+    apply: (out) => {
+      S.proposal = out;
+      if (!demo) openSheet('proposal');
+      return { ok: true, note: `グループ${out.groups.length}つ・その他${out.other.length}枚の案：` + out.groups.map((g) => g.name).join('／') };
+    }
+  });
+}
+function runPersonas() {
+  if (!activeNotes().some((n) => n.kind === 'idea' && n.author === 'scribe')) { toast('まずは、あなたのアイデアを1つ話してください。AI参加者は、そのあとに加わります。'); return; }
+  if (S.personasDone) return;
+  S.personasDone = true;
+  renderActions();
+  ['minami', 'kenji', 'sora'].forEach((k, i) => {
+    setTimeout(() => runAgent('AI参加者', '〔ほかの人のアイデアも聞く〕', {
+      delay: 1300 + i * 600, prompt: () => P.persona(k), shape: Shape.persona, fake: () => Fake.persona(k),
+      apply: (out) => {
+        out.ideas.forEach((t) => addNote({ kind: 'idea', text: t, quote: t, author: 'persona:' + k, stage: 4, round: S.round }));
+        addMsg('persona:' + k, [out.comment, out.challenge].filter(Boolean).join(' '));
+        return { ok: true, note: `${PERSONAS[k].name}：${out.ideas.join('／')}${out.challenge ? '・問い直し：' + out.challenge : ''}` };
+      }
+    }), i * 300);
+  });
+}
+
+/* ───────── 表示 ───────── */
+function render() {
+  renderStepper();
+  renderMain();
+  renderBoard();
+  renderChat();
+  renderActions();
+  renderStatus();
+  renderBar();
+  $('#themeBtn').innerHTML = `お題：<b>${esc(DEMO.title)}</b>（資料を見る）`;
+  const chip = $('#modeChip');
+  chip.textContent = useClaude() ? 'AI：Claude' : 'AI：台本';
+  chip.className = 'modechip' + (useClaude() ? '' : ' fake');
+  save();
+}
+function renderBar() {
+  const el = $('#hint');
+  if (demo) {
+    el.hidden = false;
+    el.className = 'hint demo';
+    el.innerHTML = `<p><b>デモを再生しています</b>：${esc(demo.label || '')}　${useClaude() ? 'AIは Claude が返しています。' : 'AIは台本です。'}</p><button class="linkbtn" data-act="demo-stop">止める</button>`;
+    return;
+  }
+  el.className = 'hint';
+  el.hidden = !!S.hintClosed;
+  el.innerHTML = `<p>試作です。〔押して話す〕を押すと例文が入ります。${useClaude() ? 'AIは Claude が返します（設定で台本に切り替えられます）。' : 'AIは台本の返事です。'}お題と数字は架空です。</p><button class="linkbtn" data-act="demo-ask">デモ</button><button class="linkbtn" data-act="hint-close">閉じる</button>`;
+}
+function renderStepper() {
+  $('#stepper').innerHTML = STAGES.map((label, i) => {
+    const cls = i === S.stage ? 'cur' : (i <= S.maxStage ? 'done' : '');
+    const act = i !== S.stage && i <= S.maxStage && !demo ? ` data-act="back" data-stage="${i}"` : '';
+    return `<button class="step ${cls}"${act} aria-current="${i === S.stage ? 'step' : 'false'}" aria-label="${esc(label)}"><span class="bar"></span>${esc(STEP_SHORT[i])}</button>`;
+  }).join('');
+}
+function renderMain() {
+  const main = $('#main');
+  const tabs = S.settings.layout === 'tabs';
+  main.className = 'main ' + (tabs ? 'tabs' : 'split');
+  $('#tabbar').hidden = !tabs;
+  $('#boardPanel').hidden = tabs && S.view !== 'board';
+  $('#chatPanel').hidden = tabs && S.view !== 'chat';
+  const newNotes = Math.max(0, activeNotes().length - S.seenNotes);
+  const newMsgs = Math.max(0, S.messages.filter((m) => m.who !== 'user').length - S.seenMsgs);
+  if (!tabs || S.view === 'board') S.seenNotes = activeNotes().length;
+  if (!tabs || S.view === 'chat') S.seenMsgs = S.messages.filter((m) => m.who !== 'user').length;
+  $('#tabBoard').innerHTML = 'ボード' + (tabs && S.view !== 'board' && newNotes ? `<span class="badge">${newNotes}</span>` : '');
+  $('#tabChat').innerHTML = '会話' + (tabs && S.view !== 'chat' && newMsgs ? `<span class="badge">${newMsgs}</span>` : '');
+  $('#tabBoard').setAttribute('aria-selected', String(S.view === 'board'));
+  $('#tabChat').setAttribute('aria-selected', String(S.view === 'chat'));
+  const trash = S.notes.filter((n) => n.status === 'trash').length;
+  $('#trashBtn').textContent = trash ? `ごみ箱（${trash}）` : 'ごみ箱';
+}
+function noteHtml(n) {
+  const kind = KIND[n.kind] || { label: n.kind, cls: '' };
+  const ai = isAI(n);
+  const who = ai ? PERSONAS[n.author.slice(8)].name + '（AI）' : '';
+  const flags = n.flags.map((f) => `<span class="chip">${esc(f)}</span>`).join('') + (n.userEdited ? '<span class="chip">本人が直した</span>' : '');
+  return `<button class="note ${ai ? 'k-ai' : kind.cls}${n.selected ? ' sel' : ''}${n.fresh ? ' fresh' : ''}" style="--r:${hashRot(n.id)}deg" data-act="note" data-note="${n.id}" id="note-${n.id}">
+    <span class="meta"><span>${esc(who || kind.label)}</span><span class="n">${n.author === 'scribe' ? n.round + '回目' : ''}</span></span>
+    <span class="txt">${esc(n.text)}</span>
+    ${flags ? `<span class="flags">${flags}</span>` : ''}
+  </button>`;
+}
+function sec(title, inner, sub) {
+  return `<div class="sec"><div class="sec-h"><b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>${inner}</div>`;
+}
+function checksHtml(chk) {
+  if (!chk) return '<div class="checks"><span class="chk wait">点検中…</span></div>';
+  return '<div class="checks">' + chk.items.map((i) => `<span class="chk ${i.status === 'ok' ? 'ok' : 'ng'}" title="${esc(i.hint || '')}">${esc(i.point)} ${i.status === 'ok' ? '✓' : '？'}</span>`).join('') + '</div>';
+}
+function linkHtml() {
+  const l = S.checks.link;
+  if (!l) return '';
+  return `<div class="checks"><span class="chk ${l.status === 'ok' ? 'ok' : 'ng'}" title="${esc(l.reason || '')}">課題とのつながり ${l.status === 'ok' ? '✓' : '？'}</span></div>`;
+}
+function card(label, text, sub, key, extra) {
+  return `<div class="card"><div class="lab"><span class="tag fixed">決定</span>${esc(label)}</div><div class="body">${esc(text)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}${extra || ''}<div class="row"><button class="btn" data-act="reconfirm" data-key="${key}">直す</button></div></div>`;
+}
+function renderBoard() {
+  const el = $('#board');
+  const C = S.confirmed;
+  const h = [];
+  if (S.stage === 0) {
+    h.push(sec('お題の資料', `<div class="slides">${DEMO.slides.map((s, i) => `<div class="slide"><span class="no">スライド ${i + 1} / ${DEMO.slides.length}</span><h3>${esc(s.h)}</h3><p>${esc(s.b)}</p></div>`).join('')}</div><span class="fine">試作用の架空のお題です。数字も架空です。</span>`));
+  }
+  const conf = [];
+  if (C.understanding) conf.push(card('お題の理解', C.understanding.text, '', 'understanding'));
+  if (C.issue) conf.push(card('課題', C.issue.text, C.current ? '現状：' + C.current.text : '', 'issue', checksHtml(S.checks.issue)));
+  if (C.goal) conf.push(card('望ましい姿', C.goal.text, C.indicator && C.indicator.text ? '指標：' + C.indicator.text : '指標：まだない', 'goal', checksHtml(S.checks.goal) + linkHtml()));
+  if (C.solution) conf.push(card('解決案', C.solution.text, C.reason && C.reason.text ? '理由：' + C.reason.text : '', 'solution', C.solution.ai ? '<span class="tag ai">AI参加者の案を含む</span>' : ''));
+  if (conf.length) h.push(sec('決めたこと', `<div class="cards">${conf.join('')}</div>`));
+  const cands = [];
+  ['issue', 'goal'].forEach((t) => {
+    if (C[t]) return;
+    const c = activeNotes().find((n) => n.kind === t);
+    if (!c) return;
+    const sups = activeNotes().filter((n) => n.kind === (t === 'issue' ? 'sup' : 'goalsup'));
+    cands.push(`<div class="card cand ${t}"><div class="lab">${t === 'issue' ? '課題の案' : '望ましい姿の案'}<span>・本人の言葉から</span></div><div class="body">${esc(c.text)}</div>${sups.length ? `<div class="sub">補足：${sups.map((s) => esc(s.text)).join(' ／ ')}</div>` : ''}${checksHtml(S.checks[t])}${t === 'goal' ? linkHtml() : ''}<div class="row"><button class="btn" data-act="note" data-note="${c.id}">直す</button><button class="btn good" data-act="confirm">これで決める</button></div></div>`);
+  });
+  if (cands.length) h.push(sec('いまの案', `<div class="cards">${cands.join('')}</div>`, '点検の結果は、ファシリテーターの問いにも使われます'));
+  const cited = (S.cited || []).map((id) => CHUNK[id]).filter(Boolean);
+  if (cited.length) {
+    h.push(sec('資料から', `<div class="cards">${cited.map((c) => `<button class="card fact" data-act="source" data-chunk="${c.id}"><span class="lab"><span class="tag src">${esc(c.doc.kind)}</span>${esc(c.doc.title)}（${esc(c.doc.year)}）</span><span class="body">${esc(c.text)}</span></button>`).join('')}</div>`, 'ファシリテーターが示した事実'));
+  }
+  if (S.stage === 5 || S.story) {
+    const storyBody = S.story ? esc(S.story).replace(/\n/g, '<br>') : '<span class="fine">下書きを作っています…</span>';
+    h.push(sec('ストーリー', `<div class="cards"><div class="card"><div class="lab">${C.story ? '<span class="tag fixed">決定</span>' : '<span class="tag ai">AIの下書き</span>'}</div><div class="body">${C.story ? esc(C.story.text).replace(/\n/g, '<br>') : storyBody}</div><div class="row"><button class="btn good" data-act="confirm-story">直して決める</button></div></div><div class="card dashed"><div class="lab">効果の見通し</div><div class="sub">RAG の設計と合わせて、あとで加えます（AIが作る項目）</div></div></div>`));
+  }
+  const seeds = activeNotes().filter((n) => n.kind === 'seed');
+  const seedSec = seeds.length ? sec('気になったこと', `<div class="notes">${seeds.map(noteHtml).join('')}</div>`, S.stage > 0 ? '下準備で出たもの' : '') : '';
+  if (S.stage === 0 && seedSec) h.push(seedSec);
+  const ops = activeNotes().filter((n) => OPINION.has(n.kind));
+  if (ops.length) {
+    if (S.groups) {
+      const inGroup = new Set();
+      const gh = S.groups.map((g) => {
+        const ns = g.noteIds.map(getNote).filter((n) => n && n.status === 'active');
+        ns.forEach((n) => inGroup.add(n.id));
+        return ns.length ? `<div class="group"><div class="group-h">${esc(g.name)}<span>${esc(g.nameSource)}</span></div><div class="notes">${ns.map(noteHtml).join('')}</div></div>` : '';
+      }).join('');
+      const rest = ops.filter((n) => !inGroup.has(n.id));
+      h.push(sec('意見', gh + (rest.length ? `<div class="group"><div class="group-h">その他・あとから出た意見</div><div class="notes">${rest.map(noteHtml).join('')}</div></div>` : ''), `${ops.length}枚・グループ分けを使っています`));
+    } else {
+      h.push(sec('意見', `<div class="notes">${ops.map(noteHtml).join('')}</div>`, `${ops.length}枚`));
+    }
+  }
+  const sups = activeNotes().filter((n) => (n.kind === 'sup' || n.kind === 'goalsup') && S.confirmed[n.kind === 'sup' ? 'issue' : 'goal']);
+  if (sups.length) h.push(sec('課題と望ましい姿の補足', `<div class="notes">${sups.map(noteHtml).join('')}</div>`));
+  const ideas = activeNotes().filter((n) => n.kind === 'idea');
+  if (ideas.length) h.push(sec('アイデア', `<div class="notes">${ideas.map(noteHtml).join('')}</div>`, S.stage === 4 ? '付箋を押すと、解決案に選べます' : ''));
+  if (S.stage > 0 && seedSec) h.push(seedSec);
+  if (!h.length) h.push('<div class="empty">話したことは、ここに付箋になって貼られます。</div>');
+  el.innerHTML = h.join('');
+  if (renderBoard.stage !== S.stage) { el.scrollTop = 0; renderBoard.stage = S.stage; }
+  const fresh = S.notes.filter((n) => n.fresh);
+  if (fresh.length) {
+    const last = document.getElementById('note-' + fresh[fresh.length - 1].id);
+    if (last && last.scrollIntoView) last.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    fresh.forEach((n) => { n.fresh = false; });
+  }
+}
+function renderChat() {
+  const box = $('#chat');
+  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  const added = S.messages.length !== lastMsgCount;
+  lastMsgCount = S.messages.length;
+  const html = S.messages.map((m) => {
+    if (m.who === 'system') return `<div class="msg system">${esc(m.text)}</div>`;
+    if (m.who === 'user') return `<div class="msg user"><span class="who">あなた${m.via === 'voice' ? '（声）' : ''}</span><div class="bubble">${esc(m.text)}</div></div>`;
+    if (m.who.startsWith('persona:')) {
+      const p = PERSONAS[m.who.slice(8)];
+      return `<div class="msg persona"><span class="who">${esc(p.name)}・AI参加者・${esc(p.role)}</span><div class="bubble">${esc(m.text)}</div></div>`;
+    }
+    const refs = (m.refs || []).map(getNote).filter(Boolean).map((n) => `<button class="ref" data-act="ref" data-note="${n.id}">付箋：${esc(short(n.text, 16))}</button>`).join('')
+      + (m.docRefs || []).map((id) => CHUNK[id]).filter(Boolean).map((c) => `<button class="ref src" data-act="source" data-chunk="${c.id}">出典：${esc(short(c.doc.title, 18))}</button>`).join('');
+    return `<div class="msg facil"><span class="who">ファシリテーター</span><div class="bubble">${esc(m.text)}</div>${refs ? `<div class="refs">${refs}</div>` : ''}</div>`;
+  }).join('');
+  const typing = pending['ファシリ'] ? '<div class="typing" aria-label="ファシリテーターが考えています"><i></i><i></i><i></i></div>' : '';
+  $('#msgs').innerHTML = html + typing;
+  if (nearBottom || added) box.scrollTop = box.scrollHeight;
+}
+function renderStatus() {
+  const map = { '書記': '書記が付箋を書いています…', '点検係': '点検しています…', '資料係': '資料を確かめています…', '整理係': '整理の案を作っています…', 'AI参加者': 'AI参加者が考えています…', '編集者': '下書きを作っています…' };
+  $('#boardStatus').textContent = Object.keys(map).filter((k) => pending[k]).map((k) => map[k]).join(' ');
+  $('#chatStatus').textContent = pending['ファシリ'] ? 'ファシリテーターが考えています…' : '';
+  const box = $('#msgs');
+  if (box) {
+    const has = box.querySelector('.typing');
+    if (pending['ファシリ'] && !has) { box.insertAdjacentHTML('beforeend', '<div class="typing" aria-label="ファシリテーターが考えています"><i></i><i></i><i></i></div>'); $('#chat').scrollTop = $('#chat').scrollHeight; }
+    if (!pending['ファシリ'] && has) has.remove();
+  }
+}
+function renderActions() {
+  const st = S.stage;
+  const dis = demo ? ' disabled' : '';
+  const b = [];
+  if (st === 0) b.push(`<button class="btn good" data-act="confirm"${dis}>これで決める（お題の理解）</button>`);
+  if (st === 1 || st === 2) b.push(`<button class="btn" data-act="organize"${dis}>まとめる</button>`);
+  if (st === 2) b.push(`<button class="btn good" data-act="confirm"${dis}>これで決める（課題）</button>`);
+  if (st === 3) b.push(`<button class="btn good" data-act="confirm"${dis}>これで決める（望ましい姿）</button>`);
+  if (st === 4) {
+    b.push(`<button class="btn" data-act="personas"${S.personasDone || demo ? ' disabled' : ''}>ほかの人のアイデアも聞く</button>`);
+    b.push(`<button class="btn good" data-act="confirm"${dis}>これで決める（解決案）</button>`);
+  }
+  if (st === 5) b.push(`<button class="btn good" data-act="confirm-story"${dis}>これで決める（ストーリー）</button>`);
+  b.push('<span class="spacer"></span>');
+  b.push(`<button class="btn primary${S.suggest && !demo ? ' pulse' : ''}" data-act="next"${dis}>${st === 5 ? 'ドキュメント ›' : '次へ ›'}</button>`);
+  $('#actions').innerHTML = b.join('');
+}
+const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const KBD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>';
+function renderComposer() {
+  const el = $('#composer');
+  if (composerMode === 'voice' || demo) {
+    const label = busy ? '文字にしています…' : rec ? `話し終えたら押す　${Math.floor((Date.now() - rec.start) / 1000)}秒` : (demo ? 'デモを再生しています' : '押して話す');
+    el.innerHTML = `<button class="iconbtn" data-act="mode-text" aria-label="キーボードで入力する"${demo ? ' disabled' : ''}>${KBD_SVG}</button><button class="mic${rec ? ' rec' : ''}${busy || demo ? ' busy' : ''}" data-act="mic" id="micBtn" aria-pressed="${rec ? 'true' : 'false'}">${MIC_SVG}<span>${label}</span></button>`;
+  } else {
+    el.innerHTML = `<button class="iconbtn" data-act="mode-voice" aria-label="声で入力する">${MIC_SVG}</button><label class="sr" for="txt">発言を入力</label><input class="txtin" id="txt" type="text" placeholder="打ち込んで送る" enterkeyhint="send" autocomplete="off"><button class="btn primary" data-act="send">送る</button>`;
+  }
+}
+
+/* ───────── シート ───────── */
+function openSheet(type, data) { sheet = { type, data: data || {} }; renderSheet(); }
+function closeSheet() { sheet = null; renderSheet(); }
+function renderSheet() {
+  const root = $('#sheetRoot');
+  if (!sheet) { root.innerHTML = ''; return; }
+  root.innerHTML = `<div class="backdrop" id="backdrop"><div class="sheet" role="dialog" aria-modal="true">${SHEETS[sheet.type](sheet.data)}</div></div>`;
+  const first = root.querySelector('textarea');
+  if (first && !demo) first.focus();
+}
+const closeBtn = '<button class="btn" data-act="close">閉じる</button>';
+const SHEETS = {
+  note(d) {
+    const n = getNote(d.id);
+    if (!n) return '<p>付箋が見つかりません。</p>' + closeBtn;
+    const msg = S.messages.find((m) => m.id === n.msgId);
+    const who = isAI(n) ? PERSONAS[n.author.slice(8)].name + '（AI参加者）が出した案' : n.author === 'user' ? '本人' : '書記が本人の発言から作成';
+    const editing = !!d.edit;
+    const sel = S.stage === 4 && n.kind === 'idea' ? `<button class="btn good" data-act="note-select" data-note="${n.id}">${n.selected ? '解決案から外す' : '解決案に選ぶ'}</button>` : '';
+    return `<h2>${esc((KIND[n.kind] || {}).label || '付箋')}</h2>
+      ${editing ? `<div class="field"><label for="noteText">本文</label><textarea id="noteText">${esc(n.text)}</textarea><span class="help">直した付箋は、AIが上書きしません。</span></div>` : `<p style="font-size:17px">${esc(n.text)}</p>`}
+      <dl class="kv"><dt>作った人</dt><dd>${esc(who)}${n.userEdited ? '（本人が直した）' : ''}</dd>
+      ${n.author === 'scribe' ? `<dt>話した回</dt><dd>${n.round}回目</dd>` : ''}
+      <dt>印</dt><dd>${n.flags.length ? esc(n.flags.join('、')) : 'なし'}</dd>
+      <dt>掘り下げた回数</dt><dd>${n.dug || 0}回</dd><dt>版</dt><dd>${n.version}</dd></dl>
+      ${n.quote && !isAI(n) ? `<div class="quote">付箋のもとになった部分：「${esc(n.quote)}」${msg && msg.text !== n.quote ? `<br>元の発言：「${esc(msg.text)}」` : ''}</div>` : ''}
+      <div class="row">${editing ? `<button class="btn primary" data-act="note-save" data-note="${n.id}">保存</button>` : `<button class="btn" data-act="note-edit" data-note="${n.id}">直す</button>`}${sel}<button class="btn" data-act="note-trash" data-note="${n.id}">消す</button>${closeBtn}</div>`;
+  },
+  confirm(d) {
+    const fields = confirmFields(d.key);
+    return `<h2>${esc(fields.title)}</h2><p class="fine">${esc(fields.help)}</p>
+      ${fields.items.map((f) => `<div class="field"><label for="f-${f.key}">${esc(f.label)}</label><textarea id="f-${f.key}" rows="${f.rows || 3}">${esc(f.value || '')}</textarea>${f.help ? `<span class="help">${esc(f.help)}</span>` : ''}</div>`).join('')}
+      ${fields.note ? `<p class="fine">${esc(fields.note)}</p>` : ''}
+      <div class="row"><button class="btn primary" data-act="confirm-save" data-key="${fields.id}">これで決める</button><button class="btn" data-act="close">やめる</button></div>`;
+  },
+  proposal() {
+    const p = S.proposal;
+    if (!p) return '<p>案がありません。</p>' + closeBtn;
+    const g = p.groups.map((gr) => `<div class="group"><div class="group-h">${esc(gr.name)}<span>${esc(gr.nameSource)}</span></div>${gr.noteIds.map(getNote).filter(Boolean).map((n) => `<div class="fine">・${esc(n.text)}</div>`).join('')}</div>`).join('');
+    const o = p.other.length ? `<div class="group"><div class="group-h">その他</div>${p.other.map(getNote).filter(Boolean).map((n) => `<div class="fine">・${esc(n.text)}</div>`).join('')}</div>` : '';
+    return `<h2>グループ分けの案</h2><p class="fine">整理係の案です。使うかどうかは、あなたが決めます。</p>${g}${o}
+      <div class="row"><button class="btn primary" data-act="proposal-use">この案を使う</button><button class="btn" data-act="proposal-retry">作り直す</button>${S.groups ? '<button class="btn" data-act="proposal-clear">グループ分けをやめる</button>' : ''}${closeBtn}</div>`;
+  },
+  slides() {
+    return `<h2>お題：${esc(DEMO.title)}</h2>${DEMO.slides.map((s, i) => `<div class="slide" style="max-width:none"><span class="no">スライド ${i + 1} / ${DEMO.slides.length}</span><h3>${esc(s.h)}</h3><p>${esc(s.b)}</p></div>`).join('')}
+      <div class="field"><label>関連資料</label><span class="help">ファシリテーターが事実を確かめるときに使う資料です。事実を示すときは、必ず出典を添えます。</span>${DOCS.map((d) => `<div class="docrow"><span class="tag src">${esc(d.kind)}</span><span>${esc(d.title)}<br><span class="fine">${esc(d.org)}・${esc(d.year)}</span></span></div>`).join('')}</div>
+      <p class="fine">試作用の架空のお題と資料です。数字も架空です。</p><div class="row">${closeBtn}</div>`;
+  },
+  source(d) {
+    const c = CHUNK[d.id];
+    if (!c) return '<p>資料が見つかりません。</p>' + closeBtn;
+    return `<h2>${esc(c.doc.title)}</h2><p class="fine">${esc(c.doc.org)}・${esc(c.doc.year)}・${esc(c.doc.kind)}（試作用の架空の資料）</p>
+      ${c.doc.chunks.map((t, i) => `<div class="quote${c.doc.id + '-' + (i + 1) === c.id ? ' hit' : ''}">${esc(t)}</div>`).join('')}
+      <div class="row">${closeBtn}</div>`;
+  },
+  trash() {
+    const t = S.notes.filter((n) => n.status === 'trash');
+    return `<h2>ごみ箱</h2>${t.length ? t.map((n) => `<div class="row"><span style="flex:1;min-width:0">${esc(n.text)}</span><button class="btn" data-act="note-restore" data-note="${n.id}">戻す</button></div>`).join('') : '<p class="fine">消した付箋はありません。</p>'}<div class="row">${closeBtn}</div>`;
+  },
+  log() {
+    const rows = S.log.map((e) => `<div class="e${e.ok ? '' : ' ng'}"><span class="r">${esc(e.role)}</span><span>${esc(e.trigger)}<span class="t">　${(e.ms / 1000).toFixed(1)}秒</span></span><span class="t">${esc(e.mode || '')}${e.tier ? '・' + esc(e.tier) : ''}</span><span>${esc(e.note)}</span></div>`).join('');
+    return `<h2>AIの動き</h2><p class="fine">どの役が、何をきっかけに動き、何をしたか。プログラムが確かめて捨てた出力も残します。${dbNs ? '指示文と返事の全文は、このページの持ち主だけが読める記録にも残しています。' : ''}</p><div class="log">${rows || '<p class="fine">まだ記録はありません。</p>'}</div><div class="row">${closeBtn}</div>`;
+  },
+  settings() {
+    const st = S.settings;
+    const delays = [[500, '0.5秒'], [1500, '1.5秒'], [3000, '3秒'], [6000, '6秒']];
+    return `<h2>設定</h2>
+      <div class="field"><label>AIの返事</label><div class="opt"><button class="btn" data-act="set-ai" data-v="claude" aria-pressed="${st.ai === 'claude'}"${sampleFn ? '' : ' disabled'}>Claude（本物）</button><button class="btn" data-act="set-ai" data-v="fake" aria-pressed="${st.ai === 'fake'}">台本（決まった返事）</button></div><span class="help">${sampleFn ? 'Claude は、あなたの Claude の利用分を使います。最初の1回は、使ってよいか確認が出ます。' : 'この画面では Claude を使えません。台本の返事で動きます。'}</span></div>
+      <div class="field"><label>ファシリテーター・書記・点検係の速さ（Claude のとき）</label><div class="opt"><button class="btn" data-act="set-speed" data-v="fast" aria-pressed="${st.speed === 'fast'}">速さ優先</button><button class="btn" data-act="set-speed" data-v="quality" aria-pressed="${st.speed === 'quality'}">じっくり</button></div><span class="help">速さ優先は1〜3秒ほど。じっくりは返事に10秒以上かかることがあります。整理係・AI参加者・編集者は、いつもじっくりです。</span></div>
+      <div class="field"><label>ボードと会話の並べ方</label><div class="opt"><button class="btn" data-act="set-layout" data-v="split" aria-pressed="${st.layout === 'split'}">上下に並べる</button><button class="btn" data-act="set-layout" data-v="tabs" aria-pressed="${st.layout === 'tabs'}">タブで切り替える</button></div><span class="help">広い画面では、どちらも左右に並びます。</span></div>
+      <div class="field"><label>書記の遅れ（台本のとき）</label><div class="opt">${delays.map(([v, l]) => `<button class="btn" data-act="set-delay" data-v="${v}" aria-pressed="${st.scribeDelay === v}">${l}</button>`).join('')}</div><span class="help">ファシリテーターは約0.9秒で返事をします。書記を遅らせると、付箋が返事より後に貼られる「ずれ」を試せます。</span></div>
+      <div class="field"><label>デモ</label><div class="row"><button class="btn" data-act="demo-ask">デモを最初から再生</button></div></div>
+      <div class="field"><label>最初からやり直す</label>${sheet.data.reset ? '<div class="row"><span class="fine">ボードと会話を消して、下準備からやり直します。</span><button class="btn primary" data-act="reset-do">やり直す</button><button class="btn" data-act="settings">やめる</button></div>' : '<div class="row"><button class="btn" data-act="reset-ask">最初からやり直す</button></div>'}</div>
+      <div class="row">${closeBtn}</div>`;
+  },
+  demo() {
+    const claude = useClaude();
+    return `<h2>デモを最初から再生しますか？</h2>
+      <p>例文を順に話し、〔まとめる〕〔これで決める〕〔次へ〕も自動で押して、下準備からドキュメントまで進めます。今のボードと会話は消えます。</p>
+      <p class="fine">${claude ? 'AIは Claude が返します。Claude を50回ほど呼び、あなたの Claude の利用分を使います。速さ優先なら5分ほどかかります。途中で〔止める〕で止められます。' : 'AIは台本の返事です。2分ほどで終わります。'}${dbNs ? ' 指示文と返事は、このページの持ち主だけが読める記録に残ります。' : ''}</p>
+      <div class="row"><button class="btn primary" data-act="demo-start">再生する</button>${closeBtn}</div>`;
+  },
+  back(d) {
+    return `<h2>${esc(STAGES[d.stage])}に戻りますか？</h2><p>ボードと、決めたことはそのまま残ります。戻ったあと、もう一度〔次へ〕で進めます。</p><div class="row"><button class="btn primary" data-act="back-do" data-stage="${d.stage}">戻る</button>${closeBtn}</div>`;
+  },
+  doc(d) {
+    const md = docText(!!d.appendix);
+    return `<h2>手元に残るドキュメント</h2>
+      <div class="doc">${docSections(!!d.appendix).map((s) => `<section><h3>${esc(s.h)}</h3><div class="v">${esc(s.v)}</div>${s.by ? `<span class="by">${esc(s.by)}</span>` : ''}</section>`).join('')}</div>
+      <label class="row" for="appx"><input type="checkbox" id="appx" ${d.appendix ? 'checked' : ''}> 付録（ボードの付箋）を含める</label>
+      <p class="fine">付箋には、経験や個人的な事情が入りやすいので、はじめは含めない設定にしています（案）。壁やホストに届けるかは、あなたが決めます。試作では、届ける操作は作っていません。</p>
+      <div class="row"><button class="btn primary" data-act="copy">テキストをコピー</button>${downloadsNs ? '<button class="btn" data-act="download">ファイルに保存（.md）</button>' : ''}${closeBtn}</div>
+      <textarea id="docRaw" class="sr" aria-hidden="true" tabindex="-1">${esc(md)}</textarea>`;
+  }
+};
+function confirmFields(key) {
+  const C = S.confirmed;
+  const val = (k) => (C[k] && C[k].text) || '';
+  const stage = key || ['understanding', null, 'issue', 'goal', 'solution', 'story'][S.stage];
+  if (stage === 'understanding') {
+    const last = [...S.messages].reverse().find((m) => m.who === 'user' && m.stage === 0 && !isQuestion(m.text));
+    return { id: 'understanding', title: 'お題の理解を残す', help: 'お題を、自分の言葉で一言にしてください。', items: [{ key: 'understanding', label: 'お題を自分の言葉で一言', value: val('understanding') || (last ? clean(last.text) : '') }] };
+  }
+  if (stage === 'issue' || stage === 'current') {
+    const cand = activeNotes().find((n) => n.kind === 'issue');
+    const exp = activeNotes().filter((n) => n.kind === 'exp' || n.kind === 'trouble').slice(0, 3).map((n) => n.text.replace(/[。]$/, '')).join('。');
+    return { id: 'issue', title: '課題を決める', help: '決めるのはあなたです。点検で「？」が残っていても、決めてかまいません。', items: [
+      { key: 'current', label: '現状（何が起きているか）', value: val('current') || exp, help: 'ボードの経験・困りごとから下書きしています。' },
+      { key: 'issue', label: '課題（1文）', value: val('issue') || (cand ? cand.text : '') }
+    ] };
+  }
+  if (stage === 'goal' || stage === 'indicator') {
+    const cand = activeNotes().find((n) => n.kind === 'goal');
+    const ind = activeNotes().filter((n) => n.kind === 'goalsup' || n.kind === 'goal').map((n) => n.quote || n.text).reverse().find((s) => /(以下|以上|割|減|増|ゼロ)/.test(s)) || '';
+    return { id: 'goal', title: '望ましい姿を決める', help: '誰が、どうなっているか。いつごろまでに。どうなったらわかるか。', items: [
+      { key: 'goal', label: '望ましい姿（1文）', value: val('goal') || (cand ? cand.text : '') },
+      { key: 'indicator', label: 'どうなったらわかるか（指標）', value: val('indicator') || ind, help: 'あとで効果の見通しの「ものさし」になります。なくても決められます。' }
+    ] };
+  }
+  if (stage === 'solution' || stage === 'reason') {
+    const sel = activeNotes().filter((n) => n.kind === 'idea' && n.selected);
+    const ai = sel.filter(isAI);
+    return { id: 'solution', title: '解決案を決める', help: 'ボードのアイデアの付箋を押すと、解決案に選べます。組み合わせてもかまいません。', items: [
+      { key: 'solution', label: '解決案', value: val('solution') || sel.map((n) => n.text).join(' ＋ ') },
+      { key: 'reason', label: '選んだ理由', value: val('reason'), help: '課題に効くか、望ましい姿に近づくか、実現できるか。' }
+    ], note: ai.length ? `AI参加者の案（${ai.map((n) => PERSONAS[n.author.slice(8)].name).join('、')}）を含みます。ドキュメントにもそう残します。` : '' };
+  }
+  return { id: 'story', title: 'ストーリーを決める', help: '現状 → 望ましい姿 → 課題 → 解決案 → それでどうなるか。AIの下書きを直して決めてください。', items: [
+    { key: 'story', label: 'ストーリー', value: val('story') || S.story, rows: 10 }
+  ] };
+}
+function applyConfirm(id, vals) {
+  const fields = confirmFields(id).items;
+  if (!vals[id]) { toast('空のままでは決められません。'); return false; }
+  const now = Date.now();
+  fields.forEach((f) => {
+    const old = S.confirmed[f.key];
+    S.confirmed[f.key] = { text: vals[f.key] || '', at: now, history: old ? (old.history || []).concat([{ text: old.text, at: old.at }]) : [] };
+  });
+  if (id === 'solution') {
+    const sel = activeNotes().filter((n) => n.kind === 'idea' && n.selected);
+    S.confirmed.solution.noteIds = sel.map((n) => n.id);
+    S.confirmed.solution.ai = sel.some(isAI);
+  }
+  addMsg('facil', {
+    understanding: 'お題の理解を残しました。〔次へ〕で意見出しに進めます。',
+    issue: '課題を確定しました。〔次へ〕でゴール設定に進めます。',
+    goal: '望ましい姿を確定しました。課題とのつながりを確かめています。〔次へ〕でアイデア出しに進めます。',
+    solution: '解決案を確定しました。〔次へ〕でまとめに進めます。',
+    story: 'ストーリーを確定しました。〔ドキュメントを見る〕で、手元に残る形を確かめられます。'
+  }[id]);
+  logLocal('進行役', '〔これで決める〕', `確定事項「${id}」を本人の操作で書き換えた`);
+  S.suggest = true;
+  if (id === 'goal' || (id === 'issue' && S.confirmed.goal)) runCheck('link');
+  return true;
+}
+function saveConfirm(id) {
+  const vals = {};
+  confirmFields(id).items.forEach((f) => { const el = document.getElementById('f-' + f.key); vals[f.key] = el ? el.value.trim() : ''; });
+  if (applyConfirm(id, vals)) { closeSheet(); render(); }
+}
+function docSections(appendix) {
+  const C = S.confirmed;
+  const v = (k) => (C[k] && C[k].text) || '（未確定）';
+  const s = [
+    { h: 'お題', v: DEMO.title + (C.understanding ? '\n本人の一言：' + C.understanding.text : ''), by: '本人' },
+    { h: '現状', v: v('current'), by: '本人' },
+    { h: '課題', v: v('issue'), by: '本人' },
+    { h: '望ましい姿', v: v('goal') + (C.indicator && C.indicator.text ? '\n指標：' + C.indicator.text : ''), by: '本人' },
+    { h: '解決案', v: v('solution') + (C.reason && C.reason.text ? '\n理由：' + C.reason.text : ''), by: C.solution && C.solution.ai ? '本人（AI参加者の案を含む）' : '本人' },
+    { h: 'ストーリー', v: v('story'), by: 'AIの下書きを本人が確定' },
+    { h: '効果の見通し', v: 'RAG の設計と合わせて、あとで加えます。', by: 'AIが作る項目' }
+  ];
+  if (appendix) {
+    s.push({ h: '付録：ボードの付箋', v: activeNotes().map((n) => `・[${(KIND[n.kind] || {}).label}${isAI(n) ? '・AI参加者' : ''}] ${n.text}`).join('\n') || '（なし）', by: '本人の言葉から書記が作成' });
+  }
+  return s;
+}
+function docText(appendix) {
+  const d = new Date();
+  return `# ひとりいどばた：${DEMO.title}\n\n${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日\n\n` + docSections(appendix).map((s) => `## ${s.h}\n\n${s.v}\n\n（${s.by}）\n`).join('\n');
+}
+
+/* ───────── デモ ───────── */
+function idle(limit) {
+  const max = limit || 240000;
+  return new Promise((res) => {
+    const t0 = Date.now();
+    const tick = () => {
+      const working = Object.values(pending).some((v) => v > 0);
+      if (!working || Date.now() - t0 > max || (demo && demo.stop)) res();
+      else setTimeout(tick, 300);
+    };
+    setTimeout(tick, 250);
+  });
+}
+async function demoSpeak(line) {
+  rec = { start: Date.now(), timer: setInterval(renderComposer, 400) };
+  renderComposer();
+  await pause(1100);
+  clearInterval(rec.timer);
+  rec = null;
+  busy = true;
+  renderComposer();
+  await pause(400);
+  busy = false;
+  renderComposer();
+  send(line, 'voice');
+}
+function demoConfirm(id) {
+  const vals = {};
+  confirmFields(id).items.forEach((f) => { vals[f.key] = f.value || ''; });
+  if (id === 'solution' && !vals.reason) vals.reason = '課題の「見守る大人のいない時間」に直接効き、今ある場所と人で始められるから。';
+  if (applyConfirm(id, vals)) { toast('デモ：〔これで決める〕を押しました。'); render(); }
+}
+async function runDemo() {
+  if (demo) return;
+  const ai = S.settings.ai; const speed = S.settings.speed; const layout = S.settings.layout;
+  S = fresh();
+  S.settings.ai = ai; S.settings.speed = speed; S.settings.layout = layout; S.hintClosed = false;
+  addMsg('facil', ENTRY[0], { stage: 0 });
+  lastMsgCount = 0;
+  runDocReady = false;
+  demo = { stop: false, label: '準備中' };
+  closeSheet();
+  render();
+  renderComposer();
+  logLocal('デモ', '再生を始めた', useClaude() ? 'AI：Claude（' + (speed === 'quality' ? 'じっくり' : '速さ優先') + '）' : 'AI：台本');
+  let status = 'done';
+  try {
+    for (let st = 0; st <= 5; st++) {
+      if (demo.stop) throw new Error('stop');
+      if (S.stage !== st) { goStage(st, false); await pause(800); }
+      if (st === 5) { demo.label = 'まとめ（下書きを作っています）'; renderBar(); await idle(); await pause(800); }
+      const lines = SCRIPT[st];
+      for (let i = 0; i < lines.length; i++) {
+        if (demo.stop) throw new Error('stop');
+        demo.label = `${STAGES[st]}（${i + 1} / ${lines.length}）`;
+        renderBar();
+        await demoSpeak(lines[i]);
+        await idle();
+        await pause(900);
+      }
+      if (demo.stop) throw new Error('stop');
+      if (st === 1) {
+        demo.label = '意見出し（〔まとめる〕）'; renderBar();
+        const p = runOrganizer();
+        if (p) { await p; await idle(); }
+        if (S.proposal) { S.groups = S.proposal.groups; logLocal('本人', '〔この案を使う〕', 'デモ：整理の案を採用した'); render(); }
+        await pause(900);
+      }
+      if (st === 4) {
+        demo.label = 'アイデア出し（〔ほかの人のアイデアも聞く〕）'; renderBar();
+        runPersonas();
+        await pause(1200);
+        await idle();
+        const ideas = activeNotes().filter((n) => n.kind === 'idea');
+        const mine = ideas.find((n) => !isAI(n));
+        const theirs = ideas.find((n) => n.author === 'persona:minami') || ideas.find(isAI);
+        [mine, theirs].filter(Boolean).forEach((n) => { n.selected = true; });
+        render();
+        await pause(900);
+      }
+      const confirmId = ['understanding', null, 'issue', 'goal', 'solution', 'story'][st];
+      if (confirmId) { demoConfirm(confirmId); await idle(); await pause(900); }
+    }
+    openSheet('doc', { appendix: false });
+  } catch (e) {
+    status = 'stopped';
+    toast('デモを止めました。');
+  } finally {
+    logLocal('デモ', status === 'done' ? '最後まで進んだ' : '止めた', '');
+    finishRunDoc(status);
+    demo = null;
+    renderComposer();
+    render();
+  }
+}
+
+/* ───────── 操作 ───────── */
+function startStopMic() {
+  if (busy || demo) return;
+  if (!rec) {
+    rec = { start: Date.now(), timer: setInterval(renderComposer, 500) };
+    renderComposer();
+    return;
+  }
+  clearInterval(rec.timer);
+  rec = null;
+  const i = S.script[S.stage] || 0;
+  const line = (SCRIPT[S.stage] || [])[i];
+  if (!line) {
+    toast('この段階の例文は使い切りました。キーボードで入力できます。');
+    composerMode = 'text';
+    renderComposer();
+    const t = $('#txt'); if (t) t.focus();
+    return;
+  }
+  S.script[S.stage] = i + 1;
+  busy = true;
+  renderComposer();
+  setTimeout(() => { busy = false; renderComposer(); send(line, 'voice'); }, 650);
+}
+function sendTyped() {
+  const t = $('#txt');
+  if (!t || !t.value.trim() || demo) return;
+  const v = t.value;
+  t.value = '';
+  send(v, 'text');
+  t.focus();
+}
+function showNote(id) {
+  if (S.settings.layout === 'tabs' && S.view !== 'board') { S.view = 'board'; render(); }
+  const el = document.getElementById('note-' + id);
+  if (!el) return;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1600);
+}
+
+const ACTIONS = {
+  close: closeSheet,
+  'hint-close': () => { S.hintClosed = true; render(); },
+  view: (t) => { S.view = t.dataset.view; render(); },
+  mic: startStopMic,
+  'mode-text': () => { if (demo) return; if (rec) { clearInterval(rec.timer); rec = null; } composerMode = 'text'; renderComposer(); const t = $('#txt'); if (t) t.focus(); },
+  'mode-voice': () => { composerMode = 'voice'; renderComposer(); },
+  send: sendTyped,
+  next: () => {
+    if (demo) return;
+    const why = canLeave(S.stage);
+    if (why) { toast(why); return; }
+    if (S.stage === 5) { openSheet('doc', { appendix: false }); return; }
+    goStage(S.stage + 1, false);
+  },
+  back: (t) => { if (!demo) openSheet('back', { stage: Number(t.dataset.stage) }); },
+  'back-do': (t) => { closeSheet(); goStage(Number(t.dataset.stage), true); },
+  note: (t) => openSheet('note', { id: t.dataset.note }),
+  ref: (t) => showNote(t.dataset.note),
+  source: (t) => openSheet('source', { id: t.dataset.chunk }),
+  'note-edit': (t) => openSheet('note', { id: t.dataset.note, edit: true }),
+  'note-save': (t) => {
+    const n = getNote(t.dataset.note);
+    const v = $('#noteText').value.trim();
+    if (!v) { toast('空の付箋にはできません。消すときは〔消す〕を押してください。'); return; }
+    if (n && v !== n.text) { n.text = v; n.userEdited = true; n.version += 1; }
+    logLocal('本人', '〔直す〕', '付箋を直した（以後、AIは本文を上書きしない）');
+    closeSheet(); render();
+  },
+  'note-trash': (t) => { const n = getNote(t.dataset.note); if (n) { n.status = 'trash'; n.selected = false; n.version += 1; } closeSheet(); render(); toast('ごみ箱に入れました。ごみ箱から戻せます。'); },
+  'note-restore': (t) => { const n = getNote(t.dataset.note); if (n) { n.status = 'active'; n.version += 1; } render(); renderSheet(); },
+  'note-select': (t) => { const n = getNote(t.dataset.note); if (n) n.selected = !n.selected; closeSheet(); render(); },
+  trash: () => openSheet('trash'),
+  log: () => openSheet('log'),
+  slides: () => openSheet('slides'),
+  settings: () => openSheet('settings'),
+  'set-ai': (t) => { S.settings.ai = t.dataset.v; render(); renderSheet(); },
+  'set-speed': (t) => { S.settings.speed = t.dataset.v; save(); renderSheet(); },
+  'set-layout': (t) => { S.settings.layout = t.dataset.v; render(); renderSheet(); },
+  'set-delay': (t) => { S.settings.scribeDelay = Number(t.dataset.v); save(); renderSheet(); },
+  'reset-ask': () => openSheet('settings', { reset: true }),
+  'reset-do': () => {
+    const keep = S.settings;
+    S = fresh(); S.settings = keep;
+    addMsg('facil', ENTRY[0], { stage: 0 });
+    lastMsgCount = 0; runDocReady = false;
+    closeSheet(); render();
+  },
+  'demo-ask': () => openSheet('demo'),
+  'demo-start': () => { runDemo(); },
+  'demo-stop': () => { if (demo) { demo.stop = true; demo.label = '止めています（動いているAIの返事を待っています）'; renderBar(); } },
+  organize: () => { if (!demo) runOrganizer(); },
+  'proposal-use': () => { S.groups = S.proposal.groups; logLocal('本人', '〔この案を使う〕', '整理の案を採用した'); closeSheet(); render(); },
+  'proposal-retry': () => { closeSheet(); runOrganizer(); },
+  'proposal-clear': () => { S.groups = null; closeSheet(); render(); },
+  personas: () => { if (!demo) runPersonas(); },
+  confirm: () => { if (!demo) openSheet('confirm', {}); },
+  reconfirm: (t) => { if (!demo) openSheet('confirm', { key: t.dataset.key }); },
+  'confirm-story': () => { if (!demo) openSheet('confirm', { key: 'story' }); },
+  'confirm-save': (t) => saveConfirm(t.dataset.key),
+  copy: () => {
+    const text = docText(!!(sheet && sheet.data.appendix));
+    const done = () => toast('コピーしました。');
+    const fallback = () => { const ta = $('#docRaw'); if (ta) { ta.classList.remove('sr'); ta.select(); } toast('コピーできませんでした。選んだ文字を長押しでコピーしてください。'); };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  },
+  download: () => {
+    if (!downloadsNs) return;
+    downloadsNs.save({ filename: 'ひとりいどばた.md', data: docText(!!(sheet && sheet.data.appendix)) })
+      .then((r) => { if (r && r.status === 'saved') toast('保存しました。'); })
+      .catch((e) => { if (e && e.code === 'declined') return; toast('保存できませんでした。テキストをコピーしてください。'); });
+  }
+};
+
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'backdrop') { closeSheet(); return; }
+  const t = e.target.closest('[data-act]');
+  if (!t || t.disabled) return;
+  const fn = ACTIONS[t.dataset.act];
+  if (fn) fn(t, e);
+});
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'appx' && sheet && sheet.type === 'doc') { sheet.data.appendix = e.target.checked; renderSheet(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'txt' && !e.isComposing) { e.preventDefault(); sendTyped(); }
+  if (e.key === 'Escape' && sheet) closeSheet();
+});
+
+if (window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('downloads').then((ns) => { downloadsNs = ns; if (sheet && sheet.type === 'doc') renderSheet(); }).catch(() => {});
+  window.claude.use('sample').then((fn) => { sampleFn = fn; render(); if (sheet) renderSheet(); }).catch(() => {});
+  window.claude.use('db').then((ns) => { dbNs = ns; }).catch(() => {});
+}
+
+renderComposer();
+render();
+})();
+</script>
