@@ -32,6 +32,7 @@ const KaigiCreate = lazy(() => import("./pages/KaigiCreate"));
 const KaigiRoom = lazy(() => import("./pages/KaigiRoom"));
 const KaigiWall = lazy(() => import("./pages/KaigiWall"));
 const KaigiHost = lazy(() => import("./pages/KaigiHost"));
+const HitoriIdobata = lazy(() => import("./pages/HitoriIdobata"));
 
 const LazyPage = ({ children }: { children: ReactNode }) => (
   <PageLayout>
@@ -156,6 +157,14 @@ export const router = createBrowserRouter([
           <PageLayout>
             <KouchouReportDetail />
           </PageLayout>
+        ),
+      },
+      {
+        path: "hitori",
+        element: (
+          <LazyPage>
+            <HitoriIdobata />
+          </LazyPage>
         ),
       },
       {

@@ -7,6 +7,10 @@
 
 ---
 
+> いどばた本体への組み込み：画面は `frontend/src/components/hitori/engine.js`、指示文は `idea-discussion/backend/services/hitori/prompts.js`。これらは 2026-11-01 の版から移した。ここを直しても本体には反映されない。
+
+---
+
 ## 0. ひとことで
 
 - 1つの HTML ファイル（`index.html`）だけで動く。下準備からドキュメントまで、17の段階を一通り試せる

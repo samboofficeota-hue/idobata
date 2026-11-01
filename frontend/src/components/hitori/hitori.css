@@ -1,0 +1,257 @@
+/* ひとりいどばたの画面。試作（docs/prototypes/hitori-idobata）の見た目を、.hitori-root の中だけに効かせる */
+/* 配置：スマホ1画面のアプリ。上から 見出し → 段階 → ボードと会話（上下 or タブ）→ 操作と「押して話す」。広い画面ではボードと会話を左右に並べる */
+/* 色・書体・行間は、いどばたの frontend/src/index.css と tailwind.config.js に合わせる（明るい画面だけ。いどばたに暗い画面の設定はない） */
+.hitori-root {
+  --bg: hsl(0 0% 100%);                 /* background */
+  --canvas: hsl(210 20% 98%);           /* neutral-50：ボードの地 */
+  --surface: hsl(0 0% 100%);            /* card */
+  --surface-2: hsl(240 4.8% 95.9%);     /* muted */
+  --fg: hsl(240 10% 3.9%);              /* foreground */
+  --muted: hsl(240 3.8% 46.1%);         /* muted-foreground */
+  --line: hsl(240 5.9% 90%);            /* border */
+  --gray-50: hsl(210 20% 98%);
+  --gray-100: hsl(220 14.3% 95.9%);
+  --gray-300: hsl(216 12.2% 83.9%);
+  --dots: hsl(220 13% 91%);
+  --primary: hsl(216 100% 58.4%);       /* primary（DEFAULT = 700） */
+  --primary-dark: hsl(216 73.1% 46.7%); /* primary-800 */
+  --primary-ink: hsl(216 76.5% 35.1%);  /* primary-900：薄い青の上の文字 */
+  --primary-weak: hsl(212 100% 91.2%);  /* primary-50 */
+  --primary-100: hsl(214 100% 86.5%);
+  --primary-fg: hsl(0 0% 100%);
+  --accent: hsl(170 100% 38.2%);        /* accent（DEFAULT = 700） */
+  --accent-ink: hsl(170 100% 25.5%);    /* accent-900：薄い青緑の上の文字 */
+  --accent-weak: hsl(170 64.3% 83.5%);  /* accent-50 */
+  --destructive: hsl(0 84.2% 60.2%);
+  --scrim: rgba(9, 9, 11, 0.45);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04); /* subtle-shadow */
+  --font-ui: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  --font-num: "Inter", "BIZ UDPGothic", sans-serif;
+  --ls: 0.025em;
+  --lh-body: 2;
+  --lh-heading: 1.62;
+  --lh-compact: 1.375;
+  --r-sm: 6px;   /* rounded-md */
+  --r-md: 8px;   /* rounded-lg */
+  color-scheme: light;
+}
+.hitori-root *, .hitori-root *::before, .hitori-root *::after { box-sizing: inherit; }
+.hitori-root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: var(--ls);
+  -webkit-font-smoothing: antialiased;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.hitori-root button, .hitori-root input, .hitori-root textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+.hitori-root button:focus-visible, .hitori-root input:focus-visible, .hitori-root textarea:focus-visible, .hitori-root .note:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.hitori-root .app { height: 100%; max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; padding-block: 10px 10px; }
+
+/* 見出し */
+.hitori-root .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hitori-root .brand { font-weight: 700; font-size: 18px; line-height: var(--lh-heading); white-space: nowrap; }
+.hitori-root .theme-btn { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 4px 0; color: var(--muted); font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitori-root .theme-btn b { color: var(--fg); font-weight: 700; }
+.hitori-root .iconbtn { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; cursor: pointer; }
+.hitori-root .iconbtn.sm { width: 36px; height: 36px; }
+.hitori-root .iconbtn svg { width: 20px; height: 20px; }
+.hitori-root .modechip { flex: 0 0 auto; font-size: 11px; line-height: 1.8; padding: 0 8px; border-radius: 999px; background: var(--accent-weak); color: var(--accent-ink); font-weight: 700; white-space: nowrap; }
+.hitori-root .modechip.fake { background: var(--gray-100); color: var(--muted); }
+
+/* 段階 */
+.hitori-root .stepper { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.hitori-root .step { background: none; border: 0; padding: 0; font-size: 11px; line-height: 1.6; color: var(--muted); text-align: center; cursor: default; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitori-root .step .bar { display: block; height: 4px; border-radius: 2px; background: var(--gray-100); margin-bottom: 3px; }
+.hitori-root .step.done { cursor: pointer; }
+.hitori-root .step.done .bar { background: var(--accent); }
+.hitori-root .step.cur { color: var(--fg); font-weight: 700; }
+.hitori-root .step.cur .bar { background: var(--primary); }
+
+.hitori-root .hint { display: flex; gap: 8px; align-items: flex-start; background: var(--gray-100); border-radius: var(--r-md); padding: 6px 10px; font-size: 12px; line-height: 1.7; }
+.hitori-root .hint.demo { background: var(--primary-weak); color: var(--primary-ink); }
+.hitori-root .hint p { margin: 0; flex: 1; min-width: 0; }
+.hitori-root .linkbtn { background: none; border: 0; padding: 2px 4px; color: var(--primary-dark); cursor: pointer; font-size: 12px; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ボードと会話 */
+.hitori-root .main { flex: 1; min-height: 0; display: grid; gap: 8px; }
+.hitori-root .main.split { grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr); }
+.hitori-root .main.tabs { grid-template-rows: auto minmax(0, 1fr); }
+.hitori-root .tabbar { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--surface-2); border-radius: var(--r-md); padding: 3px; }
+.hitori-root .tabbar[hidden] { display: none; }
+.hitori-root .tabbar button { border: 0; background: none; border-radius: var(--r-sm); padding: 6px; cursor: pointer; font-size: 14px; color: var(--muted); }
+.hitori-root .tabbar button[aria-selected="true"] { background: var(--surface); color: var(--fg); font-weight: 700; box-shadow: var(--shadow); }
+.hitori-root .badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--primary); color: var(--primary-fg); font-size: 11px; line-height: 18px; margin-left: 4px; font-family: var(--font-num); }
+.hitori-root .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow); min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.hitori-root .panel-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); min-height: 36px; }
+.hitori-root .panel-head .title { font-weight: 700; color: var(--fg); font-size: 14px; }
+.hitori-root .panel-head .status { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--primary-dark); }
+.hitori-root .panel-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+.hitori-root .board { background-color: var(--canvas); background-image: radial-gradient(var(--dots) 1px, transparent 1px); background-size: 20px 20px; }
+@media (min-width: 820px) {
+  .hitori-root .main.split, .hitori-root .main.tabs { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .hitori-root .main .tabbar { display: none; }
+  .hitori-root .main .panel[hidden] { display: flex !important; }
+}
+
+/* ボードの中身 */
+.hitori-root .sec { display: grid; gap: 8px; margin-bottom: 18px; }
+.hitori-root .sec-h { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--muted); }
+.hitori-root .sec-h b { color: var(--fg); font-size: 14px; }
+.hitori-root .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 8px; }
+.hitori-root .notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.hitori-root .note { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 84px; padding: 8px 10px 10px; border: 1px solid transparent; border-radius: 4px; background: var(--primary-weak); color: var(--fg); box-shadow: var(--shadow); text-align: left; cursor: pointer; transform: rotate(var(--r, 0deg)); font-size: 14px; line-height: 1.6; font-weight: 700; }
+.hitori-root .note .meta { display: flex; justify-content: space-between; gap: 6px; font-weight: 400; font-size: 11px; line-height: 1.5; color: var(--primary-ink); }
+.hitori-root .note .meta .n { font-family: var(--font-num); }
+.hitori-root .note .txt { overflow-wrap: anywhere; }
+.hitori-root .note .flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+.hitori-root .chip { font-weight: 400; font-size: 11px; line-height: 1.7; padding: 0 6px; border-radius: 999px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); }
+.hitori-root .note.k-seed { background: var(--gray-100); }
+.hitori-root .note.k-seed .meta { color: var(--muted); }
+.hitori-root .note.k-issue { background: var(--primary-100); }
+.hitori-root .note.k-goal { background: var(--accent-weak); }
+.hitori-root .note.k-goal .meta { color: var(--accent-ink); }
+.hitori-root .note.k-idea { background: var(--surface); border-color: var(--primary-100); }
+.hitori-root .note.k-ai { background: var(--gray-50); border: 1px dashed var(--gray-300); box-shadow: none; }
+.hitori-root .note.k-ai .meta { color: var(--muted); }
+.hitori-root .note.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
+.hitori-root .note.flash { outline: 3px solid var(--primary); outline-offset: 2px; }
+.hitori-root .note.fresh { animation: pop 0.35s ease-out; }
+@keyframes pop { from { opacity: 0; transform: rotate(var(--r, 0deg)) translateY(6px); } to { opacity: 1; transform: rotate(var(--r, 0deg)) translateY(0); } }
+.hitori-root .group { display: grid; gap: 8px; padding: 10px; border: 1px dashed var(--gray-300); border-radius: var(--r-md); background: var(--surface); }
+.hitori-root .group-h { font-size: 14px; font-weight: 700; }
+.hitori-root .group-h span { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 6px; }
+
+.hitori-root .card { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); text-align: left; }
+.hitori-root .card .lab { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.hitori-root .card .body { font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+.hitori-root .card .sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.hitori-root .card.cand { background: var(--primary-weak); border-color: var(--primary-100); }
+.hitori-root .card.cand.goal { background: var(--accent-weak); border-color: transparent; }
+.hitori-root .card.cand .lab { color: var(--primary-ink); }
+.hitori-root .card.cand.goal .lab { color: var(--accent-ink); }
+.hitori-root .card.dashed { border-style: dashed; background: transparent; box-shadow: none; }
+.hitori-root .card.fact { cursor: pointer; font: inherit; color: inherit; }
+.hitori-root .card.fact .body { font-size: 14px; }
+.hitori-root .tag { font-size: 11px; padding: 0 8px; border-radius: 999px; line-height: 1.8; white-space: nowrap; }
+.hitori-root .tag.fixed { background: var(--accent-weak); color: var(--accent-ink); font-weight: 700; }
+.hitori-root .tag.ai { background: var(--gray-100); color: var(--muted); border: 1px dashed var(--gray-300); }
+.hitori-root .tag.src { background: var(--primary-weak); color: var(--primary-ink); font-weight: 700; }
+.hitori-root .checks { display: flex; flex-wrap: wrap; gap: 4px; }
+.hitori-root .chk { font-size: 11px; padding: 0 8px; border-radius: 999px; line-height: 1.9; }
+.hitori-root .chk.ok { background: var(--accent-weak); color: var(--accent-ink); }
+.hitori-root .chk.ng { background: var(--surface); color: var(--fg); border: 1px dashed var(--gray-300); }
+.hitori-root .chk.wait { background: var(--gray-100); color: var(--muted); }
+.hitori-root .cards { display: grid; gap: 8px; }
+
+.hitori-root .slides { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+.hitori-root .slide { flex: 0 0 86%; max-width: 420px; scroll-snap-align: start; display: grid; gap: 6px; align-content: start; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); }
+.hitori-root .slide .no { font-size: 11px; color: var(--muted); font-family: var(--font-num); }
+.hitori-root .slide h3 { margin: 0; font-size: 16px; line-height: var(--lh-heading); text-wrap: balance; }
+.hitori-root .slide p { margin: 0; font-size: 14px; line-height: 1.8; }
+.hitori-root .fine { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.hitori-root .docrow { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.6; padding: 6px 0; border-top: 1px solid var(--line); }
+
+/* 会話 */
+.hitori-root .msgs { display: flex; flex-direction: column; gap: 12px; }
+.hitori-root .msg { max-width: 88%; display: grid; gap: 2px; }
+.hitori-root .msg .who { font-size: 11px; color: var(--muted); font-weight: 700; }
+.hitori-root .msg .bubble { padding: 8px 12px; border-radius: var(--r-md); background: var(--surface-2); line-height: 1.75; overflow-wrap: anywhere; }
+.hitori-root .msg.user { align-self: flex-end; }
+.hitori-root .msg.user .who { text-align: right; }
+.hitori-root .msg.user .bubble { background: var(--primary-weak); }
+.hitori-root .msg.persona .bubble { background: var(--gray-50); border: 1px dashed var(--gray-300); }
+.hitori-root .msg.system { align-self: center; max-width: 100%; font-size: 12px; color: var(--muted); }
+.hitori-root .refs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.hitori-root .ref { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; font-size: 11px; padding: 1px 8px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitori-root .ref.src { border-color: var(--primary-100); color: var(--primary-ink); background: var(--primary-weak); }
+.hitori-root .typing { align-self: flex-start; color: var(--muted); font-size: 13px; padding: 6px 12px; background: var(--surface-2); border-radius: var(--r-md); }
+.hitori-root .typing i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); margin: 0 1px; animation: blink 1.2s infinite; }
+.hitori-root .typing i:nth-child(2) { animation-delay: 0.2s; } .hitori-root .typing i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+/* 操作 */
+.hitori-root .foot { display: grid; gap: 8px; }
+.hitori-root .actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 1px; }
+.hitori-root .actions::-webkit-scrollbar { display: none; }
+.hitori-root .btn { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-sm); padding: 8px 14px; font-size: 14px; line-height: 1.5; white-space: nowrap; cursor: pointer; }
+.hitori-root .btn:hover { background: var(--gray-50); }
+.hitori-root .btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); font-weight: 700; }
+.hitori-root .btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+.hitori-root .btn.good { background: var(--accent-weak); color: var(--accent-ink); border-color: transparent; font-weight: 700; }
+.hitori-root .btn.pulse { animation: glow 1.6s ease-in-out infinite; }
+@keyframes glow { 0%, 100% { box-shadow: 0 0 0 0 var(--primary-weak); } 50% { box-shadow: 0 0 0 6px var(--primary-weak); } }
+.hitori-root .btn:disabled { opacity: 0.45; cursor: default; }
+.hitori-root .spacer { flex: 1 0 8px; }
+.hitori-root .composer { display: flex; gap: 8px; align-items: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.hitori-root .mic { flex: 1; min-width: 0; height: 56px; border: 0; border-radius: 999px; background: var(--primary); color: var(--primary-fg); font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: var(--shadow); }
+.hitori-root .mic svg { width: 22px; height: 22px; }
+.hitori-root .mic.rec { background: var(--destructive); animation: ring 1.4s ease-in-out infinite; }
+.hitori-root .mic.busy { opacity: 0.7; cursor: default; }
+@keyframes ring { 0%, 100% { box-shadow: 0 0 0 0 var(--gray-100); } 50% { box-shadow: 0 0 0 8px var(--gray-100); } }
+.hitori-root .txtin { flex: 1; min-width: 0; height: 46px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); padding: 0 14px; }
+
+/* シート */
+.hitori-root .backdrop { position: fixed; inset: 0; z-index: 70; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
+.hitori-root .sheet { width: 100%; max-width: 640px; max-height: 88%; overflow: auto; background: var(--surface); border-radius: 12px 12px 0 0; padding-block: 16px calc(18px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 12px; }
+.hitori-root .sheet h2 { margin: 0; font-size: 18px; line-height: var(--lh-heading); text-wrap: balance; }
+.hitori-root .sheet p { margin: 0; }
+.hitori-root .sheet .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hitori-root .field { display: grid; gap: 4px; }
+.hitori-root .field label { font-size: 14px; font-weight: 700; }
+.hitori-root .field .help { font-size: 12px; color: var(--muted); }
+.hitori-root textarea { width: 100%; min-height: 72px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); padding: 8px 10px; resize: vertical; line-height: 1.75; }
+.hitori-root .quote { font-size: 13px; line-height: 1.75; padding: 8px 10px; background: var(--gray-50); border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--muted); }
+.hitori-root .quote.hit { background: var(--primary-weak); border-color: var(--primary-100); color: var(--fg); }
+.hitori-root .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.hitori-root .kv dt { color: var(--muted); }
+.hitori-root .kv dd { margin: 0; overflow-wrap: anywhere; }
+.hitori-root .opt { display: flex; gap: 8px; flex-wrap: wrap; }
+.hitori-root .opt button[aria-pressed="true"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.hitori-root .log { display: grid; gap: 6px; font-size: 12px; }
+.hitori-root .log .e { display: grid; grid-template-columns: 5.5em 1fr; gap: 2px 8px; padding: 6px 8px; border-radius: var(--r-sm); background: var(--gray-50); border: 1px solid var(--line); }
+.hitori-root .log .e .r { font-weight: 700; }
+.hitori-root .log .e.ng { border-style: dashed; border-color: var(--gray-300); }
+.hitori-root .log .e .t { color: var(--muted); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.hitori-root .doc { display: grid; gap: 12px; }
+.hitori-root .doc section { display: grid; gap: 2px; }
+.hitori-root .doc h3 { margin: 0; font-size: 12px; color: var(--muted); }
+.hitori-root .doc .v { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
+.hitori-root .doc .by { font-size: 11px; color: var(--muted); }
+.hitori-root .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); z-index: 80; max-width: min(90%, 480px); background: var(--fg); color: var(--bg); border-radius: var(--r-md); padding: 8px 14px; font-size: 13px; box-shadow: var(--shadow); }
+.hitori-root .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: reduce) {
+  .hitori-root .note.fresh, .hitori-root .btn.pulse, .hitori-root .mic.rec, .hitori-root .typing i { animation: none; }
+}
+
+/* 手元に残るドキュメント：いどばたの全画面レポート（full-screen-report-modal）に合わせる。レポート本体の見た目は script の REPORT_CSS */
+.hitori-root .report-modal { position: fixed; inset: 0; z-index: 75; background: var(--bg); display: flex; flex-direction: column; }
+.hitori-root .rm-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line);
+  padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.hitori-root .rm-title { font-weight: 700; font-size: 16px; line-height: 1.6; color: var(--fg); }
+.hitori-root .rm-body { flex: 1; min-height: 0; overflow: auto; padding-top: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.hitori-root .rm-tools { max-width: 880px; margin: 0 auto 8px; display: grid; gap: 8px; }
+.hitori-root .rm-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.hitori-root .rm-check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.hitori-root .dl-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--primary); background: var(--surface); color: var(--primary-dark); font-weight: 700; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.hitori-root .dl-btn:hover { background: rgba(210, 231, 255, 0.35); }
+@media (min-width: 768px) {
+  .hitori-root .rm-head { padding-left: 32px; padding-right: 32px; }
+  .hitori-root .rm-title { font-size: 20px; }
+  .hitori-root .rm-body { padding-left: 32px; padding-right: 32px; }
+}
+
+/* サイトのヘッダーの下を1画面として使う */
+.hitori-root { height: calc(100dvh - 81px); }
+
+/* サイトの Tailwind の .fixed（position: fixed）と名前がぶつかるので打ち消す */
+.hitori-root .tag.fixed { position: static; }

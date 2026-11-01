@@ -5,6 +5,7 @@ import {
   Home,
   Menu,
   MessageSquare,
+  Mic,
   UserRound,
   Users,
   X,
@@ -40,6 +41,11 @@ const NAV_ITEMS = [
     label: "いどばた会議室",
     icon: Users,
     to: "/kaigi",
+  },
+  {
+    label: "ひとりいどばた",
+    icon: Mic,
+    to: "/hitori",
   },
   {
     label: "はじめに",
