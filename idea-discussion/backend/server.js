@@ -145,6 +145,7 @@ app.use(attachUser);
 // --- API Routes ---
 
 import authRoutes from "./routes/authRoutes.js"; // 追加: 認証ルート
+import hitoriRoutes from "./routes/hitoriRoutes.js"; // ひとりいどばた
 import kaigiRoutes from "./routes/kaigiRoutes.js"; // いどばた会議室
 import likeRoutes from "./routes/likeRoutes.js"; // Import like routes
 import opinionsRoutes from "./routes/opinionsRoutes.js"; // Import opinions routes
@@ -199,6 +200,7 @@ app.use("/api/questions/:questionId", questionEmbeddingRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/kaigi", kaigiRoutes); // いどばた会議室
+app.use("/api/hitori", hitoriRoutes); // ひとりいどばた
 // アップロードされたプロフィール画像だけを配信する（uploads/temp などは出さない）。
 // 画像の拡張子以外は返さず、ブラウザに形式を推測させない
 app.use(

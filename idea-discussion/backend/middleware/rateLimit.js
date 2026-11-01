@@ -45,6 +45,12 @@ const transcribePerMinute = limiter(MINUTE, 10, byUser);
 const transcribePerDay = limiter(24 * 60 * MINUTE, 200, byUser);
 export const transcribeLimiter = [transcribePerMinute, transcribePerDay];
 
+// ひとりいどばたのAI：1回の発言で3〜4役を呼ぶので、チャットより多く通す。
+// 教室では全員が同じIPになるので、利用者ごとに数える
+const hitoriPerMinute = limiter(MINUTE, 60, byUser);
+const hitoriPerDay = limiter(24 * 60 * MINUTE, 800, byUser);
+export const hitoriLimiter = [hitoriPerMinute, hitoriPerDay];
+
 // 利用者トークンの発行（新しい userId を作り放題にしない）
 export const userSessionLimiter = limiter(15 * MINUTE, 60);
 
