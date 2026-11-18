@@ -15,11 +15,11 @@ function getClient() {
  * アプリ全体で使うモデルID。**変更するときはここだけ**を直す。
  * 呼び出し側は文字列を直書きせず、この定数を import して渡すこと。
  */
-const DEFAULT_MODEL = "gpt-5.6-luna";
+const DEFAULT_MODEL = "gpt-6-luna";
 const DEFAULT_MAX_TOKENS = 2048;
 
 /**
- * 既定の思考の深さ。gpt-5.6-luna は指定しないと medium で思考し、
+ * 既定の思考の深さ。gpt-6-luna（旧 gpt-5.6-luna と同様）は指定しないと medium で思考し、
  * 思考トークンが出力上限（max_completion_tokens）を消費して出力料金もかかる。
  * 上限に達すると、表示される返答が空のまま終わることがある（2026-09-10 の Sonnet 5 の障害と同じ構造）。
  * 呼び出し側は extraOptions.reasoning_effort で個別に上書きできる。
