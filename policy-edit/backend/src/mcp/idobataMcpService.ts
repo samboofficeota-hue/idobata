@@ -108,11 +108,11 @@ export class IdobataMcpService {
       const openaiTools = convertMcpToolsToOpenAI(tools);
 
       const response = await openai.chat.completions.create({
-        model: "gpt-5-mini",
+        model: "gpt-6-luna",
         messages: messages,
         tools: openaiTools.length > 0 ? openaiTools : undefined,
         tool_choice: openaiTools.length > 0 ? "auto" : undefined,
-        max_tokens: 50000,
+        max_completion_tokens: 50000,
       });
 
       const finalText: string[] = [];
@@ -174,9 +174,9 @@ export class IdobataMcpService {
           }
 
           const followUpResponse = await openai.chat.completions.create({
-            model: "gpt-5-mini",
+            model: "gpt-6-luna",
             messages: messages,
-            max_tokens: 50000,
+            max_completion_tokens: 50000,
           });
 
           if (followUpResponse.choices && followUpResponse.choices.length > 0) {

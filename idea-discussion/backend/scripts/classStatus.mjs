@@ -29,6 +29,7 @@ const HEALTH_URL =
 const CHAT_MAX_TOKENS = [600, 1200];
 // 推定費用の計算に使う公式価格（USD / 100万トークン、2026-09時点）。モデルを変えたらここも足す
 const PRICES = {
+  "gpt-6-luna": { input: 0.1, cached: 0.01, output: 0.5 },
   "gpt-5.6-luna": { input: 0.2, cached: 0.02, output: 1.2 },
   "claude-sonnet-5": { input: 2, cached: 0.2, output: 10 },
 };
